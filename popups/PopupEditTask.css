@@ -1,0 +1,234 @@
+.popup-edit-task {
+  	width: 100%;
+  	height: 385px;
+  	position: relative;
+  	overflow: hidden;
+  	text-align: left;
+  	font-size: 16px;
+  	color: #000;
+  	font-family: Roboto;
+}
+.edit-task-container {
+  	position: absolute;
+  	top: 4px;
+  	left: 0px;
+  	border-radius: 10px;
+  	background-color: #fff;
+  	border: 1px solid #e2e2e2;
+  	box-sizing: border-box;
+  	width: 1100px;
+  	overflow: hidden;
+  	display: flex;
+  	flex-direction: column;
+  	align-items: flex-start;
+  	padding: 30px 0px;
+  	gap: 20px;
+}
+.edit-title-and-desc-container {
+  	display: flex;
+  	flex-direction: column;
+  	align-items: flex-start;
+  	padding: 0px 30px;
+  	gap: 15px;
+  	font-size: 18px;
+}
+.add-title-text {
+  	align-self: stretch;
+  	position: relative;
+  	font-weight: 500;
+}
+.add-desc-text {
+  	align-self: stretch;
+  	position: relative;
+  	font-size: 16px;
+  	font-weight: 500;
+  	color: #515151;
+}
+.edit-task-deadline-container {
+  	display: none;
+  	align-items: flex-start;
+  	padding: 0px 30px;
+  	gap: 15px;
+  	text-align: center;
+}
+.deadline-container {
+  	border-radius: 10px;
+  	background-color: #ffe3e3;
+  	display: flex;
+  	align-items: center;
+  	justify-content: center;
+  	padding: 3px;
+  	flex-shrink: 0;
+}
+.date {
+  	position: relative;
+}
+.deadline-container2 {
+  	border-radius: 10px;
+  	background-color: #ffe3e3;
+  	display: none;
+  	align-items: center;
+  	justify-content: center;
+  	padding: 3px;
+  	flex-shrink: 0;
+}
+.separator {
+  	width: 1102px;
+  	max-width: 1102px;
+  	height: 2px;
+  	position: relative;
+  	border-top: 2px solid #e2e2e2;
+  	box-sizing: border-box;
+}
+.edit-config-group {
+  	display: flex;
+  	align-items: center;
+  	padding: 0px 30px;
+  	box-sizing: border-box;
+  	gap: 15px;
+  	max-height: 42px;
+}
+.add-task-config-container {
+  	align-self: stretch;
+  	border-radius: 10px;
+  	border: 2px solid #000;
+  	display: flex;
+  	align-items: center;
+  	padding: 5px;
+  	gap: 10px;
+}
+.popup-term-icon {
+  	height: 32px;
+  	width: 24px;
+  	position: relative;
+}
+.add-config-text {
+  	position: relative;
+  	font-weight: 500;
+}
+.deadline-container3 {
+  	border-radius: 10px;
+  	background-color: #ffe3e3;
+  	display: flex;
+  	align-items: center;
+  	justify-content: center;
+  	padding: 3px;
+  	text-align: center;
+}
+.prio-1 {
+  	height: 18px;
+  	width: 18px;
+  	position: relative;
+  	border-radius: 50%;
+  	background-color: #ff3f3f;
+}
+.popup-reminders-icon {
+  	height: 29px;
+  	width: 27px;
+  	position: relative;
+  	flex-shrink: 0;
+}
+.add-config-text3 {
+  	position: relative;
+  	font-weight: 500;
+  	flex-shrink: 0;
+}
+.remind-container {
+  	border-radius: 10px;
+  	background-color: #c0c6ff;
+  	display: flex;
+  	align-items: center;
+  	justify-content: center;
+  	padding: 3px;
+  	flex-shrink: 0;
+  	text-align: center;
+}
+.add-edit-alarm-status-icon {
+  	height: 28.1px;
+  	width: 26px;
+  	position: relative;
+  	display: none;
+  	flex-shrink: 0;
+}
+.edit-task-category-list-contai {
+  	display: flex;
+  	flex-direction: column;
+  	align-items: flex-start;
+  	padding: 0px 30px;
+  	gap: 15px;
+}
+.add-task-category-list {
+  	height: 42px;
+  	border-radius: 10px;
+  	background-color: #fff;
+  	border: 2px solid #000;
+  	box-sizing: border-box;
+  	display: flex;
+  	align-items: center;
+  	padding: 5px 20px;
+  	gap: 10px;
+}
+.add-edit-icon-container {
+  	height: 19px;
+  	width: 10px;
+  	position: relative;
+}
+.hashtag-text-add-edit {
+  	position: absolute;
+  	top: 0px;
+  	left: 0px;
+  	font-weight: 500;
+  	flex-shrink: 0;
+}
+.incoming-icon {
+  	position: absolute;
+  	top: -2.5px;
+  	left: 0px;
+  	width: 24px;
+  	height: 24px;
+  	display: none;
+  	flex-shrink: 0;
+}
+.drop-down-icon {
+  	height: 7px;
+  	width: 14px;
+  	position: relative;
+}
+.edit-task-buttons-container {
+  	align-self: stretch;
+  	display: flex;
+  	align-items: center;
+  	justify-content: flex-end;
+  	padding: 0px 30px;
+  	gap: 20px;
+}
+.icon-container {
+  	border-radius: 10px;
+  	background-color: #ff686b;
+  	display: flex;
+  	align-items: center;
+  	padding: 5px;
+}
+.delete-icon {
+  	height: 29.1px;
+  	width: 25px;
+  	position: relative;
+}
+.add-task-button-cancel {
+  	border-radius: 10px;
+  	border: 2px solid #e2e2e2;
+  	display: flex;
+  	align-items: center;
+  	justify-content: center;
+  	padding: 10px;
+}
+.add-task-button-complete {
+  	border-radius: 10px;
+  	background-color: #5e6bfe;
+  	display: flex;
+  	align-items: center;
+  	justify-content: center;
+  	padding: 10px;
+  	color: #fff;
+}
+

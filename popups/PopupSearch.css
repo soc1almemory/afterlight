@@ -1,0 +1,189 @@
+.popup-search {
+  	width: 100%;
+  	height: 592px;
+  	position: relative;
+  	overflow: hidden;
+  	text-align: left;
+  	font-size: 18px;
+  	color: #000;
+  	font-family: Roboto;
+}
+.search-container {
+  	position: absolute;
+  	top: 11px;
+  	left: 0px;
+  	box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+  	border-radius: 10px;
+  	background-color: #fff;
+  	border: 1px solid #e2e2e2;
+  	box-sizing: border-box;
+  	width: 924px;
+  	overflow: hidden;
+  	display: flex;
+  	flex-direction: column;
+  	align-items: flex-start;
+  	padding: 20px 0px;
+  	gap: 20px;
+  	min-width: 800px;
+}
+.search-enter-container {
+  	display: flex;
+  	align-items: center;
+  	padding: 0px 20px;
+  	gap: 20px;
+  	color: #9d9d9d;
+}
+.icon-container {
+  	height: 34px;
+  	width: 34px;
+  	display: flex;
+  	align-items: center;
+  	justify-content: center;
+  	padding: 5px;
+  	box-sizing: border-box;
+}
+.popup-search-icon {
+  	height: 24px;
+  	width: 24px;
+  	position: relative;
+}
+.search-text-enter {
+  	position: relative;
+  	font-weight: 500;
+}
+.search-separator {
+  	width: 926px;
+  	max-width: 926px;
+  	height: 2px;
+  	position: relative;
+  	border-top: 2px solid #e2e2e2;
+  	box-sizing: border-box;
+}
+.search-group {
+  	display: flex;
+  	flex-direction: column;
+  	align-items: flex-start;
+  	gap: 20px;
+  	font-size: 16px;
+}
+.search-title-container {
+  	display: flex;
+  	align-items: center;
+  	justify-content: center;
+  	padding: 0px 20px;
+  	color: #515151;
+}
+.search-title-text {
+  	position: relative;
+  	font-weight: 600;
+}
+.search-tab-container {
+  	width: 900px;
+  	height: 22px;
+  	display: flex;
+  	align-items: center;
+  	padding: 0px 20px;
+  	box-sizing: border-box;
+  	gap: 10px;
+}
+.search-tab-and-icon-group {
+  	display: flex;
+  	align-items: center;
+  	gap: 10px;
+}
+.search-tab-icon-container {
+  	display: flex;
+  	align-items: center;
+  	justify-content: center;
+  	padding: 3px;
+}
+.search-incoming-icon {
+  	height: 14px;
+  	width: 14px;
+  	position: relative;
+}
+.search-tab-text-date {
+  	position: relative;
+  	font-weight: 500;
+  	color: #9d9d9d;
+  	display: none;
+}
+.seartch-today-icon {
+  	height: 16px;
+  	width: 14px;
+  	position: relative;
+}
+.search-week-icon {
+  	height: 15.7px;
+  	width: 17px;
+  	position: relative;
+}
+.search-tab-container4 {
+  	width: 900px;
+  	height: 22px;
+  	display: flex;
+  	align-items: center;
+  	padding: 0px 20px;
+  	box-sizing: border-box;
+  	gap: 10px;
+  	font-size: 22.4px;
+}
+.tab-title-container {
+  	height: 22px;
+  	display: flex;
+  	align-items: center;
+  	gap: 10px;
+}
+.search-hashtag-text {
+  	height: 26px;
+  	width: 14px;
+  	position: relative;
+  	font-weight: 500;
+  	display: inline-block;
+  	flex-shrink: 0;
+}
+.tab-text3 {
+  	position: relative;
+  	font-size: 16px;
+  	font-weight: 500;
+  	flex-shrink: 0;
+}
+.search-tab-text-date4 {
+  	position: relative;
+  	font-size: 16px;
+  	font-weight: 500;
+  	color: #9d9d9d;
+  	display: none;
+}
+.search-group2 {
+  	display: flex;
+  	flex-direction: column;
+  	align-items: flex-start;
+  	gap: 20px;
+  	font-size: 22.4px;
+}
+.search-title-container2 {
+  	display: flex;
+  	align-items: center;
+  	justify-content: center;
+  	padding: 0px 20px;
+  	font-size: 16px;
+  	color: #515151;
+}
+.search-tab-container5 {
+  	width: 900px;
+  	height: 22px;
+  	display: flex;
+  	align-items: center;
+  	justify-content: space-between;
+  	padding: 0px 20px;
+  	box-sizing: border-box;
+  	gap: 20px;
+}
+.search-tab-text-date5 {
+  	position: relative;
+  	font-size: 16px;
+  	font-weight: 500;
+  	color: #9d9d9d;
+}
+

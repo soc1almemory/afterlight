@@ -1,0 +1,257 @@
+.popup-settings {
+  	width: 100%;
+  	height: 800px;
+  	position: relative;
+  	overflow: hidden;
+  	text-align: left;
+  	font-size: 18px;
+  	color: #000;
+  	font-family: Roboto;
+}
+.settings-container {
+  	position: absolute;
+  	top: 12px;
+  	left: 0px;
+  	box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+  	border-radius: 10px;
+  	background-color: #fff;
+  	border: 1px solid #e2e2e2;
+  	box-sizing: border-box;
+  	width: 1240px;
+  	height: 775px;
+  	overflow: hidden;
+}
+.settings-main-container {
+  	position: absolute;
+  	top: 52px;
+  	left: 316px;
+  	width: 906px;
+  	height: 723px;
+  	overflow: hidden;
+  	display: flex;
+  	flex-direction: column;
+  	align-items: flex-start;
+  	padding: 5px 50px 10px;
+  	box-sizing: border-box;
+  	gap: 25px;
+}
+.settings-main-text {
+  	position: relative;
+  	font-weight: 600;
+}
+.settings-separator {
+  	align-self: stretch;
+  	height: 1px;
+  	position: relative;
+  	border-top: 1px solid #e2e2e2;
+  	box-sizing: border-box;
+}
+.profile-image-container {
+  	display: flex;
+  	flex-direction: column;
+  	align-items: flex-start;
+  	gap: 12px;
+  	font-size: 16px;
+  	color: #515151;
+}
+.settings-profile-avatar-userna {
+  	display: flex;
+  	align-items: center;
+  	gap: 30px;
+}
+.settings-avatar-group-icon {
+  	height: 100px;
+  	width: 100px;
+  	position: relative;
+  	object-fit: cover;
+}
+.settings-username-container {
+  	display: flex;
+  	flex-direction: column;
+  	align-items: flex-start;
+  	gap: 10px;
+}
+.settings-desc-text {
+  	position: relative;
+  	font-weight: 500;
+}
+.settings-username-enter {
+  	width: 400px;
+  	border-radius: 10px;
+  	background-color: #f0f0f0;
+  	border: 1px solid #e2e2e2;
+  	box-sizing: border-box;
+  	display: flex;
+  	align-items: center;
+  	padding: 10px;
+  	font-size: 18px;
+  	color: #000;
+}
+.button-purple {
+  	border-radius: 10px;
+  	border: 2px solid #5e6bfe;
+  	display: flex;
+  	align-items: center;
+  	justify-content: center;
+  	padding: 5px;
+  	color: #5e6bfe;
+}
+.settings-item {
+  	align-self: stretch;
+  	display: flex;
+  	align-items: center;
+  	justify-content: space-between;
+  	gap: 20px;
+}
+.settings-item-inner {
+  	display: flex;
+  	flex-direction: column;
+  	align-items: flex-start;
+  	gap: 12px;
+}
+.settings-desc-text2 {
+  	position: relative;
+  	font-size: 16px;
+  	font-weight: 500;
+  	color: #515151;
+  	display: inline-block;
+  	max-width: 500px;
+}
+.button {
+  	border-radius: 10px;
+  	border: 2px solid #e2e2e2;
+  	display: flex;
+  	align-items: center;
+  	justify-content: center;
+  	padding: 5px;
+  	font-size: 16px;
+}
+.settings-desc-text4 {
+  	width: 500px;
+  	position: relative;
+  	font-size: 16px;
+  	font-weight: 500;
+  	color: #515151;
+  	display: inline-block;
+  	max-width: 500px;
+}
+.settings-item4 {
+  	align-self: stretch;
+  	display: flex;
+  	align-items: center;
+  	justify-content: space-between;
+  	gap: 20px;
+  	color: #ff686b;
+}
+.button4 {
+  	border-radius: 10px;
+  	border: 2px solid #ff686b;
+  	display: flex;
+  	align-items: center;
+  	justify-content: center;
+  	padding: 5px;
+  	font-size: 16px;
+}
+.settings-menu {
+  	position: absolute;
+  	top: 0px;
+  	left: 0px;
+  	background-color: #f0f0f0;
+  	border: 1px solid #e2e2e2;
+  	box-sizing: border-box;
+  	width: 316px;
+  	height: 775px;
+  	overflow: hidden;
+  	display: flex;
+  	flex-direction: column;
+  	align-items: flex-start;
+  	padding: 69px 18px 0px 20px;
+  	gap: 4px;
+  	font-size: 16px;
+  	color: #2f2f2f;
+}
+.settings-menu-button-container {
+  	align-self: stretch;
+  	height: 44px;
+  	border-radius: 10px;
+  	background-color: rgba(94, 107, 254, 0.1);
+  	display: flex;
+  	align-items: center;
+  	justify-content: center;
+  	padding: 3px 10px 3px 3px;
+  	box-sizing: border-box;
+  	color: #000;
+}
+.settings-menu-button-icon-text {
+  	flex: 1;
+  	display: flex;
+  	align-items: center;
+  	gap: 16px;
+  	max-width: 100%;
+}
+.icon-container {
+  	display: flex;
+  	align-items: center;
+  	justify-content: center;
+  	padding: 5px;
+}
+.settings-account-icon {
+  	height: 27px;
+  	width: 27px;
+  	position: relative;
+}
+.settings-menu-button-container2 {
+  	align-self: stretch;
+  	height: 44px;
+  	border-radius: 10px;
+  	display: flex;
+  	align-items: center;
+  	justify-content: center;
+  	padding: 3px 10px 3px 3px;
+  	box-sizing: border-box;
+}
+.settigns-theme-icon {
+  	height: 27px;
+  	width: 27px;
+  	position: relative;
+  	object-fit: contain;
+}
+.settigns-sidebar-icon {
+  	height: 23.1px;
+  	width: 27px;
+  	position: relative;
+}
+.settings-reminders-icon {
+  	height: 29px;
+  	width: 27px;
+  	position: relative;
+}
+.settings-notifications-icon {
+  	height: 27px;
+  	width: 24px;
+  	position: relative;
+}
+.settigns-telegram-icon {
+  	height: 22px;
+  	width: 27px;
+  	position: relative;
+}
+.settings-title-container {
+  	position: absolute;
+  	top: 0px;
+  	left: 0px;
+  	width: 1222px;
+  	display: flex;
+  	align-items: center;
+  	justify-content: space-between;
+  	padding: 0px 5px 0px 25px;
+  	box-sizing: border-box;
+  	gap: 20px;
+}
+.settings-close-icon {
+  	height: 38.2px;
+  	width: 38.2px;
+  	position: relative;
+  	object-fit: contain;
+}
+
