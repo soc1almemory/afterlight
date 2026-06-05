@@ -610,8 +610,8 @@ body.page-new-category-page .icon-container3 {
   	flex-shrink: 0;
 }
 
-body.page-category-page .left-nav-arrow-icon,
-body.page-new-category-page .left-nav-arrow-icon {
+body.page-category-page .nav-arrow-icon,
+body.page-new-category-page .nav-arrow-icon {
   	height: 14px;
   	width: 7px;
   	position: relative;
@@ -3099,7 +3099,7 @@ body.page-inbox .icon-container3 {
   	flex-shrink: 0;
 }
 
-body.page-inbox .left-nav-arrow-icon {
+body.page-inbox .nav-arrow-icon {
   	height: 14px;
   	width: 7px;
   	position: relative;
@@ -3423,7 +3423,7 @@ body.page-inbox .menu-button-icon-text4 {
   	position: relative;
 }
 
-body.page-inbox .today-icon {
+body.page-inbox .today-icon .incoming-icon-tab {
   	height: 27px;
   	width: 24px;
   	position: relative;
@@ -5354,7 +5354,7 @@ body.page-today .icon-container3 {
   	flex-shrink: 0;
 }
 
-body.page-today .left-nav-arrow-icon {
+body.page-today .nav-arrow-icon {
   	height: 14px;
   	width: 7px;
   	position: relative;
@@ -5426,7 +5426,7 @@ body.page-today .tab2 {
   	color: #000;
 }
 
-body.page-today .today-icon {
+body.page-today .today-icon .incoming-icon-tab {
   	height: 16px;
   	width: 14px;
   	position: relative;
@@ -7636,7 +7636,7 @@ body.page-week .icon-container3 {
   	flex-shrink: 0;
 }
 
-body.page-week .left-nav-arrow-icon {
+body.page-week .nav-arrow-icon {
   	height: 14px;
   	width: 7px;
   	position: relative;
@@ -7689,7 +7689,7 @@ body.page-week .close-icon-container {
   	opacity: 0;
 }
 
-body.page-week .today-icon {
+body.page-week .today-icon .incoming-icon-tab {
   	height: 16px;
   	width: 14px;
   	position: relative;
