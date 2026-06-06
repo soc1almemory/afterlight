@@ -10369,3 +10369,20 @@ body.page-popup-settings .settings-close-icon {
   	object-fit: contain;
 }
 
+/* ------------------------------------------------------------------------------ */
+
+.tab-icon {
+	width: 20px;
+	height: 20px;
+	position: relative;
+}
+
+.hashtag-text {
+	user-select: none;
+    cursor: default;
+}
+
+.hashtag-text2 {
+	user-select: none;
+    cursor: default;
+}
