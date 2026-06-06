@@ -1679,7 +1679,7 @@ body.page-new-category-page .settigns-telegram-icon {
 body.page-category-page .settings-title-container,
 body.page-new-category-page .settings-title-container {
   	position: absolute;
-  	top: 0px;
+  	top: 15px;
   	left: 0px;
   	width: 1222px;
   	display: flex;
@@ -1690,8 +1690,8 @@ body.page-new-category-page .settings-title-container {
   	gap: 20px;
 }
 
-body.page-category-page .settings-close-icon,
-body.page-new-category-page .settings-close-icon {
+body.page-category-page,
+body.page-new-category-page  {
   	height: 38.2px;
   	width: 38.2px;
   	position: relative;
@@ -4021,7 +4021,7 @@ body.page-inbox .settigns-telegram-icon {
 
 body.page-inbox .settings-title-container {
   	position: absolute;
-  	top: 0px;
+  	top: 15px;
   	left: 0px;
   	width: 1222px;
   	display: flex;
@@ -4032,12 +4032,7 @@ body.page-inbox .settings-title-container {
   	gap: 20px;
 }
 
-body.page-inbox .settings-close-icon {
-  	height: 38.2px;
-  	width: 38.2px;
-  	position: relative;
-  	object-fit: contain;
-}
+
 
 body.page-inbox .popup-search {
   	width: 924px;
@@ -6325,7 +6320,7 @@ body.page-today .settigns-telegram-icon {
 
 body.page-today .settings-title-container {
   	position: absolute;
-  	top: 0px;
+  	top: 15px;
   	left: 0px;
   	width: 1222px;
   	display: flex;
@@ -6336,12 +6331,6 @@ body.page-today .settings-title-container {
   	gap: 20px;
 }
 
-body.page-today .settings-close-icon {
-  	height: 38.2px;
-  	width: 38.2px;
-  	position: relative;
-  	object-fit: contain;
-}
 
 body.page-today .popup-search {
   	width: 924px;
@@ -8621,7 +8610,7 @@ body.page-week .settigns-telegram-icon {
 
 body.page-week .settings-title-container {
   	position: absolute;
-  	top: 0px;
+  	top: 15px;
   	left: 0px;
   	width: 1222px;
   	display: flex;
@@ -8632,12 +8621,6 @@ body.page-week .settings-title-container {
   	gap: 20px;
 }
 
-body.page-week .settings-close-icon {
-  	height: 38.2px;
-  	width: 38.2px;
-  	position: relative;
-  	object-fit: contain;
-}
 
 body.page-week .popup-search {
   	width: 924px;
@@ -10351,7 +10334,7 @@ body.page-popup-settings .settigns-telegram-icon {
 
 body.page-popup-settings .settings-title-container {
   	position: absolute;
-  	top: 0px;
+  	top: 15px;
   	left: 0px;
   	width: 1222px;
   	display: flex;
@@ -10362,32 +10345,8 @@ body.page-popup-settings .settings-title-container {
   	gap: 20px;
 }
 
-body.page-popup-settings .settings-close-icon {
-  	height: 38.2px;
-  	width: 38.2px;
-  	position: relative;
-  	object-fit: contain;
-}
 
-/* ------------------------------------------------------------------------------ */
 
-.tab-icon {
-	width: 20px;
-	height: 20px;
-	position: relative;
-}
-
-.hashtag-text {
-	user-select: none;
-    cursor: default;
-}
-
-.hashtag-text2 {
-	user-select: none;
-    cursor: default;
-}
-
-/* NEW-CATEGORY-PAGE CSS */
 
 body.page-new-category-page .new-category-page {
   	width: 100%;
@@ -11355,7 +11314,7 @@ body.page-new-category-page .new-category-page {
   	position: relative;
 }body.page-new-category-page .settings-title-container {
   	position: absolute;
-  	top: 0px;
+  	top: 15px;
   	left: 0px;
   	width: 1222px;
   	display: flex;
@@ -11364,11 +11323,7 @@ body.page-new-category-page .new-category-page {
   	padding: 0px 5px 0px 25px;
   	box-sizing: border-box;
   	gap: 20px;
-}body.page-new-category-page .settings-close-icon {
-  	height: 38.2px;
-  	width: 38.2px;
-  	position: relative;
-  	object-fit: contain;
+
 }body.page-new-category-page .popup-search {
   	width: 924px;
   	height: 592px;
@@ -11956,3 +11911,27 @@ body.page-new-category-page .new-category-page {
 }
 
 
+/* ------------------------------------------------------------------------------ */
+
+.tab-icon {
+	width: 20px;
+	height: 20px;
+	position: relative;
+}
+
+.hashtag-text {
+	user-select: none;
+    cursor: default;
+}
+
+.hashtag-text2 {
+	user-select: none;
+    cursor: default;
+}
+
+.settings-close-icon {
+  	height: 20px;
+  	width: 20px;
+  	position: relative;
+  	object-fit: contain;
+}
