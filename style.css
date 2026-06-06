@@ -1690,8 +1690,8 @@ body.page-new-category-page .settings-title-container {
   	gap: 20px;
 }
 
-body.page-category-page,
-body.page-new-category-page  {
+body.page-category-page .settings-close-icon,
+body.page-new-category-page .settings-close-icon {
   	height: 38.2px;
   	width: 38.2px;
   	position: relative;
@@ -11934,4 +11934,19 @@ body.page-new-category-page .new-category-page {
   	width: 20px;
   	position: relative;
   	object-fit: contain;
+}
+/* Page shell guard: Figma-export pages must not shrink to icon-sized absolute children. */
+html,
+body,
+body.page-category-page,
+body.page-new-category-page {
+	width: 100%;
+	min-width: 1920px;
+	min-height: 1080px;
+}
+
+body.page-category-page .category-page,
+body.page-new-category-page .new-category-page {
+	width: 100vw;
+	min-width: 1920px;
 }
