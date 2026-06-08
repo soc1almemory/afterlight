@@ -1012,14 +1012,18 @@ body {
 }
 
 .notes-field textarea {
-  min-height: 96px;
+  display: block;
+  min-height: 24px;
+  max-height: 75em;
   width: 100%;
-  resize: vertical;
+  resize: none;
+  overflow: hidden;
   border: 0;
   border-radius: 0;
   background: transparent;
   padding: 0;
   color: #515151;
+  line-height: 1.5;
   outline: none;
 }
 

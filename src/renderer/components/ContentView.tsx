@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import type { DragEvent } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import type { ChangeEvent, DragEvent, KeyboardEvent } from 'react';
 import type { Task, TaskScope } from '../../shared/types';
 import { assetUrl } from '../lib/assets';
 import { useTaskStore } from '../store/useTaskStore';
@@ -25,6 +25,8 @@ const titles: Record<TaskScope, string> = {
 
 const dayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 
+const MAX_NOTE_LINES = 50;
+
 export const ContentView = ({ onAddTask, onEditTask }: ContentViewProps) => {
   const activeScope = useTaskStore((state) => state.activeScope);
   const activeCategoryId = useTaskStore((state) => state.activeCategoryId);
@@ -35,6 +37,7 @@ export const ContentView = ({ onAddTask, onEditTask }: ContentViewProps) => {
   const notes = useTaskStore((state) => state.notes);
   const updateNote = useTaskStore((state) => state.updateNote);
   const [refreshLabel, setRefreshLabel] = useState(getTodayRefreshLabel());
+  const notesTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     const updateRefreshLabel = () => setRefreshLabel(getTodayRefreshLabel());
@@ -56,6 +59,37 @@ export const ContentView = ({ onAddTask, onEditTask }: ContentViewProps) => {
     return note.scope === activeScope && !note.categoryId;
   });
   const noteText = activeNote?.text ?? '';
+
+  useEffect(() => {
+    const editor = notesTextareaRef.current;
+
+    if (!editor) {
+      return;
+    }
+
+    const computedStyle = window.getComputedStyle(editor);
+    const lineHeight = Number.parseFloat(computedStyle.lineHeight) || 22;
+    const maxHeight = lineHeight * MAX_NOTE_LINES;
+
+    editor.style.height = 'auto';
+    editor.style.height = `${Math.min(editor.scrollHeight, maxHeight)}px`;
+    editor.style.overflowY = editor.scrollHeight > maxHeight ? 'auto' : 'hidden';
+  }, [activeCategoryId, activeScope, noteText]);
+
+  const handleNoteChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
+    void updateNote(activeScope, limitNoteLines(event.target.value), activeCategoryId);
+  };
+
+  const handleNoteKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    const editor = event.currentTarget;
+
+    if (
+      event.key === 'Enter' &&
+      wouldExceedNoteLineLimit(editor.value, editor.selectionStart, editor.selectionEnd)
+    ) {
+      event.preventDefault();
+    }
+  };
 
   return (
     <main className="workspace">
@@ -107,8 +141,11 @@ export const ContentView = ({ onAddTask, onEditTask }: ContentViewProps) => {
         <label className="notes-field">
           <span>Заметки</span>
           <textarea
+            ref={notesTextareaRef}
             value={noteText}
-            onChange={(event) => void updateNote(activeScope, event.target.value, activeCategoryId)}
+            rows={1}
+            onChange={handleNoteChange}
+            onKeyDown={handleNoteKeyDown}
             placeholder="Напишите что-нибудь важное, чтобы не забыть."
           />
         </label>
@@ -203,6 +240,25 @@ const isTaskVisible = (task: Task, activeScope: TaskScope, activeCategoryId: str
   }
 
   return task.scope === activeScope;
+};
+
+const limitNoteLines = (value: string) => {
+  const lines = value.split('\n');
+
+  if (lines.length <= MAX_NOTE_LINES) {
+    return value;
+  }
+
+  const visibleLines = lines.slice(0, MAX_NOTE_LINES - 1);
+  const overflowLine = lines.slice(MAX_NOTE_LINES - 1).join(' ');
+
+  return [...visibleLines, overflowLine].join('\n');
+};
+
+const wouldExceedNoteLineLimit = (value: string, selectionStart: number, selectionEnd: number) => {
+  const nextValue = `${value.slice(0, selectionStart)}\n${value.slice(selectionEnd)}`;
+
+  return nextValue.split('\n').length > MAX_NOTE_LINES;
 };
 
 const buildWeekGroups = (tasks: Task[]): WeekGroup[] => {
