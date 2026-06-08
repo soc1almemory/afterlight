@@ -70,29 +70,36 @@ export const SettingsDialog = ({ isOpen, onClose }: SettingsDialogProps) => {
           <button className="settings-close-button" type="button" aria-label="Закрыть настройки" onClick={onClose}>
             <img src={assetUrl('settings-close-icon.svg')} alt="" />
           </button>
-          {activePage === 'account' ? <AccountSettings /> : <SettingsPlaceholder title={activeItem?.label ?? 'Раздел'} />}
+          {activePage === 'account' ? (
+            <AccountSettings onAfterReset={onClose} />
+          ) : (
+            <SettingsPlaceholder title={activeItem?.label ?? 'Раздел'} />
+          )}
         </main>
       </section>
     </div>
   );
 };
 
-const AccountSettings = () => {
+const AccountSettings = ({ onAfterReset }: { onAfterReset: () => void }) => {
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const profile = useTaskStore((state) => state.profile);
+  const resetProfile = useTaskStore((state) => state.resetProfile);
   const updateProfile = useTaskStore((state) => state.updateProfile);
   const updateWorkspace = useTaskStore((state) => state.updateWorkspace);
   const workspace = useTaskStore((state) => state.workspace);
   const [avatarDataUrl, setAvatarDataUrl] = useState(profile.avatarDataUrl);
   const [email, setEmail] = useState(profile.email ?? '');
   const [name, setName] = useState(profile.name);
+  const [password, setPassword] = useState('');
   const [workspaceTitle, setWorkspaceTitle] = useState(workspace.title);
-  const canSave = Boolean(name.trim() && workspaceTitle.trim());
+  const canSave = Boolean(name.trim() && workspaceTitle.trim() && email.trim());
 
   useEffect(() => {
     setAvatarDataUrl(profile.avatarDataUrl);
     setEmail(profile.email ?? '');
     setName(profile.name);
+    setPassword('');
   }, [profile]);
 
   useEffect(() => {
@@ -108,14 +115,9 @@ const AccountSettings = () => {
 
     const reader = new FileReader();
     reader.addEventListener('load', () => {
-      const result = typeof reader.result === 'string' ? reader.result : undefined;
-
-      if (!result) {
-        return;
+      if (typeof reader.result === 'string') {
+        setAvatarDataUrl(reader.result);
       }
-
-      setAvatarDataUrl(result);
-      void updateProfile({ ...profile, avatarDataUrl: result, email, name: name.trim() || profile.name });
     });
     reader.readAsDataURL(file);
     event.target.value = '';
@@ -128,8 +130,20 @@ const AccountSettings = () => {
       return;
     }
 
-    void updateProfile({ ...profile, avatarDataUrl, email, name });
+    void updateProfile({
+      ...profile,
+      avatarDataUrl,
+      email,
+      isSetupComplete: true,
+      name,
+      password: password || undefined,
+    });
     void updateWorkspace({ ...workspace, title: workspaceTitle });
+  };
+
+  const handleReset = async () => {
+    await resetProfile();
+    onAfterReset();
   };
 
   return (
@@ -140,7 +154,7 @@ const AccountSettings = () => {
           <div className="settings-divider" />
           <div className="profile-settings">
             <div className="profile-avatar-block">
-              <img className="profile-avatar" src={avatarDataUrl ?? assetUrl('settings-avatar-image.svg')} alt="" />
+              <img className="profile-avatar" src={avatarDataUrl ?? assetUrl('default-avatar-light.png')} alt="" />
               <input
                 ref={avatarInputRef}
                 accept="image/png,image/jpeg,image/webp,image/gif"
@@ -158,49 +172,46 @@ const AccountSettings = () => {
                 <input value={name} onChange={(event) => setName(event.target.value)} />
               </label>
               <label className="settings-field">
-                <span>Email</span>
-                <input value={email} onChange={(event) => setEmail(event.target.value)} />
+                <span>Название пространства</span>
+                <input value={workspaceTitle} onChange={(event) => setWorkspaceTitle(event.target.value)} />
               </label>
             </div>
           </div>
         </section>
 
         <section className="settings-section">
-          <h3>Рабочее пространство</h3>
+          <h3>Безопасность</h3>
           <div className="settings-divider" />
-          <label className="settings-field workspace-settings-field">
-            <span>Название пространства</span>
-            <input value={workspaceTitle} onChange={(event) => setWorkspaceTitle(event.target.value)} />
-          </label>
-          <p className="settings-hint">
-            Задачи, категории и заметки сохраняются внутри активного локального пространства.
-          </p>
+          <div className="settings-field-stack wide">
+            <label className="settings-field">
+              <span>Email</span>
+              <input value={email} onChange={(event) => setEmail(event.target.value)} />
+            </label>
+            <label className="settings-field">
+              <span>Новый пароль</span>
+              <input
+                value={password}
+                type="password"
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder="Оставьте пустым, чтобы не менять"
+              />
+            </label>
+          </div>
           <div className="settings-save-row">
             <button className="settings-save-button" type="submit" disabled={!canSave}>
               Сохранить изменения
             </button>
           </div>
+          <div className="settings-divider" />
+          <SettingsAction
+            danger
+            title="Удаление аккаунта"
+            description="Сбросить профиль до значений по умолчанию и вернуться к первичной настройке."
+            action="Удалить аккаунт"
+            onAction={handleReset}
+          />
         </section>
       </form>
-
-      <section className="settings-section">
-        <h3>Безопасность</h3>
-        <div className="settings-divider" />
-        <SettingsAction title="Email" description={email || 'Email не указан'} action="Изменить Email" />
-        <SettingsAction title="Пароль" description="Локальный профиль пока не использует пароль для входа." action="Добавить пароль" />
-        <SettingsAction
-          title="Двухфакторная аутентификация (2FA)"
-          description="Раздел подготовлен для будущей синхронизации и внешнего аккаунта."
-          action="Настроить позже"
-        />
-        <div className="settings-divider" />
-        <SettingsAction
-          danger
-          title="Удаление аккаунта"
-          description="Удаление локального профиля будет добавлено после реализации резервных копий."
-          action="Недоступно"
-        />
-      </section>
     </div>
   );
 };
@@ -209,11 +220,13 @@ const SettingsAction = ({
   action,
   danger = false,
   description,
+  onAction,
   title,
 }: {
   action: string;
   danger?: boolean;
   description: string;
+  onAction?: () => void;
   title: string;
 }) => (
   <div className={danger ? 'settings-action danger' : 'settings-action'}>
@@ -221,7 +234,9 @@ const SettingsAction = ({
       <h4>{title}</h4>
       <p>{description}</p>
     </div>
-    <button type="button">{action}</button>
+    <button type="button" onClick={onAction}>
+      {action}
+    </button>
   </div>
 );
 

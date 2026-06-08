@@ -6,6 +6,7 @@ import type {
   CreateCategoryInput,
   CreateTaskInput,
   Note,
+  ProfileSetupInput,
   Task,
   TaskScope,
   UpdateCategoryInput,
@@ -29,6 +30,8 @@ interface AfterlightSystemInfo {
 
 interface AfterlightApi {
   loadData: () => Promise<AppData>;
+  completeProfileSetup: (input: ProfileSetupInput) => Promise<AppData>;
+  resetProfile: () => Promise<AppData>;
   listCategories: () => Promise<Category[]>;
   createCategory: (input: CreateCategoryInput) => Promise<Category>;
   updateCategory: (input: UpdateCategoryInput) => Promise<Category>;

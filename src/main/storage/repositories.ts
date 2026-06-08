@@ -6,6 +6,7 @@ import type {
   CreateCategoryInput,
   CreateTaskInput,
   Note,
+  ProfileSetupInput,
   Task,
   TaskPriority,
   TaskScope,
@@ -18,6 +19,10 @@ import type {
   Workspace,
 } from '../../shared/types';
 import { getDatabase } from './database';
+
+const DEFAULT_PROFILE_NAME = 'Username';
+const DEFAULT_PROFILE_EMAIL = 'username@gmail.com';
+const DEFAULT_WORKSPACE_TITLE = 'Личное пространство';
 
 interface CategoryRow {
   id: string;
@@ -54,6 +59,7 @@ interface ProfileRow {
   email: string | null;
   avatar_data_url: string | null;
   active_workspace_id: string;
+  is_setup_complete: number;
 }
 
 interface WorkspaceRow {
@@ -311,6 +317,8 @@ export const updateProfile = (input: UpdateProfileInput): UserProfile | null => 
        SET name = @name,
            email = @email,
            avatar_data_url = @avatarDataUrl,
+           password_hash = COALESCE(@passwordHash, password_hash),
+           is_setup_complete = @isSetupComplete,
            updated_at = CURRENT_TIMESTAMP
        WHERE id = @id`,
     )
@@ -319,9 +327,66 @@ export const updateProfile = (input: UpdateProfileInput): UserProfile | null => 
       name: cleanOptional(input.name) ?? existing.name,
       email: cleanOptional(input.email) ?? null,
       avatarDataUrl: cleanOptional(input.avatarDataUrl) ?? null,
+      passwordHash: input.password ? hashPassword(input.password) : null,
+      isSetupComplete: Number(input.isSetupComplete ?? existing.isSetupComplete),
     });
 
   return getProfileById(input.id);
+};
+
+export const completeProfileSetup = (input: ProfileSetupInput): AppData => {
+  const profile = getProfile();
+  const workspace = getActiveWorkspace();
+
+  updateProfile({
+    ...profile,
+    avatarDataUrl: input.avatarDataUrl,
+    email: input.email,
+    isSetupComplete: true,
+    name: input.name,
+    password: input.password,
+  });
+  updateWorkspace({ id: workspace.id, title: input.workspaceTitle });
+
+  return listAppData();
+};
+
+export const resetProfile = (): AppData => {
+  const database = getDatabase();
+  const profile = getProfile();
+  const workspace = getActiveWorkspace();
+  const reset = database.transaction(() => {
+    database
+      .prepare(
+        `UPDATE profiles
+         SET name = @name,
+             email = @email,
+             avatar_data_url = NULL,
+             password_hash = NULL,
+             active_workspace_id = @workspaceId,
+             is_setup_complete = 0,
+             updated_at = CURRENT_TIMESTAMP
+         WHERE id = @profileId`,
+      )
+      .run({
+        profileId: profile.id,
+        name: DEFAULT_PROFILE_NAME,
+        email: DEFAULT_PROFILE_EMAIL,
+        workspaceId: workspace.id,
+      });
+
+    database
+      .prepare(
+        `UPDATE workspaces
+         SET title = @title,
+             updated_at = CURRENT_TIMESTAMP
+         WHERE id = @workspaceId`,
+      )
+      .run({ workspaceId: workspace.id, title: DEFAULT_WORKSPACE_TITLE });
+  });
+
+  reset();
+  return listAppData();
 };
 
 export const updateWorkspace = (input: UpdateWorkspaceInput): Workspace | null => {
@@ -407,7 +472,12 @@ const mapTask = (row: TaskRow): Task => ({
 
 const getProfile = (): UserProfile => {
   const row = getDatabase()
-    .prepare('SELECT id, name, email, avatar_data_url, active_workspace_id FROM profiles ORDER BY created_at ASC LIMIT 1')
+    .prepare(
+      `SELECT id, name, email, avatar_data_url, active_workspace_id, is_setup_complete
+       FROM profiles
+       ORDER BY created_at ASC
+       LIMIT 1`,
+    )
     .get() as ProfileRow | undefined;
 
   if (!row) {
@@ -419,7 +489,11 @@ const getProfile = (): UserProfile => {
 
 const getProfileById = (profileId: string): UserProfile | null => {
   const row = getDatabase()
-    .prepare('SELECT id, name, email, avatar_data_url, active_workspace_id FROM profiles WHERE id = ?')
+    .prepare(
+      `SELECT id, name, email, avatar_data_url, active_workspace_id, is_setup_complete
+       FROM profiles
+       WHERE id = ?`,
+    )
     .get(profileId) as ProfileRow | undefined;
 
   return row ? mapProfile(row) : null;
@@ -452,6 +526,7 @@ const mapProfile = (row: ProfileRow): UserProfile => ({
   email: row.email ?? undefined,
   avatarDataUrl: row.avatar_data_url ?? undefined,
   activeWorkspaceId: row.active_workspace_id,
+  isSetupComplete: Boolean(row.is_setup_complete),
 });
 
 const mapWorkspace = (row: WorkspaceRow): Workspace => ({
@@ -486,6 +561,8 @@ const normalizeDate = (date: string | undefined) => {
   const cleanDate = date?.trim();
   return cleanDate && /^\d{4}-\d{2}-\d{2}$/.test(cleanDate) ? cleanDate : undefined;
 };
+
+const hashPassword = (password: string) => crypto.createHash('sha256').update(password).digest('hex');
 
 const refreshTaskExpiration = () => {
   const today = getTodayDate();

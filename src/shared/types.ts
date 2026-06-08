@@ -79,6 +79,7 @@ export interface UserProfile {
   email?: string;
   avatarDataUrl?: string;
   activeWorkspaceId: string;
+  isSetupComplete: boolean;
 }
 
 export interface Workspace {
@@ -92,11 +93,21 @@ export interface UpdateProfileInput {
   name: string;
   email?: string;
   avatarDataUrl?: string;
+  password?: string;
+  isSetupComplete?: boolean;
 }
 
 export interface UpdateWorkspaceInput {
   id: string;
   title: string;
+}
+
+export interface ProfileSetupInput {
+  avatarDataUrl?: string;
+  email: string;
+  name: string;
+  password: string;
+  workspaceTitle: string;
 }
 
 export interface AppData {

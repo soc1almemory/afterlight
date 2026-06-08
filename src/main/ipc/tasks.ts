@@ -2,6 +2,7 @@ import { ipcMain } from 'electron';
 import type {
   CreateCategoryInput,
   CreateTaskInput,
+  ProfileSetupInput,
   TaskScope,
   UpdateCategoryInput,
   UpdateProfileInput,
@@ -11,9 +12,11 @@ import type {
 import {
   createCategory,
   createTask,
+  completeProfileSetup,
   deleteCategory,
   deleteTask,
   listAppData,
+  resetProfile,
   listCategories,
   toggleCategoryFavorite,
   toggleTask,
@@ -26,6 +29,26 @@ import {
 
 export const registerTaskIpcHandlers = () => {
   ipcMain.handle('app-data:load', () => listAppData());
+  ipcMain.handle('profile:complete-setup', (_event, input: ProfileSetupInput) => {
+    if (!input.name.trim()) {
+      throw new Error('Profile name is required.');
+    }
+
+    if (!input.workspaceTitle.trim()) {
+      throw new Error('Workspace title is required.');
+    }
+
+    if (!input.email.trim()) {
+      throw new Error('Email is required.');
+    }
+
+    if (!input.password.trim()) {
+      throw new Error('Password is required.');
+    }
+
+    return completeProfileSetup(input);
+  });
+  ipcMain.handle('profile:reset', () => resetProfile());
   ipcMain.handle('categories:list', () => listCategories());
 
   ipcMain.handle('categories:create', (_event, input: CreateCategoryInput) => {

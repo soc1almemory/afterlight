@@ -1,9 +1,11 @@
 import { create } from 'zustand';
 import type {
+  AppData,
   Category,
   CreateCategoryInput,
   CreateTaskInput,
   Note,
+  ProfileSetupInput,
   Task,
   TaskScope,
   UpdateCategoryInput,
@@ -28,6 +30,7 @@ const defaultProfile: UserProfile = {
   id: 'default-profile',
   activeWorkspaceId: 'default-workspace',
   email: 'username@gmail.com',
+  isSetupComplete: false,
   name: 'Username',
 };
 
@@ -44,11 +47,13 @@ interface TaskState {
   canGoBack: boolean;
   canGoForward: boolean;
   error?: string;
+  hasHydrated: boolean;
   isLoading: boolean;
   notes: Note[];
   profile: UserProfile;
   tasks: Task[];
   workspace: Workspace;
+  completeProfileSetup: (input: ProfileSetupInput) => Promise<void>;
   createCategory: (input: CreateCategoryInput) => Promise<void>;
   createTask: (input: Omit<CreateTaskInput, 'scope' | 'categoryId'> & { categoryId?: string }) => Promise<void>;
   closeTab: (route: AppRoute) => void;
@@ -59,6 +64,7 @@ interface TaskState {
   hydrate: () => Promise<void>;
   moveTab: (sourceKey: string, targetKey: string) => void;
   openTabs: AppRoute[];
+  resetProfile: () => Promise<void>;
   setActiveCategory: (categoryId: string) => void;
   setScope: (scope: TaskScope) => void;
   toggleCategoryFavorite: (categoryId: string) => Promise<void>;
@@ -77,12 +83,24 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   canGoForward: false,
   categories: seedCategories,
   error: undefined,
+  hasHydrated: false,
   isLoading: false,
   notes: seedNotes,
   openTabs: [{ scope: 'inbox' }],
   profile: defaultProfile,
   tasks: seedTasks,
   workspace: defaultWorkspace,
+  completeProfileSetup: async (input) => {
+    const data = await requireApi().completeProfileSetup({
+      ...input,
+      email: input.email.trim(),
+      name: input.name.trim(),
+      password: input.password.trim(),
+      workspaceTitle: input.workspaceTitle.trim(),
+    });
+
+    set(appDataToState(data));
+  },
   createCategory: async (input) => {
     const category = await requireApi().createCategory({
       ...input,
@@ -170,18 +188,11 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
     try {
       const data = await requireApi().loadData();
-      set({
-        categories: data.categories,
-        error: undefined,
-        isLoading: false,
-        notes: data.notes,
-        profile: data.profile,
-        tasks: data.tasks,
-        workspace: data.workspace,
-      });
+      set(appDataToState(data));
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : 'Не удалось загрузить данные.',
+        hasHydrated: true,
         isLoading: false,
       });
     }
@@ -201,6 +212,10 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
       return getTabNavigationState({ ...state, openTabs });
     });
+  },
+  resetProfile: async () => {
+    const data = await requireApi().resetProfile();
+    set(appDataToState(data));
   },
   setScope: (scope) => {
     set((state) => openRoute(state, { scope }));
@@ -241,6 +256,8 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       name: input.name.trim(),
       email: input.email?.trim() || undefined,
       avatarDataUrl: input.avatarDataUrl || undefined,
+      password: input.password?.trim() || undefined,
+      isSetupComplete: input.isSetupComplete,
     });
 
     set({ error: undefined, profile });
@@ -305,6 +322,17 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     }
   },
 }));
+
+const appDataToState = (data: AppData) => ({
+  categories: data.categories,
+  error: undefined,
+  hasHydrated: true,
+  isLoading: false,
+  notes: data.notes,
+  profile: data.profile,
+  tasks: data.tasks,
+  workspace: data.workspace,
+});
 
 const sortCategories = (categories: Category[]) =>
   [...categories].sort((first, second) => Number(second.isFavorite) - Number(first.isFavorite));

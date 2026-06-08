@@ -35,7 +35,7 @@ export const Sidebar = ({ onAddCategory, onEditCategory, onOpenSearch, onOpenSet
     <aside className="sidebar">
       <div className="menu-top-container">
         <div className="user-row">
-          <img className="user-avatar" src={profile.avatarDataUrl ?? assetUrl('avatar.svg')} alt="" />
+          <img className="user-avatar" src={profile.avatarDataUrl ?? assetUrl('default-avatar-light.png')} alt="" />
           <button className="user-name-button" type="button">
             <span className="user-name">{profile.name}</span>
             <span className="user-workspace">{workspace.title}</span>

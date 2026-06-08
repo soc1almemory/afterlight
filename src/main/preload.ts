@@ -5,6 +5,7 @@ import type {
   CreateCategoryInput,
   CreateTaskInput,
   Note,
+  ProfileSetupInput,
   Task,
   TaskScope,
   UpdateCategoryInput,
@@ -24,6 +25,8 @@ const windowControls = {
 contextBridge.exposeInMainWorld('afterlightWindow', windowControls);
 contextBridge.exposeInMainWorld('afterlightApi', {
   loadData: (): Promise<AppData> => ipcRenderer.invoke('app-data:load'),
+  completeProfileSetup: (input: ProfileSetupInput): Promise<AppData> => ipcRenderer.invoke('profile:complete-setup', input),
+  resetProfile: (): Promise<AppData> => ipcRenderer.invoke('profile:reset'),
   listCategories: (): Promise<Category[]> => ipcRenderer.invoke('categories:list'),
   createCategory: (input: CreateCategoryInput): Promise<Category> => ipcRenderer.invoke('categories:create', input),
   updateCategory: (input: UpdateCategoryInput): Promise<Category> => ipcRenderer.invoke('categories:update', input),
