@@ -1,3 +1,4 @@
+import type { DragEvent } from 'react';
 import type { Task } from '../../shared/types';
 import { assetUrl } from '../lib/assets';
 import { useTaskStore } from '../store/useTaskStore';
@@ -11,9 +12,10 @@ interface TaskListItemProps {
 export const TaskListItem = ({ task, withSeparator, onEditTask }: TaskListItemProps) => {
   const toggleTask = useTaskStore((state) => state.toggleTask);
   const isCompleted = task.status === 'completed';
+  const isExpired = task.isExpired || isActiveOverdueTask(task);
   const dateLabel = task.dueLabel || formatTaskDate(task.dueDate);
 
-  const handleDragStart = (event: React.DragEvent<HTMLElement>) => {
+  const handleDragStart = (event: DragEvent<HTMLElement>) => {
     event.dataTransfer.setData('text/plain', task.id);
     event.dataTransfer.effectAllowed = 'move';
   };
@@ -30,7 +32,7 @@ export const TaskListItem = ({ task, withSeparator, onEditTask }: TaskListItemPr
           {isCompleted ? <img src={assetUrl('checkbox-checked.svg')} alt="" /> : null}
         </button>
         <span className={`priority priority-${isCompleted ? 'checked' : task.priority}`} />
-        {task.isExpired ? <span className="expired-label">Просрочено</span> : null}
+        {isExpired ? <span className="expired-label">Просрочено</span> : null}
         <button className="task-title-button" type="button" onClick={() => onEditTask(task)}>
           <strong className={isCompleted ? 'task-title completed' : 'task-title'}>{task.title}</strong>
         </button>
@@ -47,6 +49,17 @@ export const TaskListItem = ({ task, withSeparator, onEditTask }: TaskListItemPr
       )}
     </article>
   );
+};
+
+const isActiveOverdueTask = (task: Task) =>
+  task.status === 'active' && Boolean(task.dueDate && task.dueDate < getTodayDate());
+
+const getTodayDate = () => {
+  const date = new Date();
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 };
 
 const formatTaskDate = (dateValue: string | undefined) => {

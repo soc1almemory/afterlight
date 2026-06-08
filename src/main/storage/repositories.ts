@@ -128,6 +128,8 @@ export const deleteCategory = (categoryId: string): boolean => {
 };
 
 export const listTasks = (): Task[] => {
+  refreshTaskExpiration();
+
   const rows = getDatabase()
     .prepare(
       `SELECT id, title, description, due_date, due_at, priority, status, scope, category_id, is_expired
@@ -167,6 +169,8 @@ export const createTask = (input: CreateTaskInput): Task => {
       isExpired: Number(Boolean(task.isExpired)),
     });
 
+  refreshTaskExpiration();
+
   return task;
 };
 
@@ -181,6 +185,8 @@ export const toggleTask = (taskId: string): Task | null => {
   getDatabase()
     .prepare("UPDATE tasks SET status = @status, updated_at = CURRENT_TIMESTAMP WHERE id = @id")
     .run({ id: taskId, status: nextStatus });
+
+  refreshTaskExpiration();
 
   return getTask(taskId);
 };
@@ -216,6 +222,8 @@ export const updateTask = (input: UpdateTaskInput): Task | null => {
       categoryId: cleanOptional(input.categoryId) ?? null,
     });
 
+  refreshTaskExpiration();
+
   return getTask(input.id);
 };
 
@@ -247,6 +255,8 @@ export const updateNote = (scope: TaskScope, text: string, categoryId?: string):
 };
 
 const getTask = (taskId: string): Task | null => {
+  refreshTaskExpiration();
+
   const row = getDatabase()
     .prepare('SELECT id, title, description, due_date, due_at, priority, status, scope, category_id, is_expired FROM tasks WHERE id = ?')
     .get(taskId) as TaskRow | undefined;
@@ -308,4 +318,26 @@ const normalizeColor = (color: string) => {
 const normalizeDate = (date: string | undefined) => {
   const cleanDate = date?.trim();
   return cleanDate && /^\d{4}-\d{2}-\d{2}$/.test(cleanDate) ? cleanDate : undefined;
+};
+
+const refreshTaskExpiration = () => {
+  const today = getTodayDate();
+
+  getDatabase()
+    .prepare(
+      `UPDATE tasks
+       SET is_expired = CASE
+         WHEN status = 'active' AND due_date IS NOT NULL AND due_date < @today THEN 1
+         ELSE 0
+       END`,
+    )
+    .run({ today });
+};
+
+const getTodayDate = () => {
+  const date = new Date();
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 };

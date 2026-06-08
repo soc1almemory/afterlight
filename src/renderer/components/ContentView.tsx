@@ -1,3 +1,5 @@
+import { useEffect, useState } from 'react';
+import type { DragEvent } from 'react';
 import type { Task, TaskScope } from '../../shared/types';
 import { assetUrl } from '../lib/assets';
 import { useTaskStore } from '../store/useTaskStore';
@@ -32,6 +34,15 @@ export const ContentView = ({ onAddTask, onEditTask }: ContentViewProps) => {
   const tasks = useTaskStore((state) => state.tasks);
   const notes = useTaskStore((state) => state.notes);
   const updateNote = useTaskStore((state) => state.updateNote);
+  const [refreshLabel, setRefreshLabel] = useState(getTodayRefreshLabel());
+
+  useEffect(() => {
+    const updateRefreshLabel = () => setRefreshLabel(getTodayRefreshLabel());
+    updateRefreshLabel();
+    const intervalId = window.setInterval(updateRefreshLabel, 60_000);
+
+    return () => window.clearInterval(intervalId);
+  }, []);
 
   const activeCategory = categories.find((category) => category.id === activeCategoryId);
   const title = activeScope === 'category' ? activeCategory?.title ?? titles.category : titles[activeScope];
@@ -49,7 +60,10 @@ export const ContentView = ({ onAddTask, onEditTask }: ContentViewProps) => {
   return (
     <main className="workspace">
       <div className="control-strip">
-        <span>{isLoading ? 'Загрузка данных...' : 'Изменено 2ч назад'}</span>
+        <div className="control-status">
+          <span>{isLoading ? 'Загрузка данных...' : 'Изменено 2ч назад'}</span>
+          {activeScope === 'today' ? <span className="refresh-status">{refreshLabel}</span> : null}
+        </div>
         <div className="control-actions">
           <button type="button" aria-label="Поиск">
             <img src={assetUrl('search-icon.svg')} alt="" />
@@ -83,7 +97,11 @@ export const ContentView = ({ onAddTask, onEditTask }: ContentViewProps) => {
         )}
 
         {activeScope !== 'week' ? (
-          <button className="inline-add-task" type="button" onClick={() => onAddTask()}>
+          <button
+            className="inline-add-task"
+            type="button"
+            onClick={() => onAddTask(activeScope === 'today' ? getTodayDate() : undefined)}
+          >
             <img src={assetUrl('add-task-icon.svg')} alt="" />
             <span>Добавить задачу</span>
           </button>
@@ -133,7 +151,7 @@ const WeekTaskList = ({
     });
   };
 
-  const handleDrop = (event: React.DragEvent<HTMLElement>, dueDate?: string) => {
+  const handleDrop = (event: DragEvent<HTMLElement>, dueDate?: string) => {
     event.preventDefault();
     const taskId = event.dataTransfer.getData('text/plain');
     void moveTaskToDate(taskId, dueDate);
@@ -180,7 +198,7 @@ const isTaskVisible = (task: Task, activeScope: TaskScope, activeCategoryId: str
   }
 
   if (activeScope === 'today') {
-    return task.dueDate === getTodayDate() || task.scope === 'today';
+    return task.dueDate === getTodayDate() || isActiveOverdueTask(task) || (task.scope === 'today' && task.status === 'active');
   }
 
   if (activeScope === 'week') {
@@ -216,6 +234,9 @@ const isTaskInCurrentWeek = (task: Task) => {
   return getCurrentWeekDates().includes(task.dueDate);
 };
 
+const isActiveOverdueTask = (task: Task) =>
+  task.status === 'active' && Boolean(task.dueDate && task.dueDate < getTodayDate());
+
 const getCurrentWeekDates = () => {
   const today = new Date();
   const day = today.getDay();
@@ -232,6 +253,25 @@ const getCurrentWeekDates = () => {
 };
 
 const getTodayDate = () => toDateInputValue(new Date());
+
+const getTodayRefreshLabel = () => {
+  const now = new Date();
+  const tomorrow = new Date(now);
+  tomorrow.setHours(24, 0, 0, 0);
+  const minutesLeft = Math.max(1, Math.ceil((tomorrow.getTime() - now.getTime()) / 60_000));
+  const hoursLeft = Math.floor(minutesLeft / 60);
+  const remainingMinutes = minutesLeft % 60;
+
+  if (hoursLeft > 0 && remainingMinutes === 0) {
+    return `Обновление через ${hoursLeft}ч`;
+  }
+
+  if (hoursLeft > 0) {
+    return `Обновление через ${hoursLeft}ч ${remainingMinutes}м`;
+  }
+
+  return `Обновление через ${minutesLeft}м`;
+};
 
 const toDateInputValue = (date: Date) => {
   const year = date.getFullYear();

@@ -38,7 +38,7 @@ export const TaskDialog = ({ initialDueDate, isOpen, task, onClose }: TaskDialog
 
     setTitle(task?.title ?? '');
     setDescription(task?.description ?? '');
-    setDueDate(task?.dueDate ?? initialDueDate ?? '');
+    setDueDate(task?.dueDate ?? initialDueDate ?? (activeScope === 'today' ? getTodayDate() : ''));
     setDueLabel(task?.dueLabel ?? '');
     setPriority(task?.priority ?? 4);
     setCategoryId(task?.categoryId ?? (activeScope === 'category' ? activeCategoryId : ''));
@@ -169,4 +169,12 @@ export const TaskDialog = ({ initialDueDate, isOpen, task, onClose }: TaskDialog
       </form>
     </div>
   );
+};
+
+const getTodayDate = () => {
+  const date = new Date();
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 };

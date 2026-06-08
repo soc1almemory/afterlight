@@ -291,6 +291,17 @@ body {
   font-weight: 600;
 }
 
+.control-status {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.refresh-status {
+  color: #5967ff;
+  font-weight: 800;
+}
+
 .control-actions {
   display: flex;
   gap: 8px;
