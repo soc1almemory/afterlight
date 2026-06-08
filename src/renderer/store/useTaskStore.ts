@@ -11,10 +11,17 @@ import type {
 } from '../../shared/types';
 import { categories as seedCategories, notes as seedNotes, tasks as seedTasks } from '../data/seed';
 
+interface AppRoute {
+  categoryId?: string;
+  scope: TaskScope;
+}
+
 interface TaskState {
   activeScope: TaskScope;
   activeCategoryId: string;
   categories: Category[];
+  canGoBack: boolean;
+  canGoForward: boolean;
   error?: string;
   isLoading: boolean;
   notes: Note[];
@@ -23,7 +30,11 @@ interface TaskState {
   createTask: (input: Omit<CreateTaskInput, 'scope' | 'categoryId'> & { categoryId?: string }) => Promise<void>;
   deleteCategory: (categoryId: string) => Promise<void>;
   deleteTask: (taskId: string) => Promise<void>;
+  goBack: () => void;
+  goForward: () => void;
   hydrate: () => Promise<void>;
+  navigationFuture: AppRoute[];
+  navigationPast: AppRoute[];
   setActiveCategory: (categoryId: string) => void;
   setScope: (scope: TaskScope) => void;
   toggleCategoryFavorite: (categoryId: string) => Promise<void>;
@@ -36,9 +47,13 @@ interface TaskState {
 export const useTaskStore = create<TaskState>((set, get) => ({
   activeScope: 'inbox',
   activeCategoryId: 'study',
+  canGoBack: false,
+  canGoForward: false,
   categories: seedCategories,
   error: undefined,
   isLoading: false,
+  navigationFuture: [],
+  navigationPast: [],
   notes: seedNotes,
   tasks: seedTasks,
   createCategory: async (input) => {
@@ -50,8 +65,12 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     set((state) => ({
       activeCategoryId: category.id,
       activeScope: 'category',
+      canGoBack: true,
+      canGoForward: false,
       categories: sortCategories([category, ...state.categories]),
       error: undefined,
+      navigationFuture: [],
+      navigationPast: [...state.navigationPast, getCurrentRoute(state)],
     }));
   },
   createTask: async (input) => {
@@ -91,6 +110,46 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       tasks: state.tasks.filter((task) => task.id !== taskId),
     }));
   },
+  goBack: () => {
+    const state = get();
+    const previousRoute = state.navigationPast.at(-1);
+
+    if (!previousRoute) {
+      return;
+    }
+
+    const nextPast = state.navigationPast.slice(0, -1);
+    const nextFuture = [getCurrentRoute(state), ...state.navigationFuture];
+
+    set({
+      activeCategoryId: previousRoute.categoryId ?? state.activeCategoryId,
+      activeScope: previousRoute.scope,
+      canGoBack: nextPast.length > 0,
+      canGoForward: true,
+      navigationFuture: nextFuture,
+      navigationPast: nextPast,
+    });
+  },
+  goForward: () => {
+    const state = get();
+    const nextRoute = state.navigationFuture[0];
+
+    if (!nextRoute) {
+      return;
+    }
+
+    const nextPast = [...state.navigationPast, getCurrentRoute(state)];
+    const nextFuture = state.navigationFuture.slice(1);
+
+    set({
+      activeCategoryId: nextRoute.categoryId ?? state.activeCategoryId,
+      activeScope: nextRoute.scope,
+      canGoBack: true,
+      canGoForward: nextFuture.length > 0,
+      navigationFuture: nextFuture,
+      navigationPast: nextPast,
+    });
+  },
   hydrate: async () => {
     set({ error: undefined, isLoading: true });
 
@@ -110,8 +169,12 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       });
     }
   },
-  setScope: (scope) => set({ activeScope: scope }),
-  setActiveCategory: (categoryId) => set({ activeScope: 'category', activeCategoryId: categoryId }),
+  setScope: (scope) => {
+    set((state) => pushRoute(state, { scope }));
+  },
+  setActiveCategory: (categoryId) => {
+    set((state) => pushRoute(state, { categoryId, scope: 'category' }));
+  },
   toggleCategoryFavorite: async (categoryId) => {
     const category = await requireApi().toggleCategoryFavorite(categoryId);
 
@@ -194,6 +257,37 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
 const sortCategories = (categories: Category[]) =>
   [...categories].sort((first, second) => Number(second.isFavorite) - Number(first.isFavorite));
+
+const getCurrentRoute = (state: Pick<TaskState, 'activeCategoryId' | 'activeScope'>): AppRoute => ({
+  categoryId: state.activeScope === 'category' ? state.activeCategoryId : undefined,
+  scope: state.activeScope,
+});
+
+const isSameRoute = (first: AppRoute, second: AppRoute) =>
+  first.scope === second.scope && (first.scope !== 'category' || first.categoryId === second.categoryId);
+
+const pushRoute = (
+  state: Pick<
+    TaskState,
+    'activeCategoryId' | 'activeScope' | 'navigationPast'
+  >,
+  nextRoute: AppRoute,
+) => {
+  const currentRoute = getCurrentRoute(state);
+
+  if (isSameRoute(currentRoute, nextRoute)) {
+    return {};
+  }
+
+  return {
+    activeCategoryId: nextRoute.categoryId ?? state.activeCategoryId,
+    activeScope: nextRoute.scope,
+    canGoBack: true,
+    canGoForward: false,
+    navigationFuture: [],
+    navigationPast: [...state.navigationPast, currentRoute],
+  };
+};
 
 const requireApi = () => {
   if (!window.afterlightApi) {

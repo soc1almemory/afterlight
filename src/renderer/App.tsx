@@ -70,7 +70,7 @@ export const App = () => {
 
   return (
     <div className="afterlight-app">
-      <TitleBar />
+      <TitleBar onAddCategory={openCreateCategoryDialog} />
       <Sidebar
         onAddCategory={openCreateCategoryDialog}
         onAddTask={() => openCreateDialog()}
