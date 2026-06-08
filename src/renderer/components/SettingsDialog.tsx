@@ -93,6 +93,7 @@ const AccountSettings = ({ onAfterReset }: { onAfterReset: () => void }) => {
   const [name, setName] = useState(profile.name);
   const [password, setPassword] = useState('');
   const [workspaceTitle, setWorkspaceTitle] = useState(workspace.title);
+  const [isConfirmingReset, setConfirmingReset] = useState(false);
   const canSave = Boolean(name.trim() && workspaceTitle.trim() && email.trim());
 
   useEffect(() => {
@@ -100,6 +101,7 @@ const AccountSettings = ({ onAfterReset }: { onAfterReset: () => void }) => {
     setEmail(profile.email ?? '');
     setName(profile.name);
     setPassword('');
+    setConfirmingReset(false);
   }, [profile]);
 
   useEffect(() => {
@@ -203,13 +205,30 @@ const AccountSettings = ({ onAfterReset }: { onAfterReset: () => void }) => {
             </button>
           </div>
           <div className="settings-divider" />
-          <SettingsAction
-            danger
-            title="Удаление аккаунта"
-            description="Сбросить профиль до значений по умолчанию и вернуться к первичной настройке."
-            action="Удалить аккаунт"
-            onAction={handleReset}
-          />
+          {isConfirmingReset ? (
+            <div className="settings-action danger confirm">
+              <div>
+                <h4>Подтвердите удаление аккаунта</h4>
+                <p>Профиль, задачи, категории и заметки текущего рабочего пространства будут сброшены.</p>
+              </div>
+              <div className="settings-confirm-actions">
+                <button type="button" onClick={() => setConfirmingReset(false)}>
+                  Отмена
+                </button>
+                <button type="button" onClick={() => void handleReset()}>
+                  Подтвердить
+                </button>
+              </div>
+            </div>
+          ) : (
+            <SettingsAction
+              danger
+              title="Удаление аккаунта"
+              description="Сбросить профиль и все данные текущего рабочего пространства."
+              action="Удалить аккаунт"
+              onAction={() => setConfirmingReset(true)}
+            />
+          )}
         </section>
       </form>
     </div>

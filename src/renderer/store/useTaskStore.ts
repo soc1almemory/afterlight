@@ -99,7 +99,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       workspaceTitle: input.workspaceTitle.trim(),
     });
 
-    set(appDataToState(data));
+    set({ ...appDataToState(data), ...getInitialRouteState() });
   },
   createCategory: async (input) => {
     const category = await requireApi().createCategory({
@@ -215,7 +215,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   },
   resetProfile: async () => {
     const data = await requireApi().resetProfile();
-    set(appDataToState(data));
+    set({ ...appDataToState(data), ...getInitialRouteState() });
   },
   setScope: (scope) => {
     set((state) => openRoute(state, { scope }));
@@ -332,6 +332,14 @@ const appDataToState = (data: AppData) => ({
   profile: data.profile,
   tasks: data.tasks,
   workspace: data.workspace,
+});
+
+const getInitialRouteState = () => ({
+  activeCategoryId: '',
+  activeScope: 'inbox' as const,
+  canGoBack: false,
+  canGoForward: false,
+  openTabs: [{ scope: 'inbox' as const }],
 });
 
 const sortCategories = (categories: Category[]) =>

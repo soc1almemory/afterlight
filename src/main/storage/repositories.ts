@@ -117,6 +117,7 @@ export const createCategory = (input: CreateCategoryInput): Category => {
 };
 
 export const updateCategory = (input: UpdateCategoryInput): Category | null => {
+  const workspaceId = getActiveWorkspaceId();
   const existing = getCategory(input.id);
 
   if (!existing) {
@@ -131,10 +132,11 @@ export const updateCategory = (input: UpdateCategoryInput): Category | null => {
            icon_mode = @iconMode,
            emoji = @emoji,
            is_favorite = @isFavorite
-       WHERE id = @id`,
+       WHERE id = @id AND workspace_id = @workspaceId`,
     )
     .run({
       id: input.id,
+      workspaceId,
       title: input.title.trim(),
       color: normalizeColor(input.color),
       emoji: cleanOptional(input.emoji) ?? null,
@@ -146,6 +148,7 @@ export const updateCategory = (input: UpdateCategoryInput): Category | null => {
 };
 
 export const toggleCategoryFavorite = (categoryId: string): Category | null => {
+  const workspaceId = getActiveWorkspaceId();
   const category = getCategory(categoryId);
 
   if (!category) {
@@ -153,18 +156,29 @@ export const toggleCategoryFavorite = (categoryId: string): Category | null => {
   }
 
   getDatabase()
-    .prepare('UPDATE categories SET is_favorite = @isFavorite WHERE id = @id')
-    .run({ id: categoryId, isFavorite: Number(!category.isFavorite) });
+    .prepare('UPDATE categories SET is_favorite = @isFavorite WHERE id = @id AND workspace_id = @workspaceId')
+    .run({ id: categoryId, workspaceId, isFavorite: Number(!category.isFavorite) });
 
   return getCategory(categoryId);
 };
 
 export const deleteCategory = (categoryId: string): boolean => {
   const database = getDatabase();
+  const workspaceId = getActiveWorkspaceId();
   const remove = database.transaction(() => {
-    database.prepare('UPDATE tasks SET category_id = NULL, updated_at = CURRENT_TIMESTAMP WHERE category_id = ?').run(categoryId);
-    database.prepare('DELETE FROM notes WHERE category_id = ?').run(categoryId);
-    return database.prepare('DELETE FROM categories WHERE id = ?').run(categoryId);
+    database
+      .prepare(
+        `UPDATE tasks
+         SET category_id = NULL, updated_at = CURRENT_TIMESTAMP
+         WHERE category_id = @categoryId AND workspace_id = @workspaceId`,
+      )
+      .run({ categoryId, workspaceId });
+    database
+      .prepare('DELETE FROM notes WHERE category_id = @categoryId AND workspace_id = @workspaceId')
+      .run({ categoryId, workspaceId });
+    return database
+      .prepare('DELETE FROM categories WHERE id = @categoryId AND workspace_id = @workspaceId')
+      .run({ categoryId, workspaceId });
   });
 
   const result = remove();
@@ -189,6 +203,7 @@ export const listTasks = (): Task[] => {
 
 export const createTask = (input: CreateTaskInput): Task => {
   const workspaceId = getActiveWorkspaceId();
+  const categoryId = cleanOptional(input.categoryId);
   const task: Task = {
     id: crypto.randomUUID(),
     title: input.title.trim(),
@@ -198,7 +213,7 @@ export const createTask = (input: CreateTaskInput): Task => {
     priority: input.priority ?? 4,
     status: 'active',
     scope: input.scope,
-    categoryId: cleanOptional(input.categoryId),
+    categoryId: categoryId && getCategory(categoryId) ? categoryId : undefined,
     isExpired: false,
   };
 
@@ -223,6 +238,7 @@ export const createTask = (input: CreateTaskInput): Task => {
 };
 
 export const toggleTask = (taskId: string): Task | null => {
+  const workspaceId = getActiveWorkspaceId();
   const task = getTask(taskId);
 
   if (!task) {
@@ -231,8 +247,12 @@ export const toggleTask = (taskId: string): Task | null => {
 
   const nextStatus: TaskStatus = task.status === 'completed' ? 'active' : 'completed';
   getDatabase()
-    .prepare("UPDATE tasks SET status = @status, updated_at = CURRENT_TIMESTAMP WHERE id = @id")
-    .run({ id: taskId, status: nextStatus });
+    .prepare(
+      `UPDATE tasks
+       SET status = @status, updated_at = CURRENT_TIMESTAMP
+       WHERE id = @id AND workspace_id = @workspaceId`,
+    )
+    .run({ id: taskId, workspaceId, status: nextStatus });
 
   refreshTaskExpiration();
 
@@ -240,7 +260,9 @@ export const toggleTask = (taskId: string): Task | null => {
 };
 
 export const updateTask = (input: UpdateTaskInput): Task | null => {
+  const workspaceId = getActiveWorkspaceId();
   const existingTask = getTask(input.id);
+  const categoryId = cleanOptional(input.categoryId);
 
   if (!existingTask) {
     return null;
@@ -257,17 +279,18 @@ export const updateTask = (input: UpdateTaskInput): Task | null => {
            scope = @scope,
            category_id = @categoryId,
            updated_at = CURRENT_TIMESTAMP
-       WHERE id = @id`,
+       WHERE id = @id AND workspace_id = @workspaceId`,
     )
     .run({
       id: input.id,
+      workspaceId,
       title: input.title.trim(),
       description: cleanOptional(input.description) ?? null,
       dueDate: normalizeDate(input.dueDate) ?? null,
       dueLabel: cleanOptional(input.dueLabel) ?? null,
       priority: input.priority,
       scope: input.scope ?? existingTask.scope,
-      categoryId: cleanOptional(input.categoryId) ?? null,
+      categoryId: categoryId && getCategory(categoryId) ? categoryId : null,
     });
 
   refreshTaskExpiration();
@@ -276,7 +299,9 @@ export const updateTask = (input: UpdateTaskInput): Task | null => {
 };
 
 export const deleteTask = (taskId: string): boolean => {
-  const result = getDatabase().prepare('DELETE FROM tasks WHERE id = ?').run(taskId);
+  const result = getDatabase()
+    .prepare('DELETE FROM tasks WHERE id = @taskId AND workspace_id = @workspaceId')
+    .run({ taskId, workspaceId: getActiveWorkspaceId() });
   return result.changes > 0;
 };
 
@@ -356,6 +381,10 @@ export const resetProfile = (): AppData => {
   const profile = getProfile();
   const workspace = getActiveWorkspace();
   const reset = database.transaction(() => {
+    database.prepare('DELETE FROM notes WHERE workspace_id = @workspaceId').run({ workspaceId: workspace.id });
+    database.prepare('DELETE FROM tasks WHERE workspace_id = @workspaceId').run({ workspaceId: workspace.id });
+    database.prepare('DELETE FROM categories WHERE workspace_id = @workspaceId').run({ workspaceId: workspace.id });
+
     database
       .prepare(
         `UPDATE profiles
@@ -415,16 +444,24 @@ const getTask = (taskId: string): Task | null => {
   refreshTaskExpiration();
 
   const row = getDatabase()
-    .prepare('SELECT id, title, description, due_date, due_at, priority, status, scope, category_id, is_expired FROM tasks WHERE id = ?')
-    .get(taskId) as TaskRow | undefined;
+    .prepare(
+      `SELECT id, title, description, due_date, due_at, priority, status, scope, category_id, is_expired
+       FROM tasks
+       WHERE id = @taskId AND workspace_id = @workspaceId`,
+    )
+    .get({ taskId, workspaceId: getActiveWorkspaceId() }) as TaskRow | undefined;
 
   return row ? mapTask(row) : null;
 };
 
 const getCategory = (categoryId: string): Category | null => {
   const row = getDatabase()
-    .prepare('SELECT id, title, color, icon_mode, emoji, is_favorite FROM categories WHERE id = ?')
-    .get(categoryId) as CategoryRow | undefined;
+    .prepare(
+      `SELECT id, title, color, icon_mode, emoji, is_favorite
+       FROM categories
+       WHERE id = @categoryId AND workspace_id = @workspaceId`,
+    )
+    .get({ categoryId, workspaceId: getActiveWorkspaceId() }) as CategoryRow | undefined;
 
   return row ? mapCategory(row) : null;
 };
@@ -566,6 +603,7 @@ const hashPassword = (password: string) => crypto.createHash('sha256').update(pa
 
 const refreshTaskExpiration = () => {
   const today = getTodayDate();
+  const workspaceId = getActiveWorkspaceId();
 
   getDatabase()
     .prepare(
@@ -573,9 +611,10 @@ const refreshTaskExpiration = () => {
        SET is_expired = CASE
          WHEN status = 'active' AND due_date IS NOT NULL AND due_date < @today THEN 1
          ELSE 0
-       END`,
+       END
+       WHERE workspace_id = @workspaceId`,
     )
-    .run({ today });
+    .run({ today, workspaceId });
 };
 
 const getTodayDate = () => {

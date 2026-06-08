@@ -1552,6 +1552,21 @@ body {
   font-weight: 800;
 }
 
+.settings-action.confirm {
+  align-items: flex-start;
+}
+
+.settings-confirm-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.settings-confirm-actions button:last-child {
+  border-color: #ff5a5f;
+  color: #ff5a5f;
+}
+
 .settings-action.danger h4,
 .settings-action.danger button {
   color: #ff5a5f;
