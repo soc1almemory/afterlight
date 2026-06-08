@@ -348,6 +348,48 @@ body {
   gap: 18px;
 }
 
+.task-list.compact {
+  gap: 12px;
+}
+
+.week-list {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.week-day {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.week-day-heading {
+  min-height: 30px;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.week-day-heading h2 {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+.week-day-heading time {
+  color: #777777;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.empty-day {
+  color: #8f8f8f;
+  font-size: 15px;
+  font-weight: 600;
+  padding-left: 2px;
+}
+
 .app-error {
   border: 1px solid #ffd0d0;
   border-radius: 6px;

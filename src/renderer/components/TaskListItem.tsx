@@ -11,6 +11,7 @@ interface TaskListItemProps {
 export const TaskListItem = ({ task, withSeparator, onEditTask }: TaskListItemProps) => {
   const toggleTask = useTaskStore((state) => state.toggleTask);
   const isCompleted = task.status === 'completed';
+  const dateLabel = task.dueLabel || formatTaskDate(task.dueDate);
 
   return (
     <article className={withSeparator ? 'task-row with-separator' : 'task-row'}>
@@ -33,12 +34,21 @@ export const TaskListItem = ({ task, withSeparator, onEditTask }: TaskListItemPr
         </button>
       </div>
 
-      {(task.description || task.dueLabel) && (
+      {(task.description || dateLabel) && (
         <div className="task-meta">
           {task.description ? <span>{task.description}</span> : null}
-          {task.dueLabel ? <time>{task.dueLabel}</time> : null}
+          {dateLabel ? <time>{dateLabel}</time> : null}
         </div>
       )}
     </article>
   );
+};
+
+const formatTaskDate = (dateValue: string | undefined) => {
+  if (!dateValue) {
+    return undefined;
+  }
+
+  const [year, month, day] = dateValue.split('-');
+  return `${day}.${month}.${year}`;
 };

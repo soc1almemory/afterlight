@@ -25,6 +25,7 @@ export const TaskDialog = ({ isOpen, task, onClose }: TaskDialogProps) => {
   const updateTask = useTaskStore((state) => state.updateTask);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [dueDate, setDueDate] = useState('');
   const [dueLabel, setDueLabel] = useState('');
   const [priority, setPriority] = useState<TaskPriority>(4);
   const [categoryId, setCategoryId] = useState('');
@@ -36,6 +37,7 @@ export const TaskDialog = ({ isOpen, task, onClose }: TaskDialogProps) => {
 
     setTitle(task?.title ?? '');
     setDescription(task?.description ?? '');
+    setDueDate(task?.dueDate ?? '');
     setDueLabel(task?.dueLabel ?? '');
     setPriority(task?.priority ?? 4);
     setCategoryId(task?.categoryId ?? (activeScope === 'category' ? activeCategoryId : ''));
@@ -53,23 +55,22 @@ export const TaskDialog = ({ isOpen, task, onClose }: TaskDialogProps) => {
       return;
     }
 
+    const taskPayload = {
+      title: cleanTitle,
+      description,
+      dueDate,
+      dueLabel,
+      priority,
+      categoryId,
+    };
+
     if (task) {
       await updateTask({
         id: task.id,
-        title: cleanTitle,
-        description,
-        dueLabel,
-        priority,
-        categoryId,
+        ...taskPayload,
       });
     } else {
-      await createTask({
-        title: cleanTitle,
-        description,
-        dueLabel,
-        priority,
-        categoryId,
-      });
+      await createTask(taskPayload);
     }
 
     onClose();
@@ -120,8 +121,8 @@ export const TaskDialog = ({ isOpen, task, onClose }: TaskDialogProps) => {
 
         <div className="form-grid">
           <label className="form-field">
-            <span>Срок</span>
-            <input value={dueLabel} onChange={(event) => setDueLabel(event.target.value)} placeholder="Сегодня, 17:00" />
+            <span>Дата</span>
+            <input type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} />
           </label>
 
           <label className="form-field">
@@ -135,6 +136,11 @@ export const TaskDialog = ({ isOpen, task, onClose }: TaskDialogProps) => {
             </select>
           </label>
         </div>
+
+        <label className="form-field">
+          <span>Подпись срока</span>
+          <input value={dueLabel} onChange={(event) => setDueLabel(event.target.value)} placeholder="Сегодня, 17:00" />
+        </label>
 
         <label className="form-field">
           <span>Категория</span>

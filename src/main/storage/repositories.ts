@@ -25,6 +25,7 @@ interface TaskRow {
   id: string;
   title: string;
   description: string | null;
+  due_date: string | null;
   due_at: string | null;
   priority: number;
   status: TaskStatus;
@@ -129,9 +130,9 @@ export const deleteCategory = (categoryId: string): boolean => {
 export const listTasks = (): Task[] => {
   const rows = getDatabase()
     .prepare(
-      `SELECT id, title, description, due_at, priority, status, scope, category_id, is_expired
+      `SELECT id, title, description, due_date, due_at, priority, status, scope, category_id, is_expired
        FROM tasks
-       ORDER BY status ASC, created_at DESC`,
+       ORDER BY status ASC, due_date ASC, created_at DESC`,
     )
     .all() as TaskRow[];
 
@@ -143,6 +144,7 @@ export const createTask = (input: CreateTaskInput): Task => {
     id: crypto.randomUUID(),
     title: input.title.trim(),
     description: cleanOptional(input.description),
+    dueDate: normalizeDate(input.dueDate),
     dueLabel: cleanOptional(input.dueLabel),
     priority: input.priority ?? 4,
     status: 'active',
@@ -153,12 +155,13 @@ export const createTask = (input: CreateTaskInput): Task => {
 
   getDatabase()
     .prepare(
-      `INSERT INTO tasks (id, title, description, due_at, priority, status, scope, category_id, is_expired)
-       VALUES (@id, @title, @description, @dueLabel, @priority, @status, @scope, @categoryId, @isExpired)`,
+      `INSERT INTO tasks (id, title, description, due_date, due_at, priority, status, scope, category_id, is_expired)
+       VALUES (@id, @title, @description, @dueDate, @dueLabel, @priority, @status, @scope, @categoryId, @isExpired)`,
     )
     .run({
       ...task,
       description: task.description ?? null,
+      dueDate: task.dueDate ?? null,
       dueLabel: task.dueLabel ?? null,
       categoryId: task.categoryId ?? null,
       isExpired: Number(Boolean(task.isExpired)),
@@ -194,6 +197,7 @@ export const updateTask = (input: UpdateTaskInput): Task | null => {
       `UPDATE tasks
        SET title = @title,
            description = @description,
+           due_date = @dueDate,
            due_at = @dueLabel,
            priority = @priority,
            category_id = @categoryId,
@@ -204,6 +208,7 @@ export const updateTask = (input: UpdateTaskInput): Task | null => {
       id: input.id,
       title: input.title.trim(),
       description: cleanOptional(input.description) ?? null,
+      dueDate: normalizeDate(input.dueDate) ?? null,
       dueLabel: cleanOptional(input.dueLabel) ?? null,
       priority: input.priority,
       categoryId: cleanOptional(input.categoryId) ?? null,
@@ -241,7 +246,7 @@ export const updateNote = (scope: TaskScope, text: string, categoryId?: string):
 
 const getTask = (taskId: string): Task | null => {
   const row = getDatabase()
-    .prepare('SELECT id, title, description, due_at, priority, status, scope, category_id, is_expired FROM tasks WHERE id = ?')
+    .prepare('SELECT id, title, description, due_date, due_at, priority, status, scope, category_id, is_expired FROM tasks WHERE id = ?')
     .get(taskId) as TaskRow | undefined;
 
   return row ? mapTask(row) : null;
@@ -279,6 +284,7 @@ const mapTask = (row: TaskRow): Task => ({
   id: row.id,
   title: row.title,
   description: row.description ?? undefined,
+  dueDate: row.due_date ?? undefined,
   dueLabel: row.due_at ?? undefined,
   priority: row.priority as TaskPriority,
   status: row.status,
@@ -295,4 +301,9 @@ const cleanOptional = (value: string | undefined) => {
 const normalizeColor = (color: string) => {
   const cleanColor = color.trim();
   return /^#[0-9a-f]{6}$/i.test(cleanColor) ? cleanColor : '#7c65ff';
+};
+
+const normalizeDate = (date: string | undefined) => {
+  const cleanDate = date?.trim();
+  return cleanDate && /^\d{4}-\d{2}-\d{2}$/.test(cleanDate) ? cleanDate : undefined;
 };

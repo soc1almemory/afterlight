@@ -8,6 +8,7 @@ export interface Task {
   id: string;
   title: string;
   description?: string;
+  dueDate?: string;
   dueLabel?: string;
   priority: TaskPriority;
   status: TaskStatus;
@@ -19,6 +20,7 @@ export interface Task {
 export interface CreateTaskInput {
   title: string;
   description?: string;
+  dueDate?: string;
   dueLabel?: string;
   priority?: TaskPriority;
   scope: TaskScope;
@@ -29,6 +31,7 @@ export interface UpdateTaskInput {
   id: string;
   title: string;
   description?: string;
+  dueDate?: string;
   dueLabel?: string;
   priority: TaskPriority;
   categoryId?: string;

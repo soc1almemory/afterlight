@@ -143,6 +143,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     const task = await requireApi().updateTask({
       ...input,
       title: input.title.trim(),
+      dueDate: input.dueDate || undefined,
       categoryId: input.categoryId || undefined,
     });
 

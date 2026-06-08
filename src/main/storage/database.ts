@@ -29,6 +29,7 @@ export const initializeDatabase = () => {
       id TEXT PRIMARY KEY,
       title TEXT NOT NULL,
       description TEXT,
+      due_date TEXT,
       due_at TEXT,
       priority INTEGER NOT NULL DEFAULT 4,
       status TEXT NOT NULL DEFAULT 'active',
@@ -53,7 +54,10 @@ export const initializeDatabase = () => {
     CREATE INDEX IF NOT EXISTS idx_tasks_category ON tasks(category_id);
   `);
   migrateDatabase(connection);
-  connection.exec('CREATE INDEX IF NOT EXISTS idx_notes_scope_category ON notes(scope, category_id)');
+  connection.exec(`
+    CREATE INDEX IF NOT EXISTS idx_tasks_due_date ON tasks(due_date);
+    CREATE INDEX IF NOT EXISTS idx_notes_scope_category ON notes(scope, category_id);
+  `);
 
   seedDatabase(connection);
 
@@ -73,8 +77,8 @@ const seedDatabase = (database: Database.Database) => {
   `);
 
   const insertTask = database.prepare(`
-    INSERT INTO tasks (id, title, description, due_at, priority, status, scope, category_id, is_expired)
-    VALUES (@id, @title, @description, @dueLabel, @priority, @status, @scope, @categoryId, @isExpired)
+    INSERT INTO tasks (id, title, description, due_date, due_at, priority, status, scope, category_id, is_expired)
+    VALUES (@id, @title, @description, @dueDate, @dueLabel, @priority, @status, @scope, @categoryId, @isExpired)
   `);
 
   const insertNote = database.prepare(`
@@ -95,6 +99,7 @@ const seedDatabase = (database: Database.Database) => {
           ...task,
           categoryId: task.categoryId ?? null,
           description: task.description ?? null,
+          dueDate: task.dueDate ?? null,
           dueLabel: task.dueLabel ?? null,
           isExpired: Number(Boolean(task.isExpired)),
         });
@@ -115,6 +120,12 @@ const migrateDatabase = (database: Database.Database) => {
 
   if (!hasExpiredColumn) {
     database.exec('ALTER TABLE tasks ADD COLUMN is_expired INTEGER NOT NULL DEFAULT 0');
+  }
+
+  const hasDueDateColumn = taskColumns.some((column) => column.name === 'due_date');
+
+  if (!hasDueDateColumn) {
+    database.exec('ALTER TABLE tasks ADD COLUMN due_date TEXT');
   }
 
   const noteColumns = database.prepare('PRAGMA table_info(notes)').all() as Array<{ name: string }>;
