@@ -16,7 +16,7 @@ Afterlight — легковесный Windows task manager для дипломн
 - `src/shared` — общие типы для main/renderer.
 - `src/main/ipc` и `src/main/storage` — IPC handlers и SQLite repository-слой для локального хранения данных.
 - `assets` — SVG-ассеты из Figma.
-- `style.css`, `global.css`, папки `inbox`, `today`, `week`, `category-page`, `popups` — сохранённый HTML/CSS экспорт из Figma как визуальный референс.
+- `reference` — сохранённый HTML/CSS экспорт из Figma и старые неактуальные файлы как визуальный референс.
 
 ## Команды
 
