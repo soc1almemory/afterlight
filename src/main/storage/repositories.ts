@@ -11,7 +11,11 @@ import type {
   TaskScope,
   TaskStatus,
   UpdateCategoryInput,
+  UpdateProfileInput,
   UpdateTaskInput,
+  UpdateWorkspaceInput,
+  UserProfile,
+  Workspace,
 } from '../../shared/types';
 import { getDatabase } from './database';
 
@@ -44,21 +48,44 @@ interface NoteRow {
   text: string;
 }
 
+interface ProfileRow {
+  id: string;
+  name: string;
+  email: string | null;
+  avatar_data_url: string | null;
+  active_workspace_id: string;
+}
+
+interface WorkspaceRow {
+  id: string;
+  profile_id: string;
+  title: string;
+}
+
 export const listAppData = (): AppData => ({
   categories: listCategories(),
   notes: listNotes(),
+  profile: getProfile(),
   tasks: listTasks(),
+  workspace: getActiveWorkspace(),
 });
 
 export const listCategories = (): Category[] => {
+  const workspaceId = getActiveWorkspaceId();
   const rows = getDatabase()
-    .prepare('SELECT id, title, color, icon_mode, emoji, is_favorite FROM categories ORDER BY is_favorite DESC, created_at ASC')
-    .all() as CategoryRow[];
+    .prepare(
+      `SELECT id, title, color, icon_mode, emoji, is_favorite
+       FROM categories
+       WHERE workspace_id = @workspaceId
+       ORDER BY is_favorite DESC, created_at ASC`,
+    )
+    .all({ workspaceId }) as CategoryRow[];
 
   return rows.map(mapCategory);
 };
 
 export const createCategory = (input: CreateCategoryInput): Category => {
+  const workspaceId = getActiveWorkspaceId();
   const category: Category = {
     id: crypto.randomUUID(),
     title: input.title.trim(),
@@ -70,11 +97,12 @@ export const createCategory = (input: CreateCategoryInput): Category => {
 
   getDatabase()
     .prepare(
-      `INSERT INTO categories (id, title, color, icon_mode, emoji, is_favorite)
-       VALUES (@id, @title, @color, @iconMode, @emoji, @isFavorite)`,
+      `INSERT INTO categories (id, workspace_id, title, color, icon_mode, emoji, is_favorite)
+       VALUES (@id, @workspaceId, @title, @color, @iconMode, @emoji, @isFavorite)`,
     )
     .run({
       ...category,
+      workspaceId,
       emoji: category.emoji ?? null,
       isFavorite: Number(category.isFavorite),
     });
@@ -140,18 +168,21 @@ export const deleteCategory = (categoryId: string): boolean => {
 export const listTasks = (): Task[] => {
   refreshTaskExpiration();
 
+  const workspaceId = getActiveWorkspaceId();
   const rows = getDatabase()
     .prepare(
       `SELECT id, title, description, due_date, due_at, priority, status, scope, category_id, is_expired
        FROM tasks
+       WHERE workspace_id = @workspaceId
        ORDER BY status ASC, due_date ASC, created_at DESC`,
     )
-    .all() as TaskRow[];
+    .all({ workspaceId }) as TaskRow[];
 
   return rows.map(mapTask);
 };
 
 export const createTask = (input: CreateTaskInput): Task => {
+  const workspaceId = getActiveWorkspaceId();
   const task: Task = {
     id: crypto.randomUUID(),
     title: input.title.trim(),
@@ -167,11 +198,12 @@ export const createTask = (input: CreateTaskInput): Task => {
 
   getDatabase()
     .prepare(
-      `INSERT INTO tasks (id, title, description, due_date, due_at, priority, status, scope, category_id, is_expired)
-       VALUES (@id, @title, @description, @dueDate, @dueLabel, @priority, @status, @scope, @categoryId, @isExpired)`,
+      `INSERT INTO tasks (id, workspace_id, title, description, due_date, due_at, priority, status, scope, category_id, is_expired)
+       VALUES (@id, @workspaceId, @title, @description, @dueDate, @dueLabel, @priority, @status, @scope, @categoryId, @isExpired)`,
     )
     .run({
       ...task,
+      workspaceId,
       description: task.description ?? null,
       dueDate: task.dueDate ?? null,
       dueLabel: task.dueLabel ?? null,
@@ -244,24 +276,74 @@ export const deleteTask = (taskId: string): boolean => {
 
 export const updateNote = (scope: TaskScope, text: string, categoryId?: string): Note => {
   const cleanCategoryId = cleanOptional(categoryId);
+  const workspaceId = getActiveWorkspaceId();
   const existing = getDatabase()
     .prepare(
       `SELECT id FROM notes
-       WHERE scope = @scope
+       WHERE workspace_id = @workspaceId
+         AND scope = @scope
          AND ((category_id IS NULL AND @categoryId IS NULL) OR category_id = @categoryId)`,
     )
-    .get({ scope, categoryId: cleanCategoryId ?? null }) as { id: string } | undefined;
+    .get({ workspaceId, scope, categoryId: cleanCategoryId ?? null }) as { id: string } | undefined;
   const id = existing?.id ?? crypto.randomUUID();
 
   getDatabase()
     .prepare(
-      `INSERT INTO notes (id, scope, category_id, text, updated_at)
-       VALUES (@id, @scope, @categoryId, @text, CURRENT_TIMESTAMP)
+      `INSERT INTO notes (id, workspace_id, scope, category_id, text, updated_at)
+       VALUES (@id, @workspaceId, @scope, @categoryId, @text, CURRENT_TIMESTAMP)
        ON CONFLICT(id) DO UPDATE SET text = excluded.text, updated_at = CURRENT_TIMESTAMP`,
     )
-    .run({ id, scope, categoryId: cleanCategoryId ?? null, text });
+    .run({ id, workspaceId, scope, categoryId: cleanCategoryId ?? null, text });
 
   return { id, scope, categoryId: cleanCategoryId, text };
+};
+
+export const updateProfile = (input: UpdateProfileInput): UserProfile | null => {
+  const existing = getProfileById(input.id);
+
+  if (!existing) {
+    return null;
+  }
+
+  getDatabase()
+    .prepare(
+      `UPDATE profiles
+       SET name = @name,
+           email = @email,
+           avatar_data_url = @avatarDataUrl,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = @id`,
+    )
+    .run({
+      id: input.id,
+      name: cleanOptional(input.name) ?? existing.name,
+      email: cleanOptional(input.email) ?? null,
+      avatarDataUrl: cleanOptional(input.avatarDataUrl) ?? null,
+    });
+
+  return getProfileById(input.id);
+};
+
+export const updateWorkspace = (input: UpdateWorkspaceInput): Workspace | null => {
+  const existing = getWorkspaceById(input.id);
+
+  if (!existing) {
+    return null;
+  }
+
+  getDatabase()
+    .prepare(
+      `UPDATE workspaces
+       SET title = @title,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = @id`,
+    )
+    .run({
+      id: input.id,
+      title: cleanOptional(input.title) ?? existing.title,
+    });
+
+  return getWorkspaceById(input.id);
 };
 
 const getTask = (taskId: string): Task | null => {
@@ -283,9 +365,15 @@ const getCategory = (categoryId: string): Category | null => {
 };
 
 const listNotes = (): Note[] => {
+  const workspaceId = getActiveWorkspaceId();
   const rows = getDatabase()
-    .prepare('SELECT id, scope, category_id, text FROM notes ORDER BY updated_at DESC')
-    .all() as NoteRow[];
+    .prepare(
+      `SELECT id, scope, category_id, text
+       FROM notes
+       WHERE workspace_id = @workspaceId
+       ORDER BY updated_at DESC`,
+    )
+    .all({ workspaceId }) as NoteRow[];
 
   return rows.map((row) => ({
     id: row.id,
@@ -315,6 +403,61 @@ const mapTask = (row: TaskRow): Task => ({
   scope: row.scope,
   categoryId: row.category_id ?? undefined,
   isExpired: Boolean(row.is_expired),
+});
+
+const getProfile = (): UserProfile => {
+  const row = getDatabase()
+    .prepare('SELECT id, name, email, avatar_data_url, active_workspace_id FROM profiles ORDER BY created_at ASC LIMIT 1')
+    .get() as ProfileRow | undefined;
+
+  if (!row) {
+    throw new Error('User profile was not initialized.');
+  }
+
+  return mapProfile(row);
+};
+
+const getProfileById = (profileId: string): UserProfile | null => {
+  const row = getDatabase()
+    .prepare('SELECT id, name, email, avatar_data_url, active_workspace_id FROM profiles WHERE id = ?')
+    .get(profileId) as ProfileRow | undefined;
+
+  return row ? mapProfile(row) : null;
+};
+
+const getActiveWorkspace = (): Workspace => {
+  const profile = getProfile();
+  const workspace = getWorkspaceById(profile.activeWorkspaceId);
+
+  if (!workspace) {
+    throw new Error('Active workspace was not initialized.');
+  }
+
+  return workspace;
+};
+
+const getWorkspaceById = (workspaceId: string): Workspace | null => {
+  const row = getDatabase()
+    .prepare('SELECT id, profile_id, title FROM workspaces WHERE id = ?')
+    .get(workspaceId) as WorkspaceRow | undefined;
+
+  return row ? mapWorkspace(row) : null;
+};
+
+const getActiveWorkspaceId = () => getProfile().activeWorkspaceId;
+
+const mapProfile = (row: ProfileRow): UserProfile => ({
+  id: row.id,
+  name: row.name,
+  email: row.email ?? undefined,
+  avatarDataUrl: row.avatar_data_url ?? undefined,
+  activeWorkspaceId: row.active_workspace_id,
+});
+
+const mapWorkspace = (row: WorkspaceRow): Workspace => ({
+  id: row.id,
+  profileId: row.profile_id,
+  title: row.title,
 });
 
 const cleanOptional = (value: string | undefined) => {

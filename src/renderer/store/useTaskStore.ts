@@ -7,7 +7,11 @@ import type {
   Task,
   TaskScope,
   UpdateCategoryInput,
+  UpdateProfileInput,
   UpdateTaskInput,
+  UpdateWorkspaceInput,
+  UserProfile,
+  Workspace,
 } from '../../shared/types';
 import { categories as seedCategories, notes as seedNotes, tasks as seedTasks } from '../data/seed';
 
@@ -20,6 +24,19 @@ type TabStateUpdate = Partial<
   Pick<TaskState, 'activeCategoryId' | 'activeScope' | 'canGoBack' | 'canGoForward' | 'openTabs'>
 >;
 
+const defaultProfile: UserProfile = {
+  id: 'default-profile',
+  activeWorkspaceId: 'default-workspace',
+  email: 'username@gmail.com',
+  name: 'Username',
+};
+
+const defaultWorkspace: Workspace = {
+  id: 'default-workspace',
+  profileId: 'default-profile',
+  title: 'Личное пространство',
+};
+
 interface TaskState {
   activeScope: TaskScope;
   activeCategoryId: string;
@@ -29,7 +46,9 @@ interface TaskState {
   error?: string;
   isLoading: boolean;
   notes: Note[];
+  profile: UserProfile;
   tasks: Task[];
+  workspace: Workspace;
   createCategory: (input: CreateCategoryInput) => Promise<void>;
   createTask: (input: Omit<CreateTaskInput, 'scope' | 'categoryId'> & { categoryId?: string }) => Promise<void>;
   closeTab: (route: AppRoute) => void;
@@ -45,7 +64,9 @@ interface TaskState {
   toggleCategoryFavorite: (categoryId: string) => Promise<void>;
   toggleTask: (taskId: string) => Promise<void>;
   updateCategory: (input: UpdateCategoryInput) => Promise<void>;
+  updateProfile: (input: UpdateProfileInput) => Promise<void>;
   updateTask: (input: UpdateTaskInput) => Promise<void>;
+  updateWorkspace: (input: UpdateWorkspaceInput) => Promise<void>;
   updateNote: (scope: TaskScope, text: string, categoryId?: string) => Promise<void>;
 }
 
@@ -59,7 +80,9 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   isLoading: false,
   notes: seedNotes,
   openTabs: [{ scope: 'inbox' }],
+  profile: defaultProfile,
   tasks: seedTasks,
+  workspace: defaultWorkspace,
   createCategory: async (input) => {
     const category = await requireApi().createCategory({
       ...input,
@@ -152,7 +175,9 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         error: undefined,
         isLoading: false,
         notes: data.notes,
+        profile: data.profile,
         tasks: data.tasks,
+        workspace: data.workspace,
       });
     } catch (error) {
       set({
@@ -210,6 +235,16 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       error: undefined,
     }));
   },
+  updateProfile: async (input) => {
+    const profile = await requireApi().updateProfile({
+      ...input,
+      name: input.name.trim(),
+      email: input.email?.trim() || undefined,
+      avatarDataUrl: input.avatarDataUrl || undefined,
+    });
+
+    set({ error: undefined, profile });
+  },
   updateTask: async (input) => {
     const task = await requireApi().updateTask({
       ...input,
@@ -223,6 +258,14 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       error: undefined,
       tasks: state.tasks.map((item) => (item.id === task.id ? task : item)),
     }));
+  },
+  updateWorkspace: async (input) => {
+    const workspace = await requireApi().updateWorkspace({
+      ...input,
+      title: input.title.trim(),
+    });
+
+    set({ error: undefined, workspace });
   },
   updateNote: async (scope, text, categoryId) => {
     const noteCategoryId = scope === 'category' ? categoryId : undefined;

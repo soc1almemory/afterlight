@@ -4,7 +4,9 @@ import type {
   CreateTaskInput,
   TaskScope,
   UpdateCategoryInput,
+  UpdateProfileInput,
   UpdateTaskInput,
+  UpdateWorkspaceInput,
 } from '../../shared/types';
 import {
   createCategory,
@@ -17,7 +19,9 @@ import {
   toggleTask,
   updateCategory,
   updateNote,
+  updateProfile,
   updateTask,
+  updateWorkspace,
 } from '../storage/repositories';
 
 export const registerTaskIpcHandlers = () => {
@@ -111,4 +115,32 @@ export const registerTaskIpcHandlers = () => {
   ipcMain.handle('notes:update', (_event, input: { scope: TaskScope; text: string; categoryId?: string }) =>
     updateNote(input.scope, input.text, input.categoryId),
   );
+
+  ipcMain.handle('profile:update', (_event, input: UpdateProfileInput) => {
+    if (!input.name.trim()) {
+      throw new Error('Profile name is required.');
+    }
+
+    const profile = updateProfile(input);
+
+    if (!profile) {
+      throw new Error(`Profile "${input.id}" was not found.`);
+    }
+
+    return profile;
+  });
+
+  ipcMain.handle('workspace:update', (_event, input: UpdateWorkspaceInput) => {
+    if (!input.title.trim()) {
+      throw new Error('Workspace title is required.');
+    }
+
+    const workspace = updateWorkspace(input);
+
+    if (!workspace) {
+      throw new Error(`Workspace "${input.id}" was not found.`);
+    }
+
+    return workspace;
+  });
 };

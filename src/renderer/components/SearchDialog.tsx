@@ -27,6 +27,7 @@ const scopeItems: Array<{ icon: string; label: string; scope: TaskScope }> = [
 export const SearchDialog = ({ isOpen, onClose, onEditTask }: SearchDialogProps) => {
   const [query, setQuery] = useState('');
   const categories = useTaskStore((state) => state.categories);
+  const profile = useTaskStore((state) => state.profile);
   const setActiveCategory = useTaskStore((state) => state.setActiveCategory);
   const setScope = useTaskStore((state) => state.setScope);
   const tasks = useTaskStore((state) => state.tasks);
@@ -98,7 +99,7 @@ export const SearchDialog = ({ isOpen, onClose, onEditTask }: SearchDialogProps)
             autoFocus
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Поиск в рабочем пространстве Username..."
+            placeholder={`Поиск в рабочем пространстве ${profile.name}...`}
           />
         </div>
 

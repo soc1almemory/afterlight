@@ -73,8 +73,36 @@ export interface Note {
   categoryId?: string;
 }
 
+export interface UserProfile {
+  id: string;
+  name: string;
+  email?: string;
+  avatarDataUrl?: string;
+  activeWorkspaceId: string;
+}
+
+export interface Workspace {
+  id: string;
+  title: string;
+  profileId: string;
+}
+
+export interface UpdateProfileInput {
+  id: string;
+  name: string;
+  email?: string;
+  avatarDataUrl?: string;
+}
+
+export interface UpdateWorkspaceInput {
+  id: string;
+  title: string;
+}
+
 export interface AppData {
   categories: Category[];
   notes: Note[];
+  profile: UserProfile;
   tasks: Task[];
+  workspace: Workspace;
 }

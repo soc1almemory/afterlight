@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import type { ChangeEvent, FormEvent } from 'react';
 import { assetUrl } from '../lib/assets';
+import { useTaskStore } from '../store/useTaskStore';
 
 interface SettingsDialogProps {
   isOpen: boolean;
@@ -75,45 +77,133 @@ export const SettingsDialog = ({ isOpen, onClose }: SettingsDialogProps) => {
   );
 };
 
-const AccountSettings = () => (
-  <div className="settings-page">
-    <section className="settings-section">
-      <h3>Профиль</h3>
-      <div className="settings-divider" />
-      <div className="profile-settings">
-        <div className="profile-avatar-block">
-          <img className="profile-avatar" src={assetUrl('settings-avatar-image.svg')} alt="" />
-          <button className="outline-accent-button" type="button">
-            Загрузить фото
-          </button>
-        </div>
-        <label className="settings-field">
-          <span>Введите имя</span>
-          <input value="Username" readOnly />
-        </label>
-      </div>
-    </section>
+const AccountSettings = () => {
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const profile = useTaskStore((state) => state.profile);
+  const updateProfile = useTaskStore((state) => state.updateProfile);
+  const updateWorkspace = useTaskStore((state) => state.updateWorkspace);
+  const workspace = useTaskStore((state) => state.workspace);
+  const [avatarDataUrl, setAvatarDataUrl] = useState(profile.avatarDataUrl);
+  const [email, setEmail] = useState(profile.email ?? '');
+  const [name, setName] = useState(profile.name);
+  const [workspaceTitle, setWorkspaceTitle] = useState(workspace.title);
+  const canSave = Boolean(name.trim() && workspaceTitle.trim());
 
-    <section className="settings-section">
-      <h3>Безопасность</h3>
-      <div className="settings-divider" />
-      <SettingsAction title="Email" description="username@gmail.com" action="Изменить Email" />
-      <SettingsAction title="Пароль" description="Установите или измените пароль для входа в аккаунт" action="Изменить пароль" />
-      <SettingsAction
-        title="Двухфакторная аутентификация (2FA)"
-        description="Установите двухфакторную аутентификацию, чтобы подтверждать входы в аккаунт дополнительным кодом"
-        action="Установить метод верификации"
-      />
-      <div className="settings-divider" />
-      <SettingsAction
-        danger
-        title="Удаление аккаунта"
-        description="Навсегда удалить аккаунт без возможности восстановления"
-        action="Удалить аккаунт"
-      />
-    </section>
-  </div>
-);
+  useEffect(() => {
+    setAvatarDataUrl(profile.avatarDataUrl);
+    setEmail(profile.email ?? '');
+    setName(profile.name);
+  }, [profile]);
+
+  useEffect(() => {
+    setWorkspaceTitle(workspace.title);
+  }, [workspace]);
+
+  const handleAvatarChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.addEventListener('load', () => {
+      const result = typeof reader.result === 'string' ? reader.result : undefined;
+
+      if (!result) {
+        return;
+      }
+
+      setAvatarDataUrl(result);
+      void updateProfile({ ...profile, avatarDataUrl: result, email, name: name.trim() || profile.name });
+    });
+    reader.readAsDataURL(file);
+    event.target.value = '';
+  };
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!canSave) {
+      return;
+    }
+
+    void updateProfile({ ...profile, avatarDataUrl, email, name });
+    void updateWorkspace({ ...workspace, title: workspaceTitle });
+  };
+
+  return (
+    <div className="settings-page">
+      <form className="settings-form" onSubmit={handleSubmit}>
+        <section className="settings-section">
+          <h3>Профиль</h3>
+          <div className="settings-divider" />
+          <div className="profile-settings">
+            <div className="profile-avatar-block">
+              <img className="profile-avatar" src={avatarDataUrl ?? assetUrl('settings-avatar-image.svg')} alt="" />
+              <input
+                ref={avatarInputRef}
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                className="visually-hidden"
+                type="file"
+                onChange={handleAvatarChange}
+              />
+              <button className="outline-accent-button" type="button" onClick={() => avatarInputRef.current?.click()}>
+                Загрузить фото
+              </button>
+            </div>
+            <div className="settings-field-stack">
+              <label className="settings-field">
+                <span>Введите имя</span>
+                <input value={name} onChange={(event) => setName(event.target.value)} />
+              </label>
+              <label className="settings-field">
+                <span>Email</span>
+                <input value={email} onChange={(event) => setEmail(event.target.value)} />
+              </label>
+            </div>
+          </div>
+        </section>
+
+        <section className="settings-section">
+          <h3>Рабочее пространство</h3>
+          <div className="settings-divider" />
+          <label className="settings-field workspace-settings-field">
+            <span>Название пространства</span>
+            <input value={workspaceTitle} onChange={(event) => setWorkspaceTitle(event.target.value)} />
+          </label>
+          <p className="settings-hint">
+            Задачи, категории и заметки сохраняются внутри активного локального пространства.
+          </p>
+          <div className="settings-save-row">
+            <button className="settings-save-button" type="submit" disabled={!canSave}>
+              Сохранить изменения
+            </button>
+          </div>
+        </section>
+      </form>
+
+      <section className="settings-section">
+        <h3>Безопасность</h3>
+        <div className="settings-divider" />
+        <SettingsAction title="Email" description={email || 'Email не указан'} action="Изменить Email" />
+        <SettingsAction title="Пароль" description="Локальный профиль пока не использует пароль для входа." action="Добавить пароль" />
+        <SettingsAction
+          title="Двухфакторная аутентификация (2FA)"
+          description="Раздел подготовлен для будущей синхронизации и внешнего аккаунта."
+          action="Настроить позже"
+        />
+        <div className="settings-divider" />
+        <SettingsAction
+          danger
+          title="Удаление аккаунта"
+          description="Удаление локального профиля будет добавлено после реализации резервных копий."
+          action="Недоступно"
+        />
+      </section>
+    </div>
+  );
+};
 
 const SettingsAction = ({
   action,

@@ -8,7 +8,11 @@ import type {
   Task,
   TaskScope,
   UpdateCategoryInput,
+  UpdateProfileInput,
   UpdateTaskInput,
+  UpdateWorkspaceInput,
+  UserProfile,
+  Workspace,
 } from '../shared/types';
 
 const windowControls = {
@@ -32,6 +36,8 @@ contextBridge.exposeInMainWorld('afterlightApi', {
   deleteTask: (taskId: string): Promise<string> => ipcRenderer.invoke('tasks:delete', taskId),
   updateNote: (scope: TaskScope, text: string, categoryId?: string): Promise<Note> =>
     ipcRenderer.invoke('notes:update', { scope, text, categoryId }),
+  updateProfile: (input: UpdateProfileInput): Promise<UserProfile> => ipcRenderer.invoke('profile:update', input),
+  updateWorkspace: (input: UpdateWorkspaceInput): Promise<Workspace> => ipcRenderer.invoke('workspace:update', input),
 });
 contextBridge.exposeInMainWorld('afterlightSystem', {
   platform: process.platform,

@@ -22,7 +22,9 @@ export const Sidebar = ({ onAddCategory, onEditCategory, onOpenSearch, onOpenSet
   const activeScope = useTaskStore((state) => state.activeScope);
   const activeCategoryId = useTaskStore((state) => state.activeCategoryId);
   const categories = useTaskStore((state) => state.categories);
+  const profile = useTaskStore((state) => state.profile);
   const tasks = useTaskStore((state) => state.tasks);
+  const workspace = useTaskStore((state) => state.workspace);
   const setScope = useTaskStore((state) => state.setScope);
   const setActiveCategory = useTaskStore((state) => state.setActiveCategory);
 
@@ -33,9 +35,10 @@ export const Sidebar = ({ onAddCategory, onEditCategory, onOpenSearch, onOpenSet
     <aside className="sidebar">
       <div className="menu-top-container">
         <div className="user-row">
-          <img className="user-avatar" src={assetUrl('avatar.svg')} alt="" />
+          <img className="user-avatar" src={profile.avatarDataUrl ?? assetUrl('avatar.svg')} alt="" />
           <button className="user-name-button" type="button">
-            <span>Username</span>
+            <span className="user-name">{profile.name}</span>
+            <span className="user-workspace">{workspace.title}</span>
             <span className="user-chevron" aria-hidden="true" />
           </button>
           <button className="create-category-button" type="button" aria-label="Создать категорию" onClick={onAddCategory}>

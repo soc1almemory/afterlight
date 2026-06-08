@@ -6,6 +6,9 @@ import { seedCategories, seedNotes, seedTasks } from '../../shared/seedData';
 
 let connection: Database.Database | null = null;
 
+const DEFAULT_PROFILE_ID = 'default-profile';
+const DEFAULT_WORKSPACE_ID = 'default-workspace';
+
 export const initializeDatabase = () => {
   if (connection) {
     return connection;
@@ -17,8 +20,28 @@ export const initializeDatabase = () => {
   connection = new Database(path.join(storageDir, 'afterlight.sqlite'));
   connection.pragma('journal_mode = WAL');
   connection.exec(`
+    CREATE TABLE IF NOT EXISTS profiles (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      email TEXT,
+      avatar_data_url TEXT,
+      active_workspace_id TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS workspaces (
+      id TEXT PRIMARY KEY,
+      profile_id TEXT NOT NULL,
+      title TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(profile_id) REFERENCES profiles(id)
+    );
+
     CREATE TABLE IF NOT EXISTS categories (
       id TEXT PRIMARY KEY,
+      workspace_id TEXT NOT NULL DEFAULT '${DEFAULT_WORKSPACE_ID}',
       title TEXT NOT NULL,
       color TEXT NOT NULL,
       icon_mode TEXT NOT NULL DEFAULT 'color',
@@ -29,6 +52,7 @@ export const initializeDatabase = () => {
 
     CREATE TABLE IF NOT EXISTS tasks (
       id TEXT PRIMARY KEY,
+      workspace_id TEXT NOT NULL DEFAULT '${DEFAULT_WORKSPACE_ID}',
       title TEXT NOT NULL,
       description TEXT,
       due_date TEXT,
@@ -45,6 +69,7 @@ export const initializeDatabase = () => {
 
     CREATE TABLE IF NOT EXISTS notes (
       id TEXT PRIMARY KEY,
+      workspace_id TEXT NOT NULL DEFAULT '${DEFAULT_WORKSPACE_ID}',
       scope TEXT NOT NULL,
       category_id TEXT,
       text TEXT NOT NULL DEFAULT '',
@@ -56,9 +81,13 @@ export const initializeDatabase = () => {
     CREATE INDEX IF NOT EXISTS idx_tasks_category ON tasks(category_id);
   `);
   migrateDatabase(connection);
+  seedProfileAndWorkspace(connection);
   connection.exec(`
     CREATE INDEX IF NOT EXISTS idx_tasks_due_date ON tasks(due_date);
     CREATE INDEX IF NOT EXISTS idx_notes_scope_category ON notes(scope, category_id);
+    CREATE INDEX IF NOT EXISTS idx_tasks_workspace ON tasks(workspace_id);
+    CREATE INDEX IF NOT EXISTS idx_categories_workspace ON categories(workspace_id);
+    CREATE INDEX IF NOT EXISTS idx_notes_workspace ON notes(workspace_id);
   `);
 
   seedDatabase(connection);
@@ -120,6 +149,47 @@ const seedDatabase = (database: Database.Database) => {
   seed();
 };
 
+const seedProfileAndWorkspace = (database: Database.Database) => {
+  const profile = database.prepare('SELECT id FROM profiles LIMIT 1').get() as { id: string } | undefined;
+
+  if (!profile) {
+    database
+      .prepare(
+        `INSERT INTO profiles (id, name, email, active_workspace_id)
+         VALUES (@id, @name, @email, @activeWorkspaceId)`,
+      )
+      .run({
+        id: DEFAULT_PROFILE_ID,
+        name: 'Username',
+        email: 'username@gmail.com',
+        activeWorkspaceId: DEFAULT_WORKSPACE_ID,
+      });
+  }
+
+  const workspace = database.prepare('SELECT id FROM workspaces LIMIT 1').get() as { id: string } | undefined;
+
+  if (!workspace) {
+    database
+      .prepare(
+        `INSERT INTO workspaces (id, profile_id, title)
+         VALUES (@id, @profileId, @title)`,
+      )
+      .run({
+        id: DEFAULT_WORKSPACE_ID,
+        profileId: profile?.id ?? DEFAULT_PROFILE_ID,
+        title: 'Личное пространство',
+      });
+  }
+
+  database
+    .prepare(
+      `UPDATE profiles
+       SET active_workspace_id = @workspaceId
+       WHERE active_workspace_id IS NULL OR active_workspace_id = @emptyWorkspaceId`,
+    )
+    .run({ workspaceId: DEFAULT_WORKSPACE_ID, emptyWorkspaceId: '' });
+};
+
 const migrateDatabase = (database: Database.Database) => {
   const taskColumns = database.prepare('PRAGMA table_info(tasks)').all() as Array<{ name: string }>;
   const hasExpiredColumn = taskColumns.some((column) => column.name === 'is_expired');
@@ -134,9 +204,16 @@ const migrateDatabase = (database: Database.Database) => {
     database.exec('ALTER TABLE tasks ADD COLUMN due_date TEXT');
   }
 
+  const hasTaskWorkspaceColumn = taskColumns.some((column) => column.name === 'workspace_id');
+
+  if (!hasTaskWorkspaceColumn) {
+    database.exec(`ALTER TABLE tasks ADD COLUMN workspace_id TEXT NOT NULL DEFAULT '${DEFAULT_WORKSPACE_ID}'`);
+  }
+
   const categoryColumns = database.prepare('PRAGMA table_info(categories)').all() as Array<{ name: string }>;
   const hasCategoryIconModeColumn = categoryColumns.some((column) => column.name === 'icon_mode');
   const hasCategoryEmojiColumn = categoryColumns.some((column) => column.name === 'emoji');
+  const hasCategoryWorkspaceColumn = categoryColumns.some((column) => column.name === 'workspace_id');
 
   if (!hasCategoryIconModeColumn) {
     database.exec("ALTER TABLE categories ADD COLUMN icon_mode TEXT NOT NULL DEFAULT 'color'");
@@ -146,10 +223,19 @@ const migrateDatabase = (database: Database.Database) => {
     database.exec('ALTER TABLE categories ADD COLUMN emoji TEXT');
   }
 
+  if (!hasCategoryWorkspaceColumn) {
+    database.exec(`ALTER TABLE categories ADD COLUMN workspace_id TEXT NOT NULL DEFAULT '${DEFAULT_WORKSPACE_ID}'`);
+  }
+
   const noteColumns = database.prepare('PRAGMA table_info(notes)').all() as Array<{ name: string }>;
   const hasNoteCategoryColumn = noteColumns.some((column) => column.name === 'category_id');
+  const hasNoteWorkspaceColumn = noteColumns.some((column) => column.name === 'workspace_id');
 
   if (!hasNoteCategoryColumn) {
     database.exec('ALTER TABLE notes ADD COLUMN category_id TEXT');
+  }
+
+  if (!hasNoteWorkspaceColumn) {
+    database.exec(`ALTER TABLE notes ADD COLUMN workspace_id TEXT NOT NULL DEFAULT '${DEFAULT_WORKSPACE_ID}'`);
   }
 };

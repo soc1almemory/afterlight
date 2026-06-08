@@ -9,7 +9,11 @@ import type {
   Task,
   TaskScope,
   UpdateCategoryInput,
+  UpdateProfileInput,
   UpdateTaskInput,
+  UpdateWorkspaceInput,
+  UserProfile,
+  Workspace,
 } from '../shared/types';
 
 interface AfterlightWindowControls {
@@ -35,6 +39,8 @@ interface AfterlightApi {
   updateTask: (input: UpdateTaskInput) => Promise<Task>;
   deleteTask: (taskId: string) => Promise<string>;
   updateNote: (scope: TaskScope, text: string, categoryId?: string) => Promise<Note>;
+  updateProfile: (input: UpdateProfileInput) => Promise<UserProfile>;
+  updateWorkspace: (input: UpdateWorkspaceInput) => Promise<Workspace>;
 }
 
 declare global {
