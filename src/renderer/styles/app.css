@@ -624,30 +624,38 @@ body {
 
 .workspace {
   grid-row: 2;
+  position: relative;
   min-width: 0;
   min-height: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 32px 48px 48px;
+  padding: 0 48px 48px;
   overflow: auto;
 }
 
 .control-strip {
-  width: min(1102px, 100%);
-  height: 36px;
+  align-self: stretch;
+  width: auto;
+  min-height: 40px;
+  margin: 0 -48px 26px;
+  padding: 0 18px;
+  background: #fafafa;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  color: #515151;
+  justify-content: flex-end;
+  gap: 30px;
+  color: #c5c5c5;
   font-size: 14px;
   font-weight: 600;
+  text-align: right;
 }
 
 .control-status {
   display: flex;
   align-items: center;
-  gap: 18px;
+  justify-content: flex-end;
+  gap: 30px;
 }
 
 .refresh-status {
@@ -1007,14 +1015,19 @@ body {
   min-height: 96px;
   width: 100%;
   resize: vertical;
-  border: 1px solid #eeeeee;
-  border-radius: 6px;
-  padding: 14px 16px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
   color: #515151;
   outline: none;
 }
 
-.notes-field textarea:focus,
+.notes-field textarea:focus {
+  border-color: transparent;
+  box-shadow: none;
+}
+
 .task-dialog input:focus,
 .task-dialog textarea:focus,
 .task-dialog select:focus {
@@ -1565,7 +1578,11 @@ body {
   }
 
   .workspace {
-    padding: 24px;
+    padding: 0 24px 24px;
+  }
+
+  .control-strip {
+    margin: 0 -24px 18px;
   }
 
   .task-panel {
