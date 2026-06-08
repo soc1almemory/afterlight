@@ -1,0 +1,533 @@
+@font-face {
+  font-family: 'RobotoLocal';
+  src: local('Roboto');
+}
+
+:root {
+  color: #111111;
+  background: #fafafa;
+  font-family: RobotoLocal, Roboto, Arial, sans-serif;
+  font-synthesis: none;
+  text-rendering: geometricPrecision;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+button,
+textarea,
+input {
+  font: inherit;
+}
+
+button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+#root,
+body {
+  min-width: 100vw;
+  min-height: 100vh;
+}
+
+.afterlight-app {
+  min-height: 100vh;
+  background: #fafafa;
+  color: #111111;
+  display: grid;
+  grid-template-columns: 316px minmax(0, 1fr);
+  grid-template-rows: 40px minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.app-titlebar {
+  grid-column: 1 / -1;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  background: #ffffff;
+  border-bottom: 1px solid #f1f1f1;
+}
+
+.drag-region {
+  align-self: stretch;
+  flex: 1;
+  -webkit-app-region: drag;
+}
+
+.window-actions {
+  display: flex;
+  height: 40px;
+}
+
+.window-actions button {
+  width: 46px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+}
+
+.window-actions button:hover {
+  background: #f2f2f2;
+}
+
+.window-actions button:last-child:hover {
+  background: #ffeded;
+}
+
+.window-actions img {
+  width: 14px;
+  height: 14px;
+}
+
+.sidebar {
+  grid-row: 2;
+  background: #ffffff;
+  border-right: 1px solid #eeeeee;
+  padding: 30px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  min-height: 0;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.brand img {
+  width: 34px;
+  height: 34px;
+}
+
+.create-task-button {
+  height: 46px;
+  border-radius: 6px;
+  background: #111111;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-weight: 700;
+}
+
+.create-task-button img {
+  width: 18px;
+  height: 18px;
+  filter: brightness(0) invert(1);
+}
+
+.nav-section,
+.category-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.section-heading {
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #777777;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.section-heading button {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+}
+
+.nav-item {
+  width: 100%;
+  min-height: 40px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 12px;
+  font-weight: 600;
+  color: #3d3d3d;
+  text-align: left;
+}
+
+.nav-item:hover,
+.nav-item.active {
+  background: #f3f3f3;
+  color: #000000;
+}
+
+.nav-item img {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+}
+
+.category-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+.favorite-icon {
+  margin-left: auto;
+}
+
+.settings-button {
+  margin-top: auto;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 12px;
+  border-radius: 6px;
+  color: #3d3d3d;
+  font-weight: 600;
+}
+
+.settings-button:hover {
+  background: #f3f3f3;
+}
+
+.settings-button img {
+  width: 20px;
+  height: 20px;
+}
+
+.workspace {
+  grid-row: 2;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px 48px 48px;
+  overflow: auto;
+}
+
+.control-strip {
+  width: min(1102px, 100%);
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #515151;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.control-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.control-actions button,
+.task-panel-heading button {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+}
+
+.control-actions button:hover,
+.task-panel-heading button:hover {
+  background: #f2f2f2;
+}
+
+.control-actions img,
+.task-panel-heading img {
+  width: 18px;
+  height: 18px;
+}
+
+.task-panel {
+  width: min(1102px, 100%);
+  min-height: 680px;
+  background: #ffffff;
+  border: 1px solid #f1f1f1;
+  border-radius: 5px;
+  padding: 64px 88px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 34px;
+}
+
+.task-panel-heading {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.task-panel h1 {
+  margin: 0;
+  font-size: 36px;
+  line-height: 1.1;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.task-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.task-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 0;
+}
+
+.task-row.with-separator {
+  border-top: 2px solid #e2e2e2;
+  padding-top: 18px;
+}
+
+.task-line {
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.checkbox-button {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+
+.checkbox-button::before {
+  content: '';
+  width: 18px;
+  height: 18px;
+  border: 2px solid #515151;
+  border-radius: 2px;
+}
+
+.checkbox-button.checked::before {
+  display: none;
+}
+
+.checkbox-button img {
+  width: 24px;
+  height: 24px;
+}
+
+.priority {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+.priority-1 {
+  background: #ff3f3f;
+}
+
+.priority-2 {
+  background: #ffc23f;
+}
+
+.priority-3 {
+  background: #5eff71;
+}
+
+.priority-4 {
+  background: #76b9ff;
+}
+
+.priority-checked {
+  background: #dddddd;
+}
+
+.expired-label {
+  color: #ff4e4e;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.task-title {
+  font-size: 18px;
+  line-height: 1.25;
+  font-weight: 600;
+}
+
+.task-title.completed {
+  color: #8f8f8f;
+  text-decoration: line-through;
+}
+
+.task-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding-left: 62px;
+  color: #515151;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.task-meta time {
+  border-radius: 10px;
+  background: #ffe3e3;
+  color: #111111;
+  padding: 3px 7px;
+  font-weight: 800;
+}
+
+.inline-add-task {
+  align-self: flex-start;
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #515151;
+  font-weight: 600;
+}
+
+.inline-add-task img {
+  width: 20px;
+  height: 20px;
+}
+
+.notes-field {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.notes-field span {
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.notes-field textarea {
+  min-height: 96px;
+  width: 100%;
+  resize: vertical;
+  border: 1px solid #eeeeee;
+  border-radius: 6px;
+  padding: 14px 16px;
+  color: #515151;
+  outline: none;
+}
+
+.notes-field textarea:focus,
+.add-task-dialog input:focus {
+  border-color: #111111;
+}
+
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.add-task-dialog {
+  width: min(480px, calc(100vw - 40px));
+  border-radius: 8px;
+  background: #ffffff;
+  border: 1px solid #eeeeee;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.18);
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.dialog-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.dialog-heading h2 {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.2;
+}
+
+.dialog-heading button {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+}
+
+.dialog-heading button:hover {
+  background: #f2f2f2;
+}
+
+.dialog-heading img {
+  width: 16px;
+  height: 16px;
+}
+
+.add-task-dialog input {
+  height: 44px;
+  border-radius: 6px;
+  border: 1px solid #eeeeee;
+  padding: 0 14px;
+  outline: none;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.dialog-actions button {
+  min-width: 92px;
+  height: 38px;
+  border-radius: 6px;
+  font-weight: 700;
+}
+
+.dialog-actions button:first-child {
+  background: #f3f3f3;
+}
+
+.dialog-actions button:last-child {
+  background: #111111;
+  color: #ffffff;
+}
+
+@media (max-width: 980px) {
+  .afterlight-app {
+    grid-template-columns: 248px minmax(0, 1fr);
+  }
+
+  .workspace {
+    padding: 24px;
+  }
+
+  .task-panel {
+    padding: 40px 36px 28px;
+  }
+}
