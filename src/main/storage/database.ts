@@ -21,6 +21,8 @@ export const initializeDatabase = () => {
       id TEXT PRIMARY KEY,
       title TEXT NOT NULL,
       color TEXT NOT NULL,
+      icon_mode TEXT NOT NULL DEFAULT 'color',
+      emoji TEXT,
       is_favorite INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
@@ -72,8 +74,8 @@ const seedDatabase = (database: Database.Database) => {
   const noteCount = database.prepare('SELECT COUNT(*) AS count FROM notes').get() as { count: number };
 
   const insertCategory = database.prepare(`
-    INSERT INTO categories (id, title, color, is_favorite)
-    VALUES (@id, @title, @color, @isFavorite)
+    INSERT INTO categories (id, title, color, icon_mode, emoji, is_favorite)
+    VALUES (@id, @title, @color, @iconMode, @emoji, @isFavorite)
   `);
 
   const insertTask = database.prepare(`
@@ -89,7 +91,11 @@ const seedDatabase = (database: Database.Database) => {
   const seed = database.transaction(() => {
     if (categoryCount.count === 0) {
       seedCategories.forEach((category) => {
-        insertCategory.run({ ...category, isFavorite: Number(category.isFavorite) });
+        insertCategory.run({
+          ...category,
+          emoji: category.emoji ?? null,
+          isFavorite: Number(category.isFavorite),
+        });
       });
     }
 
@@ -126,6 +132,18 @@ const migrateDatabase = (database: Database.Database) => {
 
   if (!hasDueDateColumn) {
     database.exec('ALTER TABLE tasks ADD COLUMN due_date TEXT');
+  }
+
+  const categoryColumns = database.prepare('PRAGMA table_info(categories)').all() as Array<{ name: string }>;
+  const hasCategoryIconModeColumn = categoryColumns.some((column) => column.name === 'icon_mode');
+  const hasCategoryEmojiColumn = categoryColumns.some((column) => column.name === 'emoji');
+
+  if (!hasCategoryIconModeColumn) {
+    database.exec("ALTER TABLE categories ADD COLUMN icon_mode TEXT NOT NULL DEFAULT 'color'");
+  }
+
+  if (!hasCategoryEmojiColumn) {
+    database.exec('ALTER TABLE categories ADD COLUMN emoji TEXT');
   }
 
   const noteColumns = database.prepare('PRAGMA table_info(notes)').all() as Array<{ name: string }>;

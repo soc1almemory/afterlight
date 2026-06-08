@@ -73,11 +73,11 @@ export const App = () => {
       <TitleBar onAddCategory={openCreateCategoryDialog} />
       <Sidebar
         onAddCategory={openCreateCategoryDialog}
-        onAddTask={() => openCreateDialog()}
         onEditCategory={openEditCategoryDialog}
+        onOpenSearch={() => setSearchOpen(true)}
         onOpenSettings={() => setSettingsOpen(true)}
       />
-      <ContentView onAddTask={openCreateDialog} onEditTask={openEditDialog} onOpenSearch={() => setSearchOpen(true)} />
+      <ContentView onAddTask={openCreateDialog} onEditTask={openEditDialog} />
       <TaskDialog isOpen={isTaskDialogOpen} task={editingTask} initialDueDate={initialTaskDate} onClose={closeDialog} />
       <CategoryDialog isOpen={isCategoryDialogOpen} category={editingCategory} onClose={closeCategoryDialog} />
       <SearchDialog isOpen={isSearchOpen} onClose={() => setSearchOpen(false)} onEditTask={openEditDialog} />

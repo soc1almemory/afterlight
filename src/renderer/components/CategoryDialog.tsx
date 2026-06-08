@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from 'react';
-import type { Category } from '../../shared/types';
+import type { Category, CategoryIconMode } from '../../shared/types';
 import { assetUrl } from '../lib/assets';
 import { useTaskStore } from '../store/useTaskStore';
 
@@ -17,6 +17,8 @@ export const CategoryDialog = ({ category, isOpen, onClose }: CategoryDialogProp
   const updateCategory = useTaskStore((state) => state.updateCategory);
   const [title, setTitle] = useState('');
   const [color, setColor] = useState(colorOptions[0]);
+  const [emoji, setEmoji] = useState('');
+  const [iconMode, setIconMode] = useState<CategoryIconMode>('color');
   const [isFavorite, setFavorite] = useState(false);
 
   useEffect(() => {
@@ -26,6 +28,8 @@ export const CategoryDialog = ({ category, isOpen, onClose }: CategoryDialogProp
 
     setTitle(category?.title ?? '');
     setColor(category?.color ?? colorOptions[0]);
+    setEmoji(category?.emoji ?? '');
+    setIconMode(category?.iconMode ?? 'color');
     setFavorite(category?.isFavorite ?? false);
   }, [category, isOpen]);
 
@@ -46,12 +50,16 @@ export const CategoryDialog = ({ category, isOpen, onClose }: CategoryDialogProp
         id: category.id,
         title: cleanTitle,
         color,
+        emoji,
+        iconMode,
         isFavorite,
       });
     } else {
       await createCategory({
         title: cleanTitle,
         color,
+        emoji,
+        iconMode,
         isFavorite,
       });
     }
@@ -94,7 +102,26 @@ export const CategoryDialog = ({ category, isOpen, onClose }: CategoryDialogProp
         </label>
 
         <fieldset className="color-field">
-          <legend>Цвет</legend>
+          <legend>Отображение</legend>
+          <div className="category-icon-mode">
+            <button
+              className={iconMode === 'color' ? 'active' : ''}
+              type="button"
+              onClick={() => setIconMode('color')}
+            >
+              Цвет
+            </button>
+            <button
+              className={iconMode === 'emoji' ? 'active' : ''}
+              type="button"
+              onClick={() => setIconMode('emoji')}
+            >
+              Emoji
+            </button>
+            <button className={iconMode === 'hash' ? 'active' : ''} type="button" onClick={() => setIconMode('hash')}>
+              #
+            </button>
+          </div>
           <div className="color-swatches">
             {colorOptions.map((option) => (
               <button
@@ -108,6 +135,13 @@ export const CategoryDialog = ({ category, isOpen, onClose }: CategoryDialogProp
             ))}
           </div>
         </fieldset>
+
+        {iconMode === 'emoji' ? (
+          <label className="form-field compact">
+            <span>Emoji</span>
+            <input maxLength={4} value={emoji} onChange={(event) => setEmoji(event.target.value)} placeholder="Например, 📚" />
+          </label>
+        ) : null}
 
         <label className="checkbox-field">
           <input checked={isFavorite} type="checkbox" onChange={(event) => setFavorite(event.target.checked)} />

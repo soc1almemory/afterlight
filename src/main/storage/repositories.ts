@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import type {
   AppData,
   Category,
+  CategoryIconMode,
   CreateCategoryInput,
   CreateTaskInput,
   Note,
@@ -18,6 +19,8 @@ interface CategoryRow {
   id: string;
   title: string;
   color: string;
+  icon_mode: string;
+  emoji: string | null;
   is_favorite: number;
 }
 
@@ -49,7 +52,7 @@ export const listAppData = (): AppData => ({
 
 export const listCategories = (): Category[] => {
   const rows = getDatabase()
-    .prepare('SELECT id, title, color, is_favorite FROM categories ORDER BY is_favorite DESC, created_at ASC')
+    .prepare('SELECT id, title, color, icon_mode, emoji, is_favorite FROM categories ORDER BY is_favorite DESC, created_at ASC')
     .all() as CategoryRow[];
 
   return rows.map(mapCategory);
@@ -60,16 +63,19 @@ export const createCategory = (input: CreateCategoryInput): Category => {
     id: crypto.randomUUID(),
     title: input.title.trim(),
     color: normalizeColor(input.color),
+    emoji: cleanOptional(input.emoji),
+    iconMode: normalizeIconMode(input.iconMode, input.emoji),
     isFavorite: Boolean(input.isFavorite),
   };
 
   getDatabase()
     .prepare(
-      `INSERT INTO categories (id, title, color, is_favorite)
-       VALUES (@id, @title, @color, @isFavorite)`,
+      `INSERT INTO categories (id, title, color, icon_mode, emoji, is_favorite)
+       VALUES (@id, @title, @color, @iconMode, @emoji, @isFavorite)`,
     )
     .run({
       ...category,
+      emoji: category.emoji ?? null,
       isFavorite: Number(category.isFavorite),
     });
 
@@ -88,6 +94,8 @@ export const updateCategory = (input: UpdateCategoryInput): Category | null => {
       `UPDATE categories
        SET title = @title,
            color = @color,
+           icon_mode = @iconMode,
+           emoji = @emoji,
            is_favorite = @isFavorite
        WHERE id = @id`,
     )
@@ -95,6 +103,8 @@ export const updateCategory = (input: UpdateCategoryInput): Category | null => {
       id: input.id,
       title: input.title.trim(),
       color: normalizeColor(input.color),
+      emoji: cleanOptional(input.emoji) ?? null,
+      iconMode: normalizeIconMode(input.iconMode, input.emoji),
       isFavorite: Number(input.isFavorite),
     });
 
@@ -266,7 +276,7 @@ const getTask = (taskId: string): Task | null => {
 
 const getCategory = (categoryId: string): Category | null => {
   const row = getDatabase()
-    .prepare('SELECT id, title, color, is_favorite FROM categories WHERE id = ?')
+    .prepare('SELECT id, title, color, icon_mode, emoji, is_favorite FROM categories WHERE id = ?')
     .get(categoryId) as CategoryRow | undefined;
 
   return row ? mapCategory(row) : null;
@@ -289,6 +299,8 @@ const mapCategory = (row: CategoryRow): Category => ({
   id: row.id,
   title: row.title,
   color: row.color,
+  emoji: row.emoji ?? undefined,
+  iconMode: normalizeIconMode(row.icon_mode, row.emoji ?? undefined),
   isFavorite: Boolean(row.is_favorite),
 });
 
@@ -308,6 +320,18 @@ const mapTask = (row: TaskRow): Task => ({
 const cleanOptional = (value: string | undefined) => {
   const cleanValue = value?.trim();
   return cleanValue ? cleanValue : undefined;
+};
+
+const normalizeIconMode = (value: string | undefined, emoji: string | undefined | null): CategoryIconMode => {
+  if (value === 'emoji') {
+    return cleanOptional(emoji ?? undefined) ? 'emoji' : 'hash';
+  }
+
+  if (value === 'hash') {
+    return 'hash';
+  }
+
+  return 'color';
 };
 
 const normalizeColor = (color: string) => {

@@ -4,6 +4,8 @@ export type TaskStatus = 'active' | 'completed';
 
 export type TaskScope = 'inbox' | 'today' | 'week' | 'category';
 
+export type CategoryIconMode = 'color' | 'emoji' | 'hash';
+
 export interface Task {
   id: string;
   title: string;
@@ -42,12 +44,16 @@ export interface Category {
   id: string;
   title: string;
   color: string;
+  emoji?: string;
+  iconMode: CategoryIconMode;
   isFavorite: boolean;
 }
 
 export interface CreateCategoryInput {
   title: string;
   color: string;
+  emoji?: string;
+  iconMode?: CategoryIconMode;
   isFavorite?: boolean;
 }
 
@@ -55,6 +61,8 @@ export interface UpdateCategoryInput {
   id: string;
   title: string;
   color: string;
+  emoji?: string;
+  iconMode: CategoryIconMode;
   isFavorite: boolean;
 }
 

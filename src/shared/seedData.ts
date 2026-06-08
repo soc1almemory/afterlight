@@ -1,9 +1,9 @@
 import type { Category, Note, Task } from './types';
 
 export const seedCategories: Category[] = [
-  { id: 'study', title: 'Учёба', color: '#7c65ff', isFavorite: true },
-  { id: 'home', title: 'Дом', color: '#00a878', isFavorite: false },
-  { id: 'work', title: 'Работа', color: '#ff9f1c', isFavorite: false },
+  { id: 'study', title: 'Учёба', color: '#7c65ff', iconMode: 'hash', isFavorite: true },
+  { id: 'home', title: 'Дом', color: '#00a878', iconMode: 'color', isFavorite: false },
+  { id: 'work', title: 'Работа', color: '#ff9f1c', iconMode: 'color', isFavorite: false },
 ];
 
 export const seedTasks: Task[] = [
