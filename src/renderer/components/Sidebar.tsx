@@ -6,6 +6,7 @@ interface SidebarProps {
   onAddCategory: () => void;
   onAddTask: () => void;
   onEditCategory: (category: Category) => void;
+  onOpenSettings: () => void;
 }
 
 const primaryItems: Array<{ scope: TaskScope; label: string; icon: string }> = [
@@ -14,7 +15,7 @@ const primaryItems: Array<{ scope: TaskScope; label: string; icon: string }> = [
   { scope: 'week', label: 'Неделя', icon: 'week-icon.svg' },
 ];
 
-export const Sidebar = ({ onAddCategory, onAddTask, onEditCategory }: SidebarProps) => {
+export const Sidebar = ({ onAddCategory, onAddTask, onEditCategory, onOpenSettings }: SidebarProps) => {
   const activeScope = useTaskStore((state) => state.activeScope);
   const activeCategoryId = useTaskStore((state) => state.activeCategoryId);
   const categories = useTaskStore((state) => state.categories);
@@ -94,7 +95,7 @@ export const Sidebar = ({ onAddCategory, onAddTask, onEditCategory }: SidebarPro
         })}
       </div>
 
-      <button className="settings-button" type="button">
+      <button className="settings-button" type="button" onClick={onOpenSettings}>
         <img src={assetUrl('settings-icon.svg')} alt="" />
         <span>Настройки</span>
       </button>

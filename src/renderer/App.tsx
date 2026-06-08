@@ -3,6 +3,7 @@ import type { Category, Task } from '../shared/types';
 import { CategoryDialog } from './components/CategoryDialog';
 import { ContentView } from './components/ContentView';
 import { SearchDialog } from './components/SearchDialog';
+import { SettingsDialog } from './components/SettingsDialog';
 import { Sidebar } from './components/Sidebar';
 import { TaskDialog } from './components/TaskDialog';
 import { TitleBar } from './components/TitleBar';
@@ -15,6 +16,7 @@ export const App = () => {
   const [editingTask, setEditingTask] = useState<Task | undefined>();
   const [initialTaskDate, setInitialTaskDate] = useState<string | undefined>();
   const [isSearchOpen, setSearchOpen] = useState(false);
+  const [isSettingsOpen, setSettingsOpen] = useState(false);
   const activeScope = useTaskStore((state) => state.activeScope);
   const hydrate = useTaskStore((state) => state.hydrate);
 
@@ -73,11 +75,13 @@ export const App = () => {
         onAddCategory={openCreateCategoryDialog}
         onAddTask={() => openCreateDialog()}
         onEditCategory={openEditCategoryDialog}
+        onOpenSettings={() => setSettingsOpen(true)}
       />
       <ContentView onAddTask={openCreateDialog} onEditTask={openEditDialog} onOpenSearch={() => setSearchOpen(true)} />
       <TaskDialog isOpen={isTaskDialogOpen} task={editingTask} initialDueDate={initialTaskDate} onClose={closeDialog} />
       <CategoryDialog isOpen={isCategoryDialogOpen} category={editingCategory} onClose={closeCategoryDialog} />
       <SearchDialog isOpen={isSearchOpen} onClose={() => setSearchOpen(false)} onEditTask={openEditDialog} />
+      <SettingsDialog isOpen={isSettingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   );
 };
