@@ -144,6 +144,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       ...input,
       title: input.title.trim(),
       dueDate: input.dueDate || undefined,
+      scope: input.scope,
       categoryId: input.categoryId || undefined,
     });
 

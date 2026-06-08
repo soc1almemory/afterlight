@@ -4,7 +4,7 @@ import { useTaskStore } from '../store/useTaskStore';
 import { TaskListItem } from './TaskListItem';
 
 interface ContentViewProps {
-  onAddTask: () => void;
+  onAddTask: (dueDate?: string) => void;
   onEditTask: (task: Task) => void;
 }
 
@@ -21,7 +21,7 @@ const titles: Record<TaskScope, string> = {
   category: 'Категория',
 };
 
-const dayLabels = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
+const dayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 
 export const ContentView = ({ onAddTask, onEditTask }: ContentViewProps) => {
   const activeScope = useTaskStore((state) => state.activeScope);
@@ -73,7 +73,7 @@ export const ContentView = ({ onAddTask, onEditTask }: ContentViewProps) => {
         {error ? <div className="app-error">{error}</div> : null}
 
         {activeScope === 'week' ? (
-          <WeekTaskList groups={weekGroups} onEditTask={onEditTask} />
+          <WeekTaskList groups={weekGroups} onAddTask={onAddTask} onEditTask={onEditTask} />
         ) : (
           <div className="task-list">
             {visibleTasks.map((task, index) => (
@@ -82,10 +82,12 @@ export const ContentView = ({ onAddTask, onEditTask }: ContentViewProps) => {
           </div>
         )}
 
-        <button className="inline-add-task" type="button" onClick={onAddTask}>
-          <img src={assetUrl('add-task-icon.svg')} alt="" />
-          <span>Добавить задачу</span>
-        </button>
+        {activeScope !== 'week' ? (
+          <button className="inline-add-task" type="button" onClick={() => onAddTask()}>
+            <img src={assetUrl('add-task-icon.svg')} alt="" />
+            <span>Добавить задачу</span>
+          </button>
+        ) : null}
 
         <label className="notes-field">
           <span>Заметки</span>
@@ -100,27 +102,77 @@ export const ContentView = ({ onAddTask, onEditTask }: ContentViewProps) => {
   );
 };
 
-const WeekTaskList = ({ groups, onEditTask }: { groups: WeekGroup[]; onEditTask: (task: Task) => void }) => (
-  <div className="week-list">
-    {groups.map((group) => (
-      <section className="week-day" key={group.date ?? 'without-date'}>
-        <div className="week-day-heading">
-          <h2>{group.label}</h2>
-          {group.date ? <time>{formatDateLabel(group.date)}</time> : null}
-        </div>
-        <div className="task-list compact">
-          {group.tasks.length > 0 ? (
-            group.tasks.map((task, index) => (
-              <TaskListItem key={task.id} task={task} withSeparator={index > 0} onEditTask={onEditTask} />
-            ))
-          ) : (
-            <div className="empty-day">Нет задач</div>
-          )}
-        </div>
-      </section>
-    ))}
-  </div>
-);
+const WeekTaskList = ({
+  groups,
+  onAddTask,
+  onEditTask,
+}: {
+  groups: WeekGroup[];
+  onAddTask: (dueDate?: string) => void;
+  onEditTask: (task: Task) => void;
+}) => {
+  const updateTask = useTaskStore((state) => state.updateTask);
+  const today = getTodayDate();
+
+  const moveTaskToDate = async (taskId: string, dueDate?: string) => {
+    const task = useTaskStore.getState().tasks.find((item) => item.id === taskId);
+
+    if (!task) {
+      return;
+    }
+
+    await updateTask({
+      id: task.id,
+      title: task.title,
+      description: task.description,
+      dueDate,
+      dueLabel: task.dueLabel,
+      priority: task.priority,
+      scope: 'week',
+      categoryId: task.categoryId,
+    });
+  };
+
+  const handleDrop = (event: React.DragEvent<HTMLElement>, dueDate?: string) => {
+    event.preventDefault();
+    const taskId = event.dataTransfer.getData('text/plain');
+    void moveTaskToDate(taskId, dueDate);
+  };
+
+  return (
+    <div className="week-list">
+      {groups.map((group) => {
+        const isToday = group.date === today;
+
+        return (
+          <section
+            className={isToday ? 'week-day today' : 'week-day'}
+            key={group.date ?? 'without-date'}
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={(event) => handleDrop(event, group.date)}
+          >
+            <div className="week-day-heading">
+              {group.date ? <time>{formatShortDate(group.date)}</time> : <span className="date-pill neutral">Без даты</span>}
+              <h2>{group.label}</h2>
+              <button className="week-day-add" type="button" onClick={() => onAddTask(group.date)} aria-label="Добавить задачу">
+                <img src={assetUrl('add-task-icon.svg')} alt="" />
+              </button>
+            </div>
+            <div className="task-list compact">
+              {group.tasks.length > 0 ? (
+                group.tasks.map((task, index) => (
+                  <TaskListItem key={task.id} task={task} withSeparator={index > 0} onEditTask={onEditTask} />
+                ))
+              ) : (
+                <div className="empty-day">Перетащите задачу сюда</div>
+              )}
+            </div>
+          </section>
+        );
+      })}
+    </div>
+  );
+};
 
 const isTaskVisible = (task: Task, activeScope: TaskScope, activeCategoryId: string) => {
   if (activeScope === 'category') {
@@ -140,20 +192,18 @@ const isTaskVisible = (task: Task, activeScope: TaskScope, activeCategoryId: str
 
 const buildWeekGroups = (tasks: Task[]): WeekGroup[] => {
   const weekDates = getCurrentWeekDates();
-  const groups: WeekGroup[] = weekDates.map((date, index) => ({
-    date,
-    label: dayLabels[index],
-    tasks: tasks.filter((task) => task.dueDate === date),
-  }));
-
   const withoutDateTasks = tasks.filter((task) => task.scope === 'week' && !task.dueDate);
-
-  if (withoutDateTasks.length > 0) {
-    groups.push({
-      label: 'Без даты',
+  const groups: WeekGroup[] = [
+    {
+      label: 'Распределитель',
       tasks: withoutDateTasks,
-    });
-  }
+    },
+    ...weekDates.map((date, index) => ({
+      date,
+      label: dayLabels[index],
+      tasks: tasks.filter((task) => task.dueDate === date),
+    })),
+  ];
 
   return groups;
 };
@@ -190,7 +240,7 @@ const toDateInputValue = (date: Date) => {
   return `${year}-${month}-${day}`;
 };
 
-const formatDateLabel = (dateValue: string) => {
-  const [year, month, day] = dateValue.split('-');
-  return `${day}.${month}.${year}`;
+const formatShortDate = (dateValue: string) => {
+  const [_year, month, day] = dateValue.split('-');
+  return `${day}.${month}`;
 };

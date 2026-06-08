@@ -200,6 +200,7 @@ export const updateTask = (input: UpdateTaskInput): Task | null => {
            due_date = @dueDate,
            due_at = @dueLabel,
            priority = @priority,
+           scope = @scope,
            category_id = @categoryId,
            updated_at = CURRENT_TIMESTAMP
        WHERE id = @id`,
@@ -211,6 +212,7 @@ export const updateTask = (input: UpdateTaskInput): Task | null => {
       dueDate: normalizeDate(input.dueDate) ?? null,
       dueLabel: cleanOptional(input.dueLabel) ?? null,
       priority: input.priority,
+      scope: input.scope ?? existingTask.scope,
       categoryId: cleanOptional(input.categoryId) ?? null,
     });
 

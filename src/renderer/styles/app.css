@@ -355,32 +355,85 @@ body {
 .week-list {
   display: flex;
   flex-direction: column;
-  gap: 22px;
+  gap: 10px;
 }
 
 .week-day {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  min-height: 76px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: #f7f7f7;
+  padding: 16px 18px;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease;
+}
+
+.week-day:hover {
+  background: #f2f2f2;
+}
+
+.week-day.today {
+  border-color: #5967ff;
+  background: #ffffff;
 }
 
 .week-day-heading {
   min-height: 30px;
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 12px;
 }
 
 .week-day-heading h2 {
   margin: 0;
-  font-size: 20px;
+  font-size: 18px;
   line-height: 1.2;
 }
 
-.week-day-heading time {
-  color: #777777;
-  font-size: 14px;
+.date-pill {
+  border-radius: 8px;
+  background: #dedede;
+  padding: 3px 6px;
+  font-size: 15px;
   font-weight: 700;
+}
+
+.week-day.today .date-pill {
+  background: #5967ff;
+  color: #ffffff;
+}
+
+.date-pill.neutral {
+  background: #eef0ff;
+  color: #5967ff;
+}
+
+.week-day-add {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  margin-left: auto;
+  opacity: 0;
+}
+
+.week-day:hover .week-day-add,
+.week-day-add:focus-visible {
+  opacity: 1;
+}
+
+.week-day-add:hover {
+  background: #ffffff;
+}
+
+.week-day-add img {
+  width: 18px;
+  height: 18px;
 }
 
 .empty-day {
@@ -405,6 +458,11 @@ body {
   flex-direction: column;
   gap: 8px;
   padding-top: 0;
+  cursor: grab;
+}
+
+.task-row:active {
+  cursor: grabbing;
 }
 
 .task-row.with-separator {

@@ -4,6 +4,7 @@ import { assetUrl } from '../lib/assets';
 import { useTaskStore } from '../store/useTaskStore';
 
 interface TaskDialogProps {
+  initialDueDate?: string;
   isOpen: boolean;
   task?: Task;
   onClose: () => void;
@@ -16,7 +17,7 @@ const priorityOptions: Array<{ value: TaskPriority; label: string }> = [
   { value: 4, label: 'Без приоритета' },
 ];
 
-export const TaskDialog = ({ isOpen, task, onClose }: TaskDialogProps) => {
+export const TaskDialog = ({ initialDueDate, isOpen, task, onClose }: TaskDialogProps) => {
   const activeScope = useTaskStore((state) => state.activeScope);
   const activeCategoryId = useTaskStore((state) => state.activeCategoryId);
   const categories = useTaskStore((state) => state.categories);
@@ -37,11 +38,11 @@ export const TaskDialog = ({ isOpen, task, onClose }: TaskDialogProps) => {
 
     setTitle(task?.title ?? '');
     setDescription(task?.description ?? '');
-    setDueDate(task?.dueDate ?? '');
+    setDueDate(task?.dueDate ?? initialDueDate ?? '');
     setDueLabel(task?.dueLabel ?? '');
     setPriority(task?.priority ?? 4);
     setCategoryId(task?.categoryId ?? (activeScope === 'category' ? activeCategoryId : ''));
-  }, [activeCategoryId, activeScope, isOpen, task]);
+  }, [activeCategoryId, activeScope, initialDueDate, isOpen, task]);
 
   if (!isOpen) {
     return null;

@@ -34,6 +34,7 @@ export interface UpdateTaskInput {
   dueDate?: string;
   dueLabel?: string;
   priority: TaskPriority;
+  scope?: TaskScope;
   categoryId?: string;
 }
 

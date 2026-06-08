@@ -13,8 +13,13 @@ export const TaskListItem = ({ task, withSeparator, onEditTask }: TaskListItemPr
   const isCompleted = task.status === 'completed';
   const dateLabel = task.dueLabel || formatTaskDate(task.dueDate);
 
+  const handleDragStart = (event: React.DragEvent<HTMLElement>) => {
+    event.dataTransfer.setData('text/plain', task.id);
+    event.dataTransfer.effectAllowed = 'move';
+  };
+
   return (
-    <article className={withSeparator ? 'task-row with-separator' : 'task-row'}>
+    <article className={withSeparator ? 'task-row with-separator' : 'task-row'} draggable onDragStart={handleDragStart}>
       <div className="task-line">
         <button
           className={isCompleted ? 'checkbox-button checked' : 'checkbox-button'}

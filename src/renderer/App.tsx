@@ -12,6 +12,7 @@ export const App = () => {
   const [isCategoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | undefined>();
   const [editingTask, setEditingTask] = useState<Task | undefined>();
+  const [initialTaskDate, setInitialTaskDate] = useState<string | undefined>();
   const activeScope = useTaskStore((state) => state.activeScope);
   const hydrate = useTaskStore((state) => state.hydrate);
 
@@ -30,19 +31,22 @@ export const App = () => {
     void hydrate();
   }, [hydrate]);
 
-  const openCreateDialog = () => {
+  const openCreateDialog = (dueDate?: string) => {
     setEditingTask(undefined);
+    setInitialTaskDate(dueDate);
     setTaskDialogOpen(true);
   };
 
   const openEditDialog = (task: Task) => {
     setEditingTask(task);
+    setInitialTaskDate(undefined);
     setTaskDialogOpen(true);
   };
 
   const closeDialog = () => {
     setTaskDialogOpen(false);
     setEditingTask(undefined);
+    setInitialTaskDate(undefined);
   };
 
   const openCreateCategoryDialog = () => {
@@ -65,11 +69,11 @@ export const App = () => {
       <TitleBar />
       <Sidebar
         onAddCategory={openCreateCategoryDialog}
-        onAddTask={openCreateDialog}
+        onAddTask={() => openCreateDialog()}
         onEditCategory={openEditCategoryDialog}
       />
       <ContentView onAddTask={openCreateDialog} onEditTask={openEditDialog} />
-      <TaskDialog isOpen={isTaskDialogOpen} task={editingTask} onClose={closeDialog} />
+      <TaskDialog isOpen={isTaskDialogOpen} task={editingTask} initialDueDate={initialTaskDate} onClose={closeDialog} />
       <CategoryDialog isOpen={isCategoryDialogOpen} category={editingCategory} onClose={closeCategoryDialog} />
     </div>
   );
