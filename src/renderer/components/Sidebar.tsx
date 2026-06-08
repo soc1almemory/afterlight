@@ -95,10 +95,24 @@ export const Sidebar = ({ onAddCategory, onAddTask, onEditCategory, onOpenSettin
         })}
       </div>
 
-      <button className="settings-button" type="button" onClick={onOpenSettings}>
-        <img src={assetUrl('settings-icon.svg')} alt="" />
-        <span>Настройки</span>
-      </button>
+      <div className="bottom-menu" aria-label="Быстрые действия">
+        <div className="bottom-menu-group">
+          <button className="bottom-menu-button" type="button" aria-label="История изменений">
+            <img src={assetUrl('changelog-icon.svg')} alt="" />
+          </button>
+          <button className="bottom-menu-button" type="button" aria-label="Помощь">
+            <img src={assetUrl('help-icon.svg')} alt="" />
+          </button>
+        </div>
+        <div className="bottom-menu-group">
+          <button className="bottom-menu-button" type="button" aria-label="Telegram">
+            <img src={assetUrl('telegram-icon.svg')} alt="" />
+          </button>
+          <button className="bottom-menu-button" type="button" aria-label="Настройки" onClick={onOpenSettings}>
+            <img src={assetUrl('settings-icon.svg')} alt="" />
+          </button>
+        </div>
+      </div>
     </aside>
   );
 };
