@@ -660,6 +660,128 @@ body {
   background: rgba(0, 0, 0, 0.18);
 }
 
+.search-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 72px;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.search-dialog {
+  width: min(920px, calc(100vw - 48px));
+  max-height: min(620px, calc(100vh - 110px));
+  border: 1px solid #d7d7d7;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.2);
+  overflow: auto;
+}
+
+.search-input-row {
+  height: 74px;
+  border-bottom: 1px solid #d7d7d7;
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  padding: 0 24px;
+}
+
+.search-input-row img {
+  width: 28px;
+  height: 28px;
+}
+
+.search-input-row input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  outline: 0;
+  color: #111111;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.search-input-row input::placeholder {
+  color: #9a9a9a;
+}
+
+.search-group {
+  border-bottom: 1px solid #d7d7d7;
+  padding: 18px 20px;
+}
+
+.search-group:last-child {
+  border-bottom: 0;
+}
+
+.search-group-title {
+  color: #515151;
+  font-size: 16px;
+  font-weight: 800;
+  margin-bottom: 12px;
+}
+
+.search-result {
+  width: 100%;
+  min-height: 42px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 0 12px 0 0;
+  text-align: left;
+  font-weight: 800;
+}
+
+.search-result:hover,
+.search-result:focus-visible {
+  background: #f3f3f3;
+}
+
+.search-result-title {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.search-result-title span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.search-result-title img {
+  width: 22px;
+  height: 22px;
+}
+
+.search-hash {
+  width: 22px;
+  color: #111111;
+  font-size: 22px;
+  line-height: 1;
+  text-align: center;
+}
+
+.search-result-meta {
+  flex: 0 0 auto;
+  color: #9a9a9a;
+  font-weight: 700;
+}
+
+.search-empty {
+  color: #8f8f8f;
+  font-weight: 700;
+  padding: 8px 0;
+}
+
 .task-dialog,
 .category-dialog {
   width: min(480px, calc(100vw - 40px));

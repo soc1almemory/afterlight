@@ -8,6 +8,7 @@ import { TaskListItem } from './TaskListItem';
 interface ContentViewProps {
   onAddTask: (dueDate?: string) => void;
   onEditTask: (task: Task) => void;
+  onOpenSearch: () => void;
 }
 
 interface WeekGroup {
@@ -25,7 +26,7 @@ const titles: Record<TaskScope, string> = {
 
 const dayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 
-export const ContentView = ({ onAddTask, onEditTask }: ContentViewProps) => {
+export const ContentView = ({ onAddTask, onEditTask, onOpenSearch }: ContentViewProps) => {
   const activeScope = useTaskStore((state) => state.activeScope);
   const activeCategoryId = useTaskStore((state) => state.activeCategoryId);
   const categories = useTaskStore((state) => state.categories);
@@ -65,7 +66,7 @@ export const ContentView = ({ onAddTask, onEditTask }: ContentViewProps) => {
           {activeScope === 'today' ? <span className="refresh-status">{refreshLabel}</span> : null}
         </div>
         <div className="control-actions">
-          <button type="button" aria-label="Поиск">
+          <button type="button" aria-label="Поиск" onClick={onOpenSearch}>
             <img src={assetUrl('search-icon.svg')} alt="" />
           </button>
           <button type="button" aria-label="Дополнительно">
