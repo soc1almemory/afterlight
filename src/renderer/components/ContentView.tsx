@@ -18,6 +18,8 @@ export const ContentView = ({ onAddTask }: ContentViewProps) => {
   const activeScope = useTaskStore((state) => state.activeScope);
   const activeCategoryId = useTaskStore((state) => state.activeCategoryId);
   const categories = useTaskStore((state) => state.categories);
+  const error = useTaskStore((state) => state.error);
+  const isLoading = useTaskStore((state) => state.isLoading);
   const tasks = useTaskStore((state) => state.tasks);
   const notes = useTaskStore((state) => state.notes);
   const updateNote = useTaskStore((state) => state.updateNote);
@@ -30,7 +32,7 @@ export const ContentView = ({ onAddTask }: ContentViewProps) => {
   return (
     <main className="workspace">
       <div className="control-strip">
-        <span>Изменено 2ч назад</span>
+        <span>{isLoading ? 'Загрузка данных...' : 'Изменено 2ч назад'}</span>
         <div className="control-actions">
           <button type="button" aria-label="Поиск">
             <img src={assetUrl('search-icon.svg')} alt="" />
@@ -51,6 +53,8 @@ export const ContentView = ({ onAddTask }: ContentViewProps) => {
           ) : null}
         </div>
 
+        {error ? <div className="app-error">{error}</div> : null}
+
         <div className="task-list">
           {visibleTasks.map((task, index) => (
             <TaskListItem key={task.id} task={task} withSeparator={index > 0} />
@@ -66,7 +70,7 @@ export const ContentView = ({ onAddTask }: ContentViewProps) => {
           <span>Заметки</span>
           <textarea
             value={noteText}
-            onChange={(event) => updateNote(activeScope, event.target.value)}
+            onChange={(event) => void updateNote(activeScope, event.target.value)}
             placeholder="Напишите что-нибудь важное, чтобы не забыть."
           />
         </label>

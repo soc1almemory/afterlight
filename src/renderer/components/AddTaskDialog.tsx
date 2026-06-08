@@ -15,7 +15,7 @@ export const AddTaskDialog = ({ isOpen, onClose }: AddTaskDialogProps) => {
     return null;
   }
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const cleanTitle = title.trim();
 
@@ -23,14 +23,19 @@ export const AddTaskDialog = ({ isOpen, onClose }: AddTaskDialogProps) => {
       return;
     }
 
-    addTask(cleanTitle);
+    await addTask(cleanTitle);
     setTitle('');
     onClose();
   };
 
   return (
     <div className="dialog-overlay" role="presentation" onMouseDown={onClose}>
-      <form className="add-task-dialog" aria-label="Добавить задачу" onSubmit={handleSubmit} onMouseDown={(event) => event.stopPropagation()}>
+      <form
+        className="add-task-dialog"
+        aria-label="Добавить задачу"
+        onSubmit={handleSubmit}
+        onMouseDown={(event) => event.stopPropagation()}
+      >
         <div className="dialog-heading">
           <h2>Новая задача</h2>
           <button type="button" aria-label="Закрыть" onClick={onClose}>

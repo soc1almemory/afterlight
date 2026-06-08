@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
+import { registerTaskIpcHandlers } from './ipc/tasks';
 import { initializeDatabase } from './storage/database';
 
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
@@ -11,6 +12,8 @@ if (started) {
 }
 
 let mainWindow: BrowserWindow | null = null;
+
+registerTaskIpcHandlers();
 
 const createWindow = async () => {
   await initializeDatabase();

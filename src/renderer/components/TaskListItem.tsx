@@ -18,7 +18,7 @@ export const TaskListItem = ({ task, withSeparator }: TaskListItemProps) => {
           className={isCompleted ? 'checkbox-button checked' : 'checkbox-button'}
           type="button"
           aria-label={isCompleted ? 'Вернуть задачу' : 'Завершить задачу'}
-          onClick={() => toggleTask(task.id)}
+          onClick={() => void toggleTask(task.id)}
         >
           {isCompleted ? <img src={assetUrl('checkbox-checked.svg')} alt="" /> : null}
         </button>

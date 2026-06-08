@@ -8,6 +8,7 @@ import { useTaskStore } from './store/useTaskStore';
 export const App = () => {
   const [isAddTaskOpen, setAddTaskOpen] = useState(false);
   const activeScope = useTaskStore((state) => state.activeScope);
+  const hydrate = useTaskStore((state) => state.hydrate);
 
   const pageClass = useMemo(() => {
     if (activeScope === 'today') return 'page-today';
@@ -19,6 +20,10 @@ export const App = () => {
   useEffect(() => {
     document.body.className = pageClass;
   }, [pageClass]);
+
+  useEffect(() => {
+    void hydrate();
+  }, [hydrate]);
 
   return (
     <div className="afterlight-app">

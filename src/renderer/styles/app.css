@@ -287,6 +287,16 @@ body {
   gap: 18px;
 }
 
+.app-error {
+  border: 1px solid #ffd0d0;
+  border-radius: 6px;
+  background: #fff4f4;
+  color: #b3261e;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 10px 12px;
+}
+
 .task-row {
   display: flex;
   flex-direction: column;

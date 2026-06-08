@@ -16,6 +16,15 @@ export interface Task {
   isExpired?: boolean;
 }
 
+export interface CreateTaskInput {
+  title: string;
+  description?: string;
+  dueLabel?: string;
+  priority?: TaskPriority;
+  scope: TaskScope;
+  categoryId?: string;
+}
+
 export interface Category {
   id: string;
   title: string;
@@ -27,4 +36,10 @@ export interface Note {
   id: string;
   scope: TaskScope;
   text: string;
+}
+
+export interface AppData {
+  categories: Category[];
+  notes: Note[];
+  tasks: Task[];
 }
