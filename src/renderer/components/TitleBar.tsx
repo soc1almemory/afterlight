@@ -1,16 +1,22 @@
-import type { TaskScope } from '../../shared/types';
+import type { KeyboardEvent } from 'react';
+import type { Category, TaskScope } from '../../shared/types';
 import { assetUrl } from '../lib/assets';
 import { useTaskStore } from '../store/useTaskStore';
+
+interface AppRoute {
+  categoryId?: string;
+  scope: TaskScope;
+}
 
 interface TitleBarProps {
   onAddCategory: () => void;
 }
 
-const systemTabs: Array<{ icon: string; label: string; scope: Exclude<TaskScope, 'category'> }> = [
-  { icon: 'incoming-icon.svg', label: 'Входящие', scope: 'inbox' },
-  { icon: 'today-icon.svg', label: 'Сегодня', scope: 'today' },
-  { icon: 'week-icon.svg', label: 'Неделя', scope: 'week' },
-];
+const systemTabMeta: Record<Exclude<TaskScope, 'category'>, { icon: string; label: string }> = {
+  inbox: { icon: 'incoming-icon.svg', label: 'Входящие' },
+  today: { icon: 'today-icon.svg', label: 'Сегодня' },
+  week: { icon: 'week-icon.svg', label: 'Неделя' },
+};
 
 export const TitleBar = ({ onAddCategory }: TitleBarProps) => {
   const controls = window.afterlightWindow;
@@ -19,10 +25,24 @@ export const TitleBar = ({ onAddCategory }: TitleBarProps) => {
   const canGoBack = useTaskStore((state) => state.canGoBack);
   const canGoForward = useTaskStore((state) => state.canGoForward);
   const categories = useTaskStore((state) => state.categories);
+  const closeTab = useTaskStore((state) => state.closeTab);
   const goBack = useTaskStore((state) => state.goBack);
   const goForward = useTaskStore((state) => state.goForward);
+  const moveTab = useTaskStore((state) => state.moveTab);
+  const openTabs = useTaskStore((state) => state.openTabs);
+  const setActiveCategory = useTaskStore((state) => state.setActiveCategory);
   const setScope = useTaskStore((state) => state.setScope);
-  const activeCategory = categories.find((category) => category.id === activeCategoryId);
+
+  const activateTab = (route: AppRoute) => {
+    if (route.scope === 'category' && route.categoryId) {
+      setActiveCategory(route.categoryId);
+      return;
+    }
+
+    if (route.scope !== 'category') {
+      setScope(route.scope);
+    }
+  };
 
   return (
     <header className="app-titlebar">
@@ -41,33 +61,19 @@ export const TitleBar = ({ onAddCategory }: TitleBarProps) => {
           </button>
         </div>
 
-        <div className="tabs-group" role="tablist" aria-label="Открытые разделы">
-          {systemTabs.map((tab) => (
-            <button
-              className={activeScope === tab.scope ? 'app-tab active' : 'app-tab'}
-              key={tab.scope}
-              type="button"
-              role="tab"
-              aria-selected={activeScope === tab.scope}
-              onClick={() => setScope(tab.scope)}
-            >
-              <span className="tab-title">
-                <img src={assetUrl(tab.icon)} alt="" />
-                <span>{tab.label}</span>
-              </span>
-              <img className="tab-close-icon" src={assetUrl('close-icon.svg')} alt="" />
-            </button>
+        <div className="tabs-group" role="tablist" aria-label="Открытые вкладки">
+          {openTabs.map((route) => (
+            <TabItem
+              activeCategoryId={activeCategoryId}
+              activeScope={activeScope}
+              categories={categories}
+              key={getRouteKey(route)}
+              onActivate={activateTab}
+              onClose={closeTab}
+              onMove={moveTab}
+              route={route}
+            />
           ))}
-
-          {activeScope === 'category' && activeCategory ? (
-            <button className="app-tab active" type="button" role="tab" aria-selected="true">
-              <span className="tab-title">
-                <span className="tab-hash">#</span>
-                <span>{activeCategory.title}</span>
-              </span>
-              <img className="tab-close-icon" src={assetUrl('close-icon.svg')} alt="" />
-            </button>
-          ) : null}
         </div>
 
         <button className="add-tab-button" type="button" aria-label="Создать категорию" onClick={onAddCategory}>
@@ -90,3 +96,81 @@ export const TitleBar = ({ onAddCategory }: TitleBarProps) => {
     </header>
   );
 };
+
+const TabItem = ({
+  activeCategoryId,
+  activeScope,
+  categories,
+  onActivate,
+  onClose,
+  onMove,
+  route,
+}: {
+  activeCategoryId: string;
+  activeScope: TaskScope;
+  categories: Category[];
+  onActivate: (route: AppRoute) => void;
+  onClose: (route: AppRoute) => void;
+  onMove: (sourceKey: string, targetKey: string) => void;
+  route: AppRoute;
+}) => {
+  const tab = getTabDisplay(route, categories);
+  const routeKey = getRouteKey(route);
+  const isActive =
+    activeScope === route.scope && (route.scope !== 'category' || activeCategoryId === route.categoryId);
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      onActivate(route);
+    }
+  };
+
+  return (
+    <div
+      className={isActive ? 'app-tab active' : 'app-tab'}
+      draggable
+      onClick={() => onActivate(route)}
+      onDragOver={(event) => event.preventDefault()}
+      onDragStart={(event) => {
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData('text/plain', routeKey);
+      }}
+      onDrop={(event) => {
+        event.preventDefault();
+        onMove(event.dataTransfer.getData('text/plain'), routeKey);
+      }}
+      onKeyDown={handleKeyDown}
+      role="tab"
+      tabIndex={0}
+      aria-selected={isActive}
+    >
+      <span className="tab-title">
+        {tab.icon ? <img src={assetUrl(tab.icon)} alt="" /> : <span className="tab-hash">#</span>}
+        <span>{tab.label}</span>
+      </span>
+      <button
+        className="tab-close-button"
+        type="button"
+        aria-label={`Закрыть вкладку ${tab.label}`}
+        onClick={(event) => {
+          event.stopPropagation();
+          onClose(route);
+        }}
+      >
+        <img src={assetUrl('close-icon.svg')} alt="" />
+      </button>
+    </div>
+  );
+};
+
+const getTabDisplay = (route: AppRoute, categories: Category[]) => {
+  if (route.scope !== 'category') {
+    return systemTabMeta[route.scope];
+  }
+
+  const category = categories.find((item) => item.id === route.categoryId);
+  return { icon: undefined, label: category?.title ?? 'Категория' };
+};
+
+const getRouteKey = (route: AppRoute) => (route.scope === 'category' ? `category:${route.categoryId}` : route.scope);

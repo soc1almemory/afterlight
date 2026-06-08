@@ -16,6 +16,10 @@ interface AppRoute {
   scope: TaskScope;
 }
 
+type TabStateUpdate = Partial<
+  Pick<TaskState, 'activeCategoryId' | 'activeScope' | 'canGoBack' | 'canGoForward' | 'openTabs'>
+>;
+
 interface TaskState {
   activeScope: TaskScope;
   activeCategoryId: string;
@@ -28,13 +32,14 @@ interface TaskState {
   tasks: Task[];
   createCategory: (input: CreateCategoryInput) => Promise<void>;
   createTask: (input: Omit<CreateTaskInput, 'scope' | 'categoryId'> & { categoryId?: string }) => Promise<void>;
+  closeTab: (route: AppRoute) => void;
   deleteCategory: (categoryId: string) => Promise<void>;
   deleteTask: (taskId: string) => Promise<void>;
   goBack: () => void;
   goForward: () => void;
   hydrate: () => Promise<void>;
-  navigationFuture: AppRoute[];
-  navigationPast: AppRoute[];
+  moveTab: (sourceKey: string, targetKey: string) => void;
+  openTabs: AppRoute[];
   setActiveCategory: (categoryId: string) => void;
   setScope: (scope: TaskScope) => void;
   toggleCategoryFavorite: (categoryId: string) => Promise<void>;
@@ -52,9 +57,8 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   categories: seedCategories,
   error: undefined,
   isLoading: false,
-  navigationFuture: [],
-  navigationPast: [],
   notes: seedNotes,
+  openTabs: [{ scope: 'inbox' }],
   tasks: seedTasks,
   createCategory: async (input) => {
     const category = await requireApi().createCategory({
@@ -63,14 +67,9 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     });
 
     set((state) => ({
-      activeCategoryId: category.id,
-      activeScope: 'category',
-      canGoBack: true,
-      canGoForward: false,
+      ...openRoute(state, { categoryId: category.id, scope: 'category' }),
       categories: sortCategories([category, ...state.categories]),
       error: undefined,
-      navigationFuture: [],
-      navigationPast: [...state.navigationPast, getCurrentRoute(state)],
     }));
   },
   createTask: async (input) => {
@@ -90,17 +89,28 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
     set((currentState) => ({ error: undefined, tasks: [task, ...currentState.tasks] }));
   },
+  closeTab: (route) => {
+    set((state) => closeRoute(state, route));
+  },
   deleteCategory: async (categoryId) => {
     await requireApi().deleteCategory(categoryId);
 
-    set((state) => ({
-      activeCategoryId: state.activeCategoryId === categoryId ? '' : state.activeCategoryId,
-      activeScope: state.activeCategoryId === categoryId ? 'inbox' : state.activeScope,
-      categories: state.categories.filter((category) => category.id !== categoryId),
-      error: undefined,
-      notes: state.notes.filter((note) => note.categoryId !== categoryId),
-      tasks: state.tasks.map((task) => (task.categoryId === categoryId ? { ...task, categoryId: undefined } : task)),
-    }));
+    set((state) => {
+      const nextState = closeRoute(state, { categoryId, scope: 'category' }, true);
+      const activeCategoryId =
+        nextState.activeCategoryId ?? (state.activeCategoryId === categoryId ? '' : state.activeCategoryId);
+      const activeScope = nextState.activeScope ?? (state.activeCategoryId === categoryId ? 'inbox' : state.activeScope);
+
+      return {
+        ...nextState,
+        activeCategoryId,
+        activeScope,
+        categories: state.categories.filter((category) => category.id !== categoryId),
+        error: undefined,
+        notes: state.notes.filter((note) => note.categoryId !== categoryId),
+        tasks: state.tasks.map((task) => (task.categoryId === categoryId ? { ...task, categoryId: undefined } : task)),
+      };
+    });
   },
   deleteTask: async (taskId) => {
     await requireApi().deleteTask(taskId);
@@ -112,43 +122,25 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   },
   goBack: () => {
     const state = get();
-    const previousRoute = state.navigationPast.at(-1);
+    const currentIndex = getActiveTabIndex(state);
+    const previousRoute = state.openTabs[currentIndex - 1];
 
     if (!previousRoute) {
       return;
     }
 
-    const nextPast = state.navigationPast.slice(0, -1);
-    const nextFuture = [getCurrentRoute(state), ...state.navigationFuture];
-
-    set({
-      activeCategoryId: previousRoute.categoryId ?? state.activeCategoryId,
-      activeScope: previousRoute.scope,
-      canGoBack: nextPast.length > 0,
-      canGoForward: true,
-      navigationFuture: nextFuture,
-      navigationPast: nextPast,
-    });
+    set(activateRoute(state, previousRoute));
   },
   goForward: () => {
     const state = get();
-    const nextRoute = state.navigationFuture[0];
+    const currentIndex = getActiveTabIndex(state);
+    const nextRoute = state.openTabs[currentIndex + 1];
 
     if (!nextRoute) {
       return;
     }
 
-    const nextPast = [...state.navigationPast, getCurrentRoute(state)];
-    const nextFuture = state.navigationFuture.slice(1);
-
-    set({
-      activeCategoryId: nextRoute.categoryId ?? state.activeCategoryId,
-      activeScope: nextRoute.scope,
-      canGoBack: true,
-      canGoForward: nextFuture.length > 0,
-      navigationFuture: nextFuture,
-      navigationPast: nextPast,
-    });
+    set(activateRoute(state, nextRoute));
   },
   hydrate: async () => {
     set({ error: undefined, isLoading: true });
@@ -169,11 +161,27 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       });
     }
   },
+  moveTab: (sourceKey, targetKey) => {
+    set((state) => {
+      const sourceIndex = state.openTabs.findIndex((route) => getRouteKey(route) === sourceKey);
+      const targetIndex = state.openTabs.findIndex((route) => getRouteKey(route) === targetKey);
+
+      if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex) {
+        return {};
+      }
+
+      const openTabs = [...state.openTabs];
+      const [movedRoute] = openTabs.splice(sourceIndex, 1);
+      openTabs.splice(targetIndex, 0, movedRoute);
+
+      return getTabNavigationState({ ...state, openTabs });
+    });
+  },
   setScope: (scope) => {
-    set((state) => pushRoute(state, { scope }));
+    set((state) => openRoute(state, { scope }));
   },
   setActiveCategory: (categoryId) => {
-    set((state) => pushRoute(state, { categoryId, scope: 'category' }));
+    set((state) => openRoute(state, { categoryId, scope: 'category' }));
   },
   toggleCategoryFavorite: async (categoryId) => {
     const category = await requireApi().toggleCategoryFavorite(categoryId);
@@ -263,30 +271,77 @@ const getCurrentRoute = (state: Pick<TaskState, 'activeCategoryId' | 'activeScop
   scope: state.activeScope,
 });
 
+const getRouteKey = (route: AppRoute) => (route.scope === 'category' ? `category:${route.categoryId}` : route.scope);
+
 const isSameRoute = (first: AppRoute, second: AppRoute) =>
   first.scope === second.scope && (first.scope !== 'category' || first.categoryId === second.categoryId);
 
-const pushRoute = (
-  state: Pick<
-    TaskState,
-    'activeCategoryId' | 'activeScope' | 'navigationPast'
-  >,
-  nextRoute: AppRoute,
-) => {
+const getActiveTabIndex = (state: Pick<TaskState, 'activeCategoryId' | 'activeScope' | 'openTabs'>) => {
   const currentRoute = getCurrentRoute(state);
+  const activeIndex = state.openTabs.findIndex((route) => isSameRoute(route, currentRoute));
 
-  if (isSameRoute(currentRoute, nextRoute)) {
+  return activeIndex >= 0 ? activeIndex : 0;
+};
+
+const getTabNavigationState = (state: Pick<TaskState, 'activeCategoryId' | 'activeScope' | 'openTabs'>) => {
+  const activeIndex = getActiveTabIndex(state);
+
+  return {
+    canGoBack: activeIndex > 0,
+    canGoForward: activeIndex < state.openTabs.length - 1,
+    openTabs: state.openTabs,
+  };
+};
+
+const activateRoute = (
+  state: Pick<TaskState, 'activeCategoryId' | 'activeScope' | 'openTabs'>,
+  route: AppRoute,
+): TabStateUpdate => {
+  const nextState = {
+    activeCategoryId: route.categoryId ?? state.activeCategoryId,
+    activeScope: route.scope,
+    openTabs: state.openTabs,
+  };
+
+  return {
+    ...nextState,
+    ...getTabNavigationState(nextState),
+  };
+};
+
+const openRoute = (
+  state: Pick<TaskState, 'activeCategoryId' | 'activeScope' | 'openTabs'>,
+  route: AppRoute,
+): TabStateUpdate => {
+  const openTabs = state.openTabs.some((tab) => isSameRoute(tab, route)) ? state.openTabs : [...state.openTabs, route];
+  return activateRoute({ ...state, openTabs }, route);
+};
+
+const closeRoute = (
+  state: Pick<TaskState, 'activeCategoryId' | 'activeScope' | 'openTabs'>,
+  route: AppRoute,
+  force = false,
+): TabStateUpdate => {
+  if (!force && state.openTabs.length <= 1) {
     return {};
   }
 
-  return {
-    activeCategoryId: nextRoute.categoryId ?? state.activeCategoryId,
-    activeScope: nextRoute.scope,
-    canGoBack: true,
-    canGoForward: false,
-    navigationFuture: [],
-    navigationPast: [...state.navigationPast, currentRoute],
-  };
+  const closingIndex = state.openTabs.findIndex((tab) => isSameRoute(tab, route));
+
+  if (closingIndex < 0) {
+    return {};
+  }
+
+  const wasActive = isSameRoute(getCurrentRoute(state), route);
+  const openTabs = state.openTabs.filter((tab) => !isSameRoute(tab, route));
+  const safeTabs = openTabs.length > 0 ? openTabs : [{ scope: 'inbox' as const }];
+  const fallbackRoute = safeTabs[Math.max(0, closingIndex - 1)] ?? safeTabs[0];
+
+  if (!wasActive) {
+    return getTabNavigationState({ ...state, openTabs: safeTabs });
+  }
+
+  return activateRoute({ ...state, openTabs: safeTabs }, fallbackRoute);
 };
 
 const requireApi = () => {
