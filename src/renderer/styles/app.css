@@ -681,15 +681,32 @@ body {
 }
 
 .task-panel {
+  position: relative;
   width: min(1102px, 100%);
   min-height: 680px;
-  background: #ffffff;
-  border: 1px solid #f1f1f1;
-  border-radius: 5px;
+  background: transparent;
+  border: 0;
   padding: 64px 88px 32px;
   display: flex;
   flex-direction: column;
   gap: 34px;
+}
+
+.task-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 -10000px;
+  z-index: 0;
+  border: 1px solid #f1f1f1;
+  border-bottom: 0;
+  border-radius: 5px 5px 0 0;
+  background: #ffffff;
+  pointer-events: none;
+}
+
+.task-panel > * {
+  position: relative;
+  z-index: 1;
 }
 
 .task-panel-heading {
