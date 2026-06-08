@@ -1,6 +1,16 @@
 /// <reference types="vite/client" />
 
-import type { AppData, Category, CreateTaskInput, Note, Task, TaskScope } from '../shared/types';
+import type {
+  AppData,
+  Category,
+  CreateCategoryInput,
+  CreateTaskInput,
+  Note,
+  Task,
+  TaskScope,
+  UpdateCategoryInput,
+  UpdateTaskInput,
+} from '../shared/types';
 
 interface AfterlightWindowControls {
   minimize: () => Promise<void>;
@@ -16,9 +26,15 @@ interface AfterlightSystemInfo {
 interface AfterlightApi {
   loadData: () => Promise<AppData>;
   listCategories: () => Promise<Category[]>;
+  createCategory: (input: CreateCategoryInput) => Promise<Category>;
+  updateCategory: (input: UpdateCategoryInput) => Promise<Category>;
+  toggleCategoryFavorite: (categoryId: string) => Promise<Category>;
+  deleteCategory: (categoryId: string) => Promise<string>;
   createTask: (input: CreateTaskInput) => Promise<Task>;
   toggleTask: (taskId: string) => Promise<Task>;
-  updateNote: (scope: TaskScope, text: string) => Promise<Note>;
+  updateTask: (input: UpdateTaskInput) => Promise<Task>;
+  deleteTask: (taskId: string) => Promise<string>;
+  updateNote: (scope: TaskScope, text: string, categoryId?: string) => Promise<Note>;
 }
 
 declare global {

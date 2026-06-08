@@ -5,9 +5,10 @@ import { useTaskStore } from '../store/useTaskStore';
 interface TaskListItemProps {
   task: Task;
   withSeparator: boolean;
+  onEditTask: (task: Task) => void;
 }
 
-export const TaskListItem = ({ task, withSeparator }: TaskListItemProps) => {
+export const TaskListItem = ({ task, withSeparator, onEditTask }: TaskListItemProps) => {
   const toggleTask = useTaskStore((state) => state.toggleTask);
   const isCompleted = task.status === 'completed';
 
@@ -24,7 +25,12 @@ export const TaskListItem = ({ task, withSeparator }: TaskListItemProps) => {
         </button>
         <span className={`priority priority-${isCompleted ? 'checked' : task.priority}`} />
         {task.isExpired ? <span className="expired-label">Просрочено</span> : null}
-        <strong className={isCompleted ? 'task-title completed' : 'task-title'}>{task.title}</strong>
+        <button className="task-title-button" type="button" onClick={() => onEditTask(task)}>
+          <strong className={isCompleted ? 'task-title completed' : 'task-title'}>{task.title}</strong>
+        </button>
+        <button className="task-edit-button" type="button" aria-label="Редактировать задачу" onClick={() => onEditTask(task)}>
+          <img src={assetUrl('add-edit-icon-container.svg')} alt="" />
+        </button>
       </div>
 
       {(task.description || task.dueLabel) && (

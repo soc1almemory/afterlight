@@ -43,14 +43,17 @@ export const initializeDatabase = () => {
     CREATE TABLE IF NOT EXISTS notes (
       id TEXT PRIMARY KEY,
       scope TEXT NOT NULL,
+      category_id TEXT,
       text TEXT NOT NULL DEFAULT '',
-      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(category_id) REFERENCES categories(id)
     );
 
     CREATE INDEX IF NOT EXISTS idx_tasks_scope ON tasks(scope);
     CREATE INDEX IF NOT EXISTS idx_tasks_category ON tasks(category_id);
   `);
   migrateDatabase(connection);
+  connection.exec('CREATE INDEX IF NOT EXISTS idx_notes_scope_category ON notes(scope, category_id)');
 
   seedDatabase(connection);
 
@@ -75,8 +78,8 @@ const seedDatabase = (database: Database.Database) => {
   `);
 
   const insertNote = database.prepare(`
-    INSERT INTO notes (id, scope, text)
-    VALUES (@id, @scope, @text)
+    INSERT INTO notes (id, scope, category_id, text)
+    VALUES (@id, @scope, @categoryId, @text)
   `);
 
   const seed = database.transaction(() => {
@@ -99,7 +102,7 @@ const seedDatabase = (database: Database.Database) => {
     }
 
     if (noteCount.count === 0) {
-      seedNotes.forEach((note) => insertNote.run(note));
+      seedNotes.forEach((note) => insertNote.run({ ...note, categoryId: note.categoryId ?? null }));
     }
   });
 
@@ -112,5 +115,12 @@ const migrateDatabase = (database: Database.Database) => {
 
   if (!hasExpiredColumn) {
     database.exec('ALTER TABLE tasks ADD COLUMN is_expired INTEGER NOT NULL DEFAULT 0');
+  }
+
+  const noteColumns = database.prepare('PRAGMA table_info(notes)').all() as Array<{ name: string }>;
+  const hasNoteCategoryColumn = noteColumns.some((column) => column.name === 'category_id');
+
+  if (!hasNoteCategoryColumn) {
+    database.exec('ALTER TABLE notes ADD COLUMN category_id TEXT');
   }
 };

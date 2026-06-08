@@ -17,7 +17,8 @@
 
 button,
 textarea,
-input {
+input,
+select {
   font: inherit;
 }
 
@@ -176,6 +177,32 @@ body {
   flex: 0 0 auto;
 }
 
+.category-nav-row {
+  min-height: 40px;
+  border-radius: 6px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 30px 30px;
+  align-items: center;
+  gap: 2px;
+  color: #3d3d3d;
+}
+
+.category-nav-row:hover,
+.category-nav-row.active {
+  background: #f3f3f3;
+  color: #000000;
+}
+
+.category-nav-button {
+  min-width: 0;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 0 0 12px;
+  text-align: left;
+}
+
 .category-dot {
   width: 12px;
   height: 12px;
@@ -183,8 +210,42 @@ body {
   flex: 0 0 auto;
 }
 
-.favorite-icon {
+.category-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.category-count {
   margin-left: auto;
+  color: #777777;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.category-icon-button {
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  opacity: 0;
+}
+
+.category-nav-row:hover .category-icon-button,
+.category-nav-row:focus-within .category-icon-button {
+  opacity: 1;
+}
+
+.category-icon-button:hover {
+  background: #ffffff;
+}
+
+.category-icon-button img {
+  width: 16px;
+  height: 16px;
 }
 
 .settings-button {
@@ -380,9 +441,39 @@ body {
   font-weight: 600;
 }
 
+.task-title-button {
+  min-width: 0;
+  padding: 0;
+  text-align: left;
+}
+
 .task-title.completed {
   color: #8f8f8f;
   text-decoration: line-through;
+}
+
+.task-edit-button {
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  margin-left: auto;
+  opacity: 0;
+}
+
+.task-row:hover .task-edit-button,
+.task-edit-button:focus-visible {
+  opacity: 1;
+}
+
+.task-edit-button:hover {
+  background: #f3f3f3;
+}
+
+.task-edit-button img {
+  width: 18px;
+  height: 18px;
 }
 
 .task-meta {
@@ -443,7 +534,9 @@ body {
 }
 
 .notes-field textarea:focus,
-.add-task-dialog input:focus {
+.task-dialog input:focus,
+.task-dialog textarea:focus,
+.task-dialog select:focus {
   border-color: #111111;
 }
 
@@ -456,7 +549,8 @@ body {
   background: rgba(0, 0, 0, 0.18);
 }
 
-.add-task-dialog {
+.task-dialog,
+.category-dialog {
   width: min(480px, calc(100vw - 40px));
   border-radius: 8px;
   background: #ffffff;
@@ -498,18 +592,105 @@ body {
   height: 16px;
 }
 
-.add-task-dialog input {
-  height: 44px;
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-field span {
+  color: #515151;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.form-field input,
+.form-field select,
+.form-field textarea {
+  width: 100%;
   border-radius: 6px;
   border: 1px solid #eeeeee;
   padding: 0 14px;
   outline: none;
+  background: #ffffff;
+  color: #111111;
+}
+
+.form-field input,
+.form-field select {
+  height: 44px;
+}
+
+.form-field textarea {
+  min-height: 92px;
+  resize: vertical;
+  padding: 12px 14px;
+}
+
+.color-field {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.color-field legend {
+  color: #515151;
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.color-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.color-swatch {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+}
+
+.color-swatch.active {
+  border-color: #111111;
+  box-shadow: inset 0 0 0 3px #ffffff;
+}
+
+.checkbox-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #515151;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.checkbox-field input {
+  width: 18px;
+  height: 18px;
+  accent-color: #111111;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 180px;
+  gap: 12px;
 }
 
 .dialog-actions {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+}
+
+.dialog-actions.split {
+  justify-content: flex-end;
+}
+
+.dialog-actions.split .danger-button {
+  margin-right: auto;
 }
 
 .dialog-actions button {
@@ -519,13 +700,18 @@ body {
   font-weight: 700;
 }
 
-.dialog-actions button:first-child {
+.dialog-actions button {
   background: #f3f3f3;
 }
 
 .dialog-actions button:last-child {
   background: #111111;
   color: #ffffff;
+}
+
+.dialog-actions .danger-button {
+  background: #fff1f1;
+  color: #c42121;
 }
 
 @media (max-width: 980px) {
@@ -539,5 +725,9 @@ body {
 
   .task-panel {
     padding: 40px 36px 28px;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
   }
 }

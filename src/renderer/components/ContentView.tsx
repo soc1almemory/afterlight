@@ -5,6 +5,7 @@ import { TaskListItem } from './TaskListItem';
 
 interface ContentViewProps {
   onAddTask: () => void;
+  onEditTask: (task: Task) => void;
 }
 
 const titles: Record<TaskScope, string> = {
@@ -14,7 +15,7 @@ const titles: Record<TaskScope, string> = {
   category: 'Категория',
 };
 
-export const ContentView = ({ onAddTask }: ContentViewProps) => {
+export const ContentView = ({ onAddTask, onEditTask }: ContentViewProps) => {
   const activeScope = useTaskStore((state) => state.activeScope);
   const activeCategoryId = useTaskStore((state) => state.activeCategoryId);
   const categories = useTaskStore((state) => state.categories);
@@ -27,7 +28,14 @@ export const ContentView = ({ onAddTask }: ContentViewProps) => {
   const activeCategory = categories.find((category) => category.id === activeCategoryId);
   const title = activeScope === 'category' ? activeCategory?.title ?? titles.category : titles[activeScope];
   const visibleTasks = tasks.filter((task) => isTaskVisible(task, activeScope, activeCategoryId));
-  const noteText = notes.find((note) => note.scope === activeScope)?.text ?? '';
+  const activeNote = notes.find((note) => {
+    if (activeScope === 'category') {
+      return note.scope === 'category' && note.categoryId === activeCategoryId;
+    }
+
+    return note.scope === activeScope && !note.categoryId;
+  });
+  const noteText = activeNote?.text ?? '';
 
   return (
     <main className="workspace">
@@ -57,7 +65,7 @@ export const ContentView = ({ onAddTask }: ContentViewProps) => {
 
         <div className="task-list">
           {visibleTasks.map((task, index) => (
-            <TaskListItem key={task.id} task={task} withSeparator={index > 0} />
+            <TaskListItem key={task.id} task={task} withSeparator={index > 0} onEditTask={onEditTask} />
           ))}
         </div>
 
@@ -70,7 +78,7 @@ export const ContentView = ({ onAddTask }: ContentViewProps) => {
           <span>Заметки</span>
           <textarea
             value={noteText}
-            onChange={(event) => void updateNote(activeScope, event.target.value)}
+            onChange={(event) => void updateNote(activeScope, event.target.value, activeCategoryId)}
             placeholder="Напишите что-нибудь важное, чтобы не забыть."
           />
         </label>
@@ -81,7 +89,7 @@ export const ContentView = ({ onAddTask }: ContentViewProps) => {
 
 const isTaskVisible = (task: Task, activeScope: TaskScope, activeCategoryId: string) => {
   if (activeScope === 'category') {
-    return task.categoryId === activeCategoryId || task.scope === 'category';
+    return task.categoryId === activeCategoryId;
   }
 
   return task.scope === activeScope;

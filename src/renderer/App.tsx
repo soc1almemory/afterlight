@@ -1,12 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AddTaskDialog } from './components/AddTaskDialog';
+import type { Category, Task } from '../shared/types';
+import { CategoryDialog } from './components/CategoryDialog';
 import { ContentView } from './components/ContentView';
 import { Sidebar } from './components/Sidebar';
+import { TaskDialog } from './components/TaskDialog';
 import { TitleBar } from './components/TitleBar';
 import { useTaskStore } from './store/useTaskStore';
 
 export const App = () => {
-  const [isAddTaskOpen, setAddTaskOpen] = useState(false);
+  const [isTaskDialogOpen, setTaskDialogOpen] = useState(false);
+  const [isCategoryDialogOpen, setCategoryDialogOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<Category | undefined>();
+  const [editingTask, setEditingTask] = useState<Task | undefined>();
   const activeScope = useTaskStore((state) => state.activeScope);
   const hydrate = useTaskStore((state) => state.hydrate);
 
@@ -25,12 +30,47 @@ export const App = () => {
     void hydrate();
   }, [hydrate]);
 
+  const openCreateDialog = () => {
+    setEditingTask(undefined);
+    setTaskDialogOpen(true);
+  };
+
+  const openEditDialog = (task: Task) => {
+    setEditingTask(task);
+    setTaskDialogOpen(true);
+  };
+
+  const closeDialog = () => {
+    setTaskDialogOpen(false);
+    setEditingTask(undefined);
+  };
+
+  const openCreateCategoryDialog = () => {
+    setEditingCategory(undefined);
+    setCategoryDialogOpen(true);
+  };
+
+  const openEditCategoryDialog = (category: Category) => {
+    setEditingCategory(category);
+    setCategoryDialogOpen(true);
+  };
+
+  const closeCategoryDialog = () => {
+    setCategoryDialogOpen(false);
+    setEditingCategory(undefined);
+  };
+
   return (
     <div className="afterlight-app">
       <TitleBar />
-      <Sidebar onAddTask={() => setAddTaskOpen(true)} />
-      <ContentView onAddTask={() => setAddTaskOpen(true)} />
-      <AddTaskDialog isOpen={isAddTaskOpen} onClose={() => setAddTaskOpen(false)} />
+      <Sidebar
+        onAddCategory={openCreateCategoryDialog}
+        onAddTask={openCreateDialog}
+        onEditCategory={openEditCategoryDialog}
+      />
+      <ContentView onAddTask={openCreateDialog} onEditTask={openEditDialog} />
+      <TaskDialog isOpen={isTaskDialogOpen} task={editingTask} onClose={closeDialog} />
+      <CategoryDialog isOpen={isCategoryDialogOpen} category={editingCategory} onClose={closeCategoryDialog} />
     </div>
   );
 };

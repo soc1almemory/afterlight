@@ -25,7 +25,29 @@ export interface CreateTaskInput {
   categoryId?: string;
 }
 
+export interface UpdateTaskInput {
+  id: string;
+  title: string;
+  description?: string;
+  dueLabel?: string;
+  priority: TaskPriority;
+  categoryId?: string;
+}
+
 export interface Category {
+  id: string;
+  title: string;
+  color: string;
+  isFavorite: boolean;
+}
+
+export interface CreateCategoryInput {
+  title: string;
+  color: string;
+  isFavorite?: boolean;
+}
+
+export interface UpdateCategoryInput {
   id: string;
   title: string;
   color: string;
@@ -36,6 +58,7 @@ export interface Note {
   id: string;
   scope: TaskScope;
   text: string;
+  categoryId?: string;
 }
 
 export interface AppData {
