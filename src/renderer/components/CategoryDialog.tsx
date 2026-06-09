@@ -10,6 +10,32 @@ interface CategoryDialogProps {
 }
 
 const colorOptions = ['#7c65ff', '#00a878', '#ff9f1c', '#ff3f3f', '#76b9ff', '#5eff71'];
+const emojiOptions = [
+  '📚',
+  '🏠',
+  '💼',
+  '🧹',
+  '🛠️',
+  '🌱',
+  '🎓',
+  '💡',
+  '📝',
+  '📌',
+  '🎯',
+  '💻',
+  '📅',
+  '✨',
+  '❤️',
+  '⚡',
+  '🎨',
+  '🏃',
+  '🍽️',
+  '🧾',
+  '🔒',
+  '📦',
+  '🚗',
+  '🎧',
+];
 
 export const CategoryDialog = ({ category, isOpen, onClose }: CategoryDialogProps) => {
   const createCategory = useTaskStore((state) => state.createCategory);
@@ -63,7 +89,7 @@ export const CategoryDialog = ({ category, isOpen, onClose }: CategoryDialogProp
         color,
         emoji,
         iconMode,
-        isFavorite,
+        isFavorite: false,
       });
     }
 
@@ -145,16 +171,27 @@ export const CategoryDialog = ({ category, isOpen, onClose }: CategoryDialogProp
         </fieldset>
 
         {iconMode === 'emoji' ? (
-          <label className="form-field compact">
-            <span>Emoji</span>
-            <input maxLength={4} value={emoji} onChange={(event) => setEmoji(event.target.value)} placeholder="Например, 📚" />
-          </label>
+          <div className="emoji-picker">
+            <div className="emoji-picker-header">
+              <span>Emoji</span>
+              <button type="button" onClick={() => setEmoji('')}>
+                Убрать
+              </button>
+            </div>
+            <div className="emoji-picker-grid" aria-label="Выбор emoji">
+              {emojiOptions.map((option) => (
+                <button
+                  className={emoji === option ? 'emoji-option active' : 'emoji-option'}
+                  key={option}
+                  type="button"
+                  onClick={() => setEmoji(option)}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+          </div>
         ) : null}
-
-        <label className="checkbox-field">
-          <input checked={isFavorite} type="checkbox" onChange={(event) => setFavorite(event.target.checked)} />
-          <span>Показывать выше остальных</span>
-        </label>
 
         <div className={category ? 'dialog-actions split' : 'dialog-actions'}>
           {category ? (

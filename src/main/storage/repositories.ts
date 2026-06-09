@@ -81,6 +81,7 @@ interface NoteRow {
   scope: TaskScope;
   category_id: string | null;
   text: string;
+  updated_at: string;
 }
 
 interface ProfileRow {
@@ -263,7 +264,7 @@ export const createTask = (input: CreateTaskInput): Task => {
     title: input.title.trim(),
     description: cleanOptional(input.description),
     dueDate: normalizeDate(input.dueDate),
-    dueLabel: cleanOptional(input.dueLabel),
+    dueLabel: normalizeDueTime(input.dueLabel),
     priority: input.priority ?? 4,
     status: 'active',
     scope: input.scope,
@@ -341,7 +342,7 @@ export const updateTask = (input: UpdateTaskInput): Task | null => {
       title: input.title.trim(),
       description: cleanOptional(input.description) ?? null,
       dueDate: normalizeDate(input.dueDate) ?? null,
-      dueLabel: cleanOptional(input.dueLabel) ?? null,
+      dueLabel: normalizeDueTime(input.dueLabel) ?? null,
       priority: input.priority,
       scope: input.scope ?? existingTask.scope,
       categoryId: categoryId && getCategory(categoryId) ? categoryId : null,
@@ -380,7 +381,11 @@ export const updateNote = (scope: TaskScope, text: string, categoryId?: string):
     )
     .run({ id, workspaceId, scope, categoryId: cleanCategoryId ?? null, text });
 
-  return { id, scope, categoryId: cleanCategoryId, text };
+  const note = getDatabase()
+    .prepare('SELECT id, scope, category_id, text, updated_at FROM notes WHERE id = @id AND workspace_id = @workspaceId')
+    .get({ id, workspaceId }) as NoteRow | undefined;
+
+  return note ? mapNote(note) : { id, scope, categoryId: cleanCategoryId, text };
 };
 
 export const updateProfile = (input: UpdateProfileInput): UserProfile | null => {
@@ -533,20 +538,23 @@ const listNotes = (): Note[] => {
   const workspaceId = getActiveWorkspaceId();
   const rows = getDatabase()
     .prepare(
-      `SELECT id, scope, category_id, text
+      `SELECT id, scope, category_id, text, updated_at
        FROM notes
        WHERE workspace_id = @workspaceId
        ORDER BY updated_at DESC`,
     )
     .all({ workspaceId }) as NoteRow[];
 
-  return rows.map((row) => ({
-    id: row.id,
-    scope: row.scope,
-    categoryId: row.category_id ?? undefined,
-    text: row.text,
-  }));
+  return rows.map(mapNote);
 };
+
+const mapNote = (row: NoteRow): Note => ({
+  id: row.id,
+  scope: row.scope,
+  categoryId: row.category_id ?? undefined,
+  text: row.text,
+  updatedAt: row.updated_at,
+});
 
 const mapCategory = (row: CategoryRow): Category => ({
   id: row.id,
@@ -709,6 +717,11 @@ const normalizeColor = (color: string) => {
 const normalizeDate = (date: string | undefined) => {
   const cleanDate = date?.trim();
   return cleanDate && /^\d{4}-\d{2}-\d{2}$/.test(cleanDate) ? cleanDate : undefined;
+};
+
+const normalizeDueTime = (value: string | undefined) => {
+  const cleanValue = value?.trim();
+  return cleanValue && /^\d{2}:\d{2}$/.test(cleanValue) ? cleanValue : undefined;
 };
 
 const hashPassword = (password: string) => crypto.createHash('sha256').update(password).digest('hex');

@@ -10,11 +10,11 @@ interface TaskDialogProps {
   onClose: () => void;
 }
 
-const priorityOptions: Array<{ value: TaskPriority; label: string }> = [
-  { value: 1, label: 'Высокий' },
-  { value: 2, label: 'Средний' },
-  { value: 3, label: 'Низкий' },
-  { value: 4, label: 'Без приоритета' },
+const priorityOptions: Array<{ value: TaskPriority; label: string; color: string }> = [
+  { value: 1, label: 'Высокий', color: '#ff3f3f' },
+  { value: 2, label: 'Средний', color: '#ffc23f' },
+  { value: 3, label: 'Низкий', color: '#5eff71' },
+  { value: 4, label: 'Без приоритета', color: '#76b9ff' },
 ];
 
 export const TaskDialog = ({ initialDueDate, isOpen, task, onClose }: TaskDialogProps) => {
@@ -41,7 +41,7 @@ export const TaskDialog = ({ initialDueDate, isOpen, task, onClose }: TaskDialog
     setTitle(task?.title ?? '');
     setDescription(task?.description ?? '');
     setDueDate(task?.dueDate ?? initialDueDate ?? (activeScope === 'today' ? getTodayDate() : ''));
-    setDueLabel(task?.dueLabel ?? '');
+    setDueLabel(normalizeDueTime(task?.dueLabel));
     setPriority(task?.priority ?? 4);
     setCategoryId(task?.categoryId ?? (activeScope === 'category' ? activeCategoryId : ''));
     setConfirmingDelete(false);
@@ -130,26 +130,32 @@ export const TaskDialog = ({ initialDueDate, isOpen, task, onClose }: TaskDialog
 
         <div className="form-grid">
           <label className="form-field">
-            <span>Дата</span>
+            <span>Дата дедлайна</span>
             <input type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} />
           </label>
 
           <label className="form-field">
-            <span>Приоритет</span>
-            <select value={priority} onChange={(event) => setPriority(Number(event.target.value) as TaskPriority)}>
-              {priorityOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+            <span>Время дедлайна</span>
+            <input type="time" value={dueLabel} onChange={(event) => setDueLabel(event.target.value)} />
           </label>
         </div>
 
-        <label className="form-field">
-          <span>Подпись срока</span>
-          <input value={dueLabel} onChange={(event) => setDueLabel(event.target.value)} placeholder="Сегодня, 17:00" />
-        </label>
+        <fieldset className="priority-picker">
+          <legend>Приоритет</legend>
+          <div className="priority-options">
+            {priorityOptions.map((option) => (
+              <button
+                className={priority === option.value ? 'priority-option active' : 'priority-option'}
+                key={option.value}
+                type="button"
+                onClick={() => setPriority(option.value)}
+              >
+                <span className="priority-option-dot" style={{ backgroundColor: option.color }} />
+                <span>{option.label}</span>
+              </button>
+            ))}
+          </div>
+        </fieldset>
 
         <label className="form-field">
           <span>Категория</span>
@@ -185,4 +191,9 @@ const getTodayDate = () => {
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+};
+
+const normalizeDueTime = (value: string | undefined) => {
+  const cleanValue = value?.trim();
+  return cleanValue && /^\d{2}:\d{2}$/.test(cleanValue) ? cleanValue : '';
 };

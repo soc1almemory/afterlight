@@ -329,17 +329,18 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   },
   updateNote: async (scope, text, categoryId) => {
     const noteCategoryId = scope === 'category' ? categoryId : undefined;
+    const updatedAt = new Date().toISOString();
 
     set((state) => {
       const existing = state.notes.some((note) => note.scope === scope && note.categoryId === noteCategoryId);
 
       if (!existing) {
-        return { notes: [...state.notes, { id: crypto.randomUUID(), scope, categoryId: noteCategoryId, text }] };
+        return { notes: [...state.notes, { id: crypto.randomUUID(), scope, categoryId: noteCategoryId, text, updatedAt }] };
       }
 
       return {
         notes: state.notes.map((note) =>
-          note.scope === scope && note.categoryId === noteCategoryId ? { ...note, text } : note,
+          note.scope === scope && note.categoryId === noteCategoryId ? { ...note, text, updatedAt } : note,
         ),
       };
     });

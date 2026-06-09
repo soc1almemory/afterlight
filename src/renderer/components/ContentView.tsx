@@ -38,6 +38,7 @@ export const ContentView = ({ onAddTask, onEditTask }: ContentViewProps) => {
   const updateNote = useTaskStore((state) => state.updateNote);
   const [refreshLabel, setRefreshLabel] = useState(getTodayRefreshLabel(settings.todayRefreshTime));
   const [draftNoteText, setDraftNoteText] = useState('');
+  const [timeTick, setTimeTick] = useState(Date.now());
   const notesTextareaRef = useRef<HTMLTextAreaElement>(null);
   const saveNoteTimeoutRef = useRef<number | undefined>(undefined);
 
@@ -48,6 +49,12 @@ export const ContentView = ({ onAddTask, onEditTask }: ContentViewProps) => {
 
     return () => window.clearInterval(intervalId);
   }, [settings.todayRefreshTime]);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => setTimeTick(Date.now()), 60_000);
+
+    return () => window.clearInterval(intervalId);
+  }, []);
 
   const activeCategory = categories.find((category) => category.id === activeCategoryId);
   const title = activeScope === 'category' ? activeCategory?.title ?? titles.category : titles[activeScope];
@@ -65,6 +72,15 @@ export const ContentView = ({ onAddTask, onEditTask }: ContentViewProps) => {
     return note.scope === activeScope && !note.categoryId;
   });
   const noteText = activeNote?.text ?? '';
+  const lastModifiedLabel = getLastModifiedLabel(
+    [
+      activeCategory?.updatedAt,
+      activeNote?.updatedAt,
+      ...visibleTasks.map((task) => task.updatedAt),
+      ...weekGroups.flatMap((group) => group.tasks.map((task) => task.updatedAt)),
+    ],
+    timeTick,
+  );
 
   useEffect(() => {
     setDraftNoteText(noteText);
@@ -131,7 +147,9 @@ export const ContentView = ({ onAddTask, onEditTask }: ContentViewProps) => {
     <main className="workspace">
       <div className="control-strip">
         <div className="control-status">
-          {isLoading || settings.showLastModified ? <span>{isLoading ? 'Загрузка данных...' : 'Изменено 2ч назад'}</span> : null}
+          {isLoading || (settings.showLastModified && lastModifiedLabel) ? (
+            <span>{isLoading ? 'Загрузка данных...' : lastModifiedLabel}</span>
+          ) : null}
           {activeScope === 'today' ? <span className="refresh-status">{refreshLabel}</span> : null}
         </div>
         <div className="control-actions">
@@ -261,7 +279,13 @@ const WeekTaskList = ({
             <div className="task-list compact">
               {group.tasks.length > 0 ? (
                 group.tasks.map((task, index) => (
-                  <TaskListItem key={task.id} task={task} withSeparator={index > 0} onEditTask={onEditTask} />
+                  <TaskListItem
+                    key={task.id}
+                    task={task}
+                    showCategory
+                    withSeparator={index > 0}
+                    onEditTask={onEditTask}
+                  />
                 ))
               ) : (
                 <div className="empty-day">Перетащите задачу сюда</div>
@@ -450,4 +474,44 @@ const toDateInputValue = (date: Date) => {
 const formatShortDate = (dateValue: string) => {
   const [_year, month, day] = dateValue.split('-');
   return `${day}.${month}`;
+};
+
+const getLastModifiedLabel = (values: Array<string | undefined>, _timeTick: number) => {
+  void _timeTick;
+  const latestTime = values
+    .map((value) => parseDateTime(value))
+    .filter((value): value is number => typeof value === 'number')
+    .sort((first, second) => second - first)[0];
+
+  if (!latestTime) {
+    return undefined;
+  }
+
+  const diffMinutes = Math.max(0, Math.floor((Date.now() - latestTime) / 60_000));
+
+  if (diffMinutes < 1) {
+    return 'Изменено только что';
+  }
+
+  if (diffMinutes < 60) {
+    return `Изменено ${diffMinutes}м назад`;
+  }
+
+  const diffHours = Math.floor(diffMinutes / 60);
+
+  if (diffHours < 24) {
+    return `Изменено ${diffHours}ч назад`;
+  }
+
+  const diffDays = Math.floor(diffHours / 24);
+  return `Изменено ${diffDays}д назад`;
+};
+
+const parseDateTime = (value: string | undefined) => {
+  if (!value) {
+    return undefined;
+  }
+
+  const date = new Date(value.includes('T') ? value : value.replace(' ', 'T'));
+  return Number.isNaN(date.getTime()) ? undefined : date.getTime();
 };

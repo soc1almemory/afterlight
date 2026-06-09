@@ -1,5 +1,5 @@
 import type { DragEvent } from 'react';
-import type { Task } from '../../shared/types';
+import type { Category, Task } from '../../shared/types';
 import { assetUrl } from '../lib/assets';
 import { useTaskStore } from '../store/useTaskStore';
 
@@ -7,13 +7,16 @@ interface TaskListItemProps {
   task: Task;
   withSeparator: boolean;
   onEditTask: (task: Task) => void;
+  showCategory?: boolean;
 }
 
-export const TaskListItem = ({ task, withSeparator, onEditTask }: TaskListItemProps) => {
+export const TaskListItem = ({ task, withSeparator, onEditTask, showCategory = false }: TaskListItemProps) => {
+  const categories = useTaskStore((state) => state.categories);
   const toggleTask = useTaskStore((state) => state.toggleTask);
   const isCompleted = task.status === 'completed';
   const isExpired = task.isExpired || isActiveOverdueTask(task);
-  const dateLabel = task.dueLabel || formatTaskDate(task.dueDate);
+  const category = categories.find((item) => item.id === task.categoryId);
+  const dateLabel = formatDeadline(task);
 
   const handleDragStart = (event: DragEvent<HTMLElement>) => {
     event.dataTransfer.setData('text/plain', task.id);
@@ -22,6 +25,12 @@ export const TaskListItem = ({ task, withSeparator, onEditTask }: TaskListItemPr
 
   return (
     <article className={withSeparator ? 'task-row with-separator' : 'task-row'} draggable onDragStart={handleDragStart}>
+      {showCategory && category ? (
+        <div className="task-category-label">
+          <CategoryMarker category={category} />
+          <span>{category.title}</span>
+        </div>
+      ) : null}
       <div className="task-line">
         <button
           className={isCompleted ? 'checkbox-button checked' : 'checkbox-button'}
@@ -44,11 +53,23 @@ export const TaskListItem = ({ task, withSeparator, onEditTask }: TaskListItemPr
       {(task.description || dateLabel) && (
         <div className="task-meta">
           {task.description ? <span>{task.description}</span> : null}
-          {dateLabel ? <time>{dateLabel}</time> : null}
+          {dateLabel ? <time className={isCompleted ? 'completed' : undefined}>{dateLabel}</time> : null}
         </div>
       )}
     </article>
   );
+};
+
+const CategoryMarker = ({ category }: { category: Category }) => {
+  if (category.iconMode === 'emoji' && category.emoji) {
+    return <span className="task-category-emoji">{category.emoji}</span>;
+  }
+
+  if (category.iconMode === 'color') {
+    return <span className="task-category-dot" style={{ backgroundColor: category.color }} />;
+  }
+
+  return <span className="task-category-hash">#</span>;
 };
 
 const isActiveOverdueTask = (task: Task) =>
@@ -62,7 +83,43 @@ const getTodayDate = () => {
   return `${year}-${month}-${day}`;
 };
 
-const formatTaskDate = (dateValue: string | undefined) => {
+const formatDeadline = (task: Task) => {
+  const dueTime = normalizeDueTime(task.dueLabel);
+
+  if (!task.dueDate) {
+    return dueTime;
+  }
+
+  const formattedDate = formatTaskDate(task.dueDate);
+  const today = getTodayDate();
+  const tomorrow = getRelativeDate(1);
+
+  if (task.dueDate === today) {
+    return ['Сегодня', dueTime, formattedDate].filter(Boolean).join(', ');
+  }
+
+  if (task.dueDate === tomorrow) {
+    return ['Завтра', dueTime, formattedDate].filter(Boolean).join(', ');
+  }
+
+  return [dueTime, formattedDate].filter(Boolean).join(', ');
+};
+
+const normalizeDueTime = (value: string | undefined) => {
+  const cleanValue = value?.trim();
+  return cleanValue && /^\d{2}:\d{2}$/.test(cleanValue) ? cleanValue : undefined;
+};
+
+const getRelativeDate = (offsetDays: number) => {
+  const date = new Date();
+  date.setDate(date.getDate() + offsetDays);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const formatTaskDate = (dateValue: string) => {
   if (!dateValue) {
     return undefined;
   }

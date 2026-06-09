@@ -1160,6 +1160,41 @@ body {
   font-weight: 800;
 }
 
+.task-meta time.completed {
+  background: #e0e0e0;
+  color: #515151;
+}
+
+.task-category-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding-left: 2px;
+  color: #515151;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.task-category-hash {
+  color: #515151;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.task-category-dot {
+  width: 13px;
+  height: 13px;
+  border-radius: 999px;
+  flex: 0 0 auto;
+}
+
+.task-category-emoji {
+  width: 18px;
+  font-size: 16px;
+  line-height: 1;
+  text-align: center;
+}
+
 .inline-add-task {
   align-self: flex-start;
   min-height: 34px;
@@ -1833,6 +1868,92 @@ body {
 .color-swatch.active {
   border-color: #111111;
   box-shadow: inset 0 0 0 3px #ffffff;
+}
+
+.emoji-picker {
+  width: min(360px, 100%);
+  border: 1px solid #eeeeee;
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.emoji-picker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #515151;
+  font-size: 14px;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+.emoji-picker-header button {
+  color: #8f8f8f;
+  font-weight: 800;
+}
+
+.emoji-picker-grid {
+  max-height: 154px;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 6px;
+}
+
+.emoji-option {
+  height: 34px;
+  border-radius: 7px;
+  display: grid;
+  place-items: center;
+  font-size: 21px;
+}
+
+.emoji-option:hover,
+.emoji-option.active {
+  background: #f2f2f2;
+}
+
+.priority-picker {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.priority-picker legend {
+  color: #515151;
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.priority-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.priority-option {
+  height: 40px;
+  border: 1px solid #eeeeee;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  color: #333333;
+  font-weight: 800;
+}
+
+.priority-option:hover,
+.priority-option.active {
+  border-color: #111111;
+}
+
+.priority-option-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  flex: 0 0 auto;
 }
 
 .checkbox-field {

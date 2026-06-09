@@ -79,6 +79,7 @@ export interface Note {
   scope: TaskScope;
   text: string;
   categoryId?: string;
+  updatedAt?: string;
 }
 
 export interface UserProfile {
