@@ -17,6 +17,7 @@ export const App = () => {
   const [editingTask, setEditingTask] = useState<Task | undefined>();
   const [initialTaskDate, setInitialTaskDate] = useState<string | undefined>();
   const [isSearchOpen, setSearchOpen] = useState(false);
+  const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isSettingsOpen, setSettingsOpen] = useState(false);
   const activeScope = useTaskStore((state) => state.activeScope);
   const hasHydrated = useTaskStore((state) => state.hasHydrated);
@@ -81,8 +82,12 @@ export const App = () => {
   };
 
   return (
-    <div className="afterlight-app">
-      <TitleBar onAddCategory={openCreateCategoryDialog} />
+    <div className={isSidebarCollapsed ? 'afterlight-app sidebar-collapsed' : 'afterlight-app'}>
+      <TitleBar
+        isSidebarCollapsed={isSidebarCollapsed}
+        onAddCategory={openCreateCategoryDialog}
+        onToggleSidebar={() => setSidebarCollapsed((value) => !value)}
+      />
       <Sidebar
         onAddCategory={openCreateCategoryDialog}
         onEditCategory={openEditCategoryDialog}

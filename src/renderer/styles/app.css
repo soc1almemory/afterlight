@@ -62,6 +62,10 @@ body {
   overflow: hidden;
 }
 
+.afterlight-app.sidebar-collapsed {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .app-loading {
   width: 100%;
   height: 100%;
@@ -186,6 +190,10 @@ body {
   border-bottom: 1px solid #f1f1f1;
 }
 
+.sidebar-collapsed .app-titlebar {
+  grid-template-columns: 96px minmax(0, auto) minmax(40px, 1fr) auto;
+}
+
 .titlebar-sidebar-tools {
   height: 40px;
   border-right: 1px solid #eeeeee;
@@ -207,9 +215,14 @@ body {
   border: 2px solid #8d8d8d;
   border-radius: 3px;
   position: relative;
+  flex: 0 0 auto;
 }
 
-.titlebar-sidebar-toggle::before {
+.titlebar-sidebar-toggle:hover {
+  border-color: #111111;
+}
+
+.titlebar-sidebar-toggle span {
   content: '';
   position: absolute;
   top: -2px;
@@ -217,6 +230,15 @@ body {
   left: 6px;
   width: 2px;
   background: #8d8d8d;
+}
+
+.titlebar-sidebar-toggle:hover span {
+  background: #111111;
+}
+
+.titlebar-sidebar-toggle.collapsed span {
+  left: auto;
+  right: 6px;
 }
 
 .tab-navigation {
@@ -401,6 +423,10 @@ body {
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
+}
+
+.sidebar-collapsed .sidebar {
+  display: none;
 }
 
 .menu-top-container {

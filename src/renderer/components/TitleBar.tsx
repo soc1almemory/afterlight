@@ -9,7 +9,9 @@ interface AppRoute {
 }
 
 interface TitleBarProps {
+  isSidebarCollapsed: boolean;
   onAddCategory: () => void;
+  onToggleSidebar: () => void;
 }
 
 const systemTabMeta: Record<Exclude<TaskScope, 'category'>, { icon: string; label: string }> = {
@@ -18,7 +20,7 @@ const systemTabMeta: Record<Exclude<TaskScope, 'category'>, { icon: string; labe
   week: { icon: 'week-icon.svg', label: 'Неделя' },
 };
 
-export const TitleBar = ({ onAddCategory }: TitleBarProps) => {
+export const TitleBar = ({ isSidebarCollapsed, onAddCategory, onToggleSidebar }: TitleBarProps) => {
   const controls = window.afterlightWindow;
   const activeCategoryId = useTaskStore((state) => state.activeCategoryId);
   const activeScope = useTaskStore((state) => state.activeScope);
@@ -48,7 +50,15 @@ export const TitleBar = ({ onAddCategory }: TitleBarProps) => {
     <header className="app-titlebar">
       <div className="titlebar-sidebar-tools">
         <img src={assetUrl('afterlight-icon.svg')} alt="" />
-        <span className="titlebar-sidebar-toggle" aria-hidden="true" />
+        <button
+          className={isSidebarCollapsed ? 'titlebar-sidebar-toggle collapsed' : 'titlebar-sidebar-toggle'}
+          type="button"
+          aria-label={isSidebarCollapsed ? 'Развернуть боковую панель' : 'Свернуть боковую панель'}
+          aria-pressed={isSidebarCollapsed}
+          onClick={onToggleSidebar}
+        >
+          <span aria-hidden="true" />
+        </button>
       </div>
 
       <div className="tab-navigation">
