@@ -339,7 +339,7 @@ const LanguageSettings = () => {
           onChange={(language) => void updateSettings({ language })}
         />
         <p className="settings-hint">
-          Переключатель уже сохраняется в профиле. Базовые разделы интерфейса будут перестраиваться под выбранный язык.
+          Базовые разделы интерфейса будут перестраиваться под выбранный язык.
         </p>
       </SettingsGroup>
     </div>
@@ -355,12 +355,12 @@ const SidebarSettings = () => {
       <SettingsGroup title="Боковая панель">
         <SettingsToggle
           checked={settings.autoCollapseSidebar}
-          label="Автоматически сворачивать боковую панель, когда курсор в workspace"
+          label="Автоматически сворачивать боковую панель, когда курсор в рабочей области"
           onChange={(autoCollapseSidebar) => void updateSettings({ autoCollapseSidebar })}
         />
         <SettingsToggle
           checked={settings.showSidebarCounts}
-          label="Показывать счётчики в sidebar"
+          label="Показывать счётчики в боковой панели"
           onChange={(showSidebarCounts) => void updateSettings({ showSidebarCounts })}
         />
         <SettingsToggle
@@ -387,7 +387,7 @@ const NotificationsSettings = () => {
         />
         <SettingsToggle
           checked={settings.notifyBeforeTodayRefresh}
-          label="Уведомлять перед обновлением страницы Сегодня"
+          label="Уведомлять перед обновлением страницы «Сегодня»"
           onChange={(notifyBeforeTodayRefresh) => void updateSettings({ notifyBeforeTodayRefresh })}
         />
         <SettingsToggle
