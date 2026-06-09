@@ -41,7 +41,6 @@ export const Sidebar = ({ onAddCategory, onEditCategory, onOpenSearch, onOpenSet
           <button className="user-name-button" type="button">
             <span className="user-name">{profile.name}</span>
             <span className="user-workspace">{workspace.title}</span>
-            <span className="user-chevron" aria-hidden="true" />
           </button>
           <button className="create-category-button" type="button" aria-label="Создать категорию" onClick={onAddCategory}>
             <img src={assetUrl('create-icon.svg')} alt="" />
