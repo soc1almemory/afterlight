@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ChangeEvent, DragEvent, KeyboardEvent } from 'react';
 import type { AppSettings, Task, TaskScope } from '../../shared/types';
+import type { TranslationKey } from '../i18n';
+import { translate, useTranslator } from '../i18n';
 import { assetUrl } from '../lib/assets';
 import { useTaskStore } from '../store/useTaskStore';
 import { TaskListItem } from './TaskListItem';
@@ -8,6 +10,7 @@ import { TaskListItem } from './TaskListItem';
 interface ContentViewProps {
   onAddTask: (dueDate?: string) => void;
   onEditTask: (task: Task) => void;
+  onMouseEnter?: () => void;
 }
 
 interface WeekGroup {
@@ -16,16 +19,19 @@ interface WeekGroup {
   tasks: Task[];
 }
 
-const titles: Record<TaskScope, string> = {
-  inbox: 'Входящие',
-  today: 'Сегодня',
-  week: 'Неделя',
-  category: 'Категория',
+const titleKeys: Record<TaskScope, TranslationKey> = {
+  inbox: 'inbox',
+  today: 'today',
+  week: 'week',
+  category: 'categories',
 };
 
-const dayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+const dayLabels = {
+  ru: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
+  en: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+};
 
-export const ContentView = ({ onAddTask, onEditTask }: ContentViewProps) => {
+export const ContentView = ({ onAddTask, onEditTask, onMouseEnter }: ContentViewProps) => {
   const activeScope = useTaskStore((state) => state.activeScope);
   const activeCategoryId = useTaskStore((state) => state.activeCategoryId);
   const categories = useTaskStore((state) => state.categories);
@@ -34,21 +40,25 @@ export const ContentView = ({ onAddTask, onEditTask }: ContentViewProps) => {
   const tasks = useTaskStore((state) => state.tasks);
   const notes = useTaskStore((state) => state.notes);
   const settings = useTaskStore((state) => state.settings);
+  const deleteCategory = useTaskStore((state) => state.deleteCategory);
+  const deleteTask = useTaskStore((state) => state.deleteTask);
   const toggleCategoryFavorite = useTaskStore((state) => state.toggleCategoryFavorite);
   const updateNote = useTaskStore((state) => state.updateNote);
-  const [refreshLabel, setRefreshLabel] = useState(getTodayRefreshLabel(settings.todayRefreshTime));
+  const [isControlMenuOpen, setControlMenuOpen] = useState(false);
+  const [refreshLabel, setRefreshLabel] = useState(getTodayRefreshLabel(settings.todayRefreshTime, settings.language));
   const [draftNoteText, setDraftNoteText] = useState('');
   const [timeTick, setTimeTick] = useState(Date.now());
+  const t = useTranslator();
   const notesTextareaRef = useRef<HTMLTextAreaElement>(null);
   const saveNoteTimeoutRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
-    const updateRefreshLabel = () => setRefreshLabel(getTodayRefreshLabel(settings.todayRefreshTime));
+    const updateRefreshLabel = () => setRefreshLabel(getTodayRefreshLabel(settings.todayRefreshTime, settings.language));
     updateRefreshLabel();
     const intervalId = window.setInterval(updateRefreshLabel, 60_000);
 
     return () => window.clearInterval(intervalId);
-  }, [settings.todayRefreshTime]);
+  }, [settings.language, settings.todayRefreshTime]);
 
   useEffect(() => {
     const intervalId = window.setInterval(() => setTimeTick(Date.now()), 60_000);
@@ -57,7 +67,7 @@ export const ContentView = ({ onAddTask, onEditTask }: ContentViewProps) => {
   }, []);
 
   const activeCategory = categories.find((category) => category.id === activeCategoryId);
-  const title = activeScope === 'category' ? activeCategory?.title ?? titles.category : titles[activeScope];
+  const title = activeScope === 'category' ? activeCategory?.title ?? t(titleKeys.category) : t(titleKeys[activeScope]);
   const visibleTasks = sortTasks(
     tasks.filter((task) => isTaskVisible(task, activeScope, activeCategoryId, settings)),
     settings,
@@ -79,8 +89,37 @@ export const ContentView = ({ onAddTask, onEditTask }: ContentViewProps) => {
       ...visibleTasks.map((task) => task.updatedAt),
       ...weekGroups.flatMap((group) => group.tasks.map((task) => task.updatedAt)),
     ],
+    settings.language,
     timeTick,
   );
+  const tasksToClear = activeScope === 'week' ? weekGroups.flatMap((group) => group.tasks) : visibleTasks;
+
+  const handleClearPage = async () => {
+    if (tasksToClear.length === 0) {
+      setControlMenuOpen(false);
+      return;
+    }
+
+    if (settings.confirmTaskDelete && !window.confirm('Очистить текущий раздел от задач?')) {
+      return;
+    }
+
+    setControlMenuOpen(false);
+    await Promise.all(tasksToClear.map((task) => deleteTask(task.id)));
+  };
+
+  const handleDeleteCategory = async () => {
+    if (!activeCategory) {
+      return;
+    }
+
+    if (settings.confirmCategoryDelete && !window.confirm(`Удалить категорию “${activeCategory.title}”?`)) {
+      return;
+    }
+
+    setControlMenuOpen(false);
+    await deleteCategory(activeCategory.id);
+  };
 
   useEffect(() => {
     setDraftNoteText(noteText);
@@ -144,11 +183,11 @@ export const ContentView = ({ onAddTask, onEditTask }: ContentViewProps) => {
   };
 
   return (
-    <main className="workspace">
+    <main className="workspace" onMouseEnter={onMouseEnter}>
       <div className="control-strip">
         <div className="control-status">
           {isLoading || (settings.showLastModified && lastModifiedLabel) ? (
-            <span>{isLoading ? 'Загрузка данных...' : lastModifiedLabel}</span>
+            <span>{isLoading ? t('loadingData') : lastModifiedLabel}</span>
           ) : null}
           {activeScope === 'today' ? <span className="refresh-status">{refreshLabel}</span> : null}
         </div>
@@ -167,9 +206,30 @@ export const ContentView = ({ onAddTask, onEditTask }: ContentViewProps) => {
               />
             </button>
           ) : null}
-          <button type="button" aria-label="Дополнительно">
-            <img src={assetUrl('tochki-icon.svg')} alt="" />
-          </button>
+          <div className="control-menu-wrapper">
+            <button
+              type="button"
+              aria-label="Действия страницы"
+              aria-expanded={isControlMenuOpen}
+              onClick={() => setControlMenuOpen((value) => !value)}
+            >
+              <img src={assetUrl('tochki-icon.svg')} alt="" />
+            </button>
+            {isControlMenuOpen ? (
+              <div className="control-menu" role="menu">
+                <button type="button" role="menuitem" onClick={() => void handleClearPage()}>
+                  <img src={assetUrl('control-eraser-icon.svg')} alt="" />
+                  <span>{t('clear')}</span>
+                </button>
+                {activeScope === 'category' && activeCategory ? (
+                  <button className="danger" type="button" role="menuitem" onClick={() => void handleDeleteCategory()}>
+                    <img src={assetUrl('control-delete-icon.svg')} alt="" />
+                    <span>{t('delete')}</span>
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
         </div>
       </div>
 
@@ -197,12 +257,12 @@ export const ContentView = ({ onAddTask, onEditTask }: ContentViewProps) => {
             onClick={() => onAddTask(activeScope === 'today' ? getTodayDate(settings.todayRefreshTime) : undefined)}
           >
             <img src={assetUrl('add-task-icon.svg')} alt="" />
-            <span>Добавить задачу</span>
+            <span>{t('addTask')}</span>
           </button>
         ) : null}
 
         <label className="notes-field">
-          <span>Заметки</span>
+          <span>{t('notes')}</span>
           <textarea
             ref={notesTextareaRef}
             value={draftNoteText}
@@ -210,7 +270,7 @@ export const ContentView = ({ onAddTask, onEditTask }: ContentViewProps) => {
             onChange={handleNoteChange}
             onBlur={flushNote}
             onKeyDown={handleNoteKeyDown}
-            placeholder="Напишите что-нибудь важное, чтобы не забыть."
+            placeholder={t('writeNote')}
           />
         </label>
       </section>
@@ -363,9 +423,10 @@ const wouldExceedNoteLineLimit = (value: string, selectionStart: number, selecti
 const buildWeekGroups = (tasks: Task[], settings: AppSettings): WeekGroup[] => {
   const weekDates = orderWeekDates(getCurrentWeekDates(), settings.weekOrderMode);
   const withoutDateTasks = tasks.filter((task) => task.scope === 'week' && !task.dueDate);
+  const labels = dayLabels[settings.language];
   const dateGroups: WeekGroup[] = weekDates.map((date) => ({
     date,
-    label: dayLabels[getWeekdayIndex(date)],
+    label: labels[getWeekdayIndex(date)],
     tasks: sortTasks(tasks.filter((task) => task.dueDate === date), settings, 'week'),
   }));
 
@@ -375,7 +436,7 @@ const buildWeekGroups = (tasks: Task[], settings: AppSettings): WeekGroup[] => {
 
   return [
     {
-      label: 'Распределитель',
+      label: settings.language === 'en' ? 'Distributor' : 'Распределитель',
       tasks: sortTasks(withoutDateTasks, settings, 'week'),
     },
     ...dateGroups,
@@ -439,7 +500,7 @@ const getTodayDate = (refreshTime?: string) => {
   return toDateInputValue(date);
 };
 
-const getTodayRefreshLabel = (refreshTime: string) => {
+const getTodayRefreshLabel = (refreshTime: string, language: AppSettings['language']) => {
   const now = new Date();
   const [hours, minutes] = refreshTime.split(':').map((part) => Number.parseInt(part, 10));
   const nextRefresh = new Date(now);
@@ -454,14 +515,16 @@ const getTodayRefreshLabel = (refreshTime: string) => {
   const remainingMinutes = minutesLeft % 60;
 
   if (hoursLeft > 0 && remainingMinutes === 0) {
-    return `Обновление через ${hoursLeft}ч`;
+    return language === 'en' ? `Refresh in ${hoursLeft}h` : `Обновление через ${hoursLeft}ч`;
   }
 
   if (hoursLeft > 0) {
-    return `Обновление через ${hoursLeft}ч ${remainingMinutes}м`;
+    return language === 'en'
+      ? `Refresh in ${hoursLeft}h ${remainingMinutes}m`
+      : `Обновление через ${hoursLeft}ч ${remainingMinutes}м`;
   }
 
-  return `Обновление через ${minutesLeft}м`;
+  return language === 'en' ? `Refresh in ${minutesLeft}m` : `Обновление через ${minutesLeft}м`;
 };
 
 const toDateInputValue = (date: Date) => {
@@ -476,7 +539,11 @@ const formatShortDate = (dateValue: string) => {
   return `${day}.${month}`;
 };
 
-const getLastModifiedLabel = (values: Array<string | undefined>, _timeTick: number) => {
+const getLastModifiedLabel = (
+  values: Array<string | undefined>,
+  language: AppSettings['language'],
+  _timeTick: number,
+) => {
   void _timeTick;
   const latestTime = values
     .map((value) => parseDateTime(value))
@@ -490,21 +557,21 @@ const getLastModifiedLabel = (values: Array<string | undefined>, _timeTick: numb
   const diffMinutes = Math.max(0, Math.floor((Date.now() - latestTime) / 60_000));
 
   if (diffMinutes < 1) {
-    return 'Изменено только что';
+    return translate(language, 'updatedJustNow');
   }
 
   if (diffMinutes < 60) {
-    return `Изменено ${diffMinutes}м назад`;
+    return translate(language, 'updatedMinutesAgo', { value: diffMinutes });
   }
 
   const diffHours = Math.floor(diffMinutes / 60);
 
   if (diffHours < 24) {
-    return `Изменено ${diffHours}ч назад`;
+    return translate(language, 'updatedHoursAgo', { value: diffHours });
   }
 
   const diffDays = Math.floor(diffHours / 24);
-  return `Изменено ${diffDays}д назад`;
+  return translate(language, 'updatedDaysAgo', { value: diffDays });
 };
 
 const parseDateTime = (value: string | undefined) => {

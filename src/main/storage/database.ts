@@ -8,15 +8,24 @@ let connection: Database.Database | null = null;
 const DEFAULT_PROFILE_ID = 'default-profile';
 const DEFAULT_WORKSPACE_ID = 'default-workspace';
 
+export const getStoragePaths = () => {
+  const storageDir = path.join(app.getPath('userData'), 'storage');
+  return {
+    backupDir: path.join(storageDir, 'backups'),
+    databasePath: path.join(storageDir, 'afterlight.sqlite'),
+    storageDir,
+  };
+};
+
 export const initializeDatabase = () => {
   if (connection) {
     return connection;
   }
 
-  const storageDir = path.join(app.getPath('userData'), 'storage');
+  const { storageDir, databasePath } = getStoragePaths();
   fs.mkdirSync(storageDir, { recursive: true });
 
-  connection = new Database(path.join(storageDir, 'afterlight.sqlite'));
+  connection = new Database(databasePath);
   connection.pragma('journal_mode = WAL');
   connection.exec(`
     CREATE TABLE IF NOT EXISTS profiles (

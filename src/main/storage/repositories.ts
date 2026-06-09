@@ -23,9 +23,14 @@ import type {
 import { getDatabase } from './database';
 
 const defaultSettings: AppSettings = {
+  autoBackupEnabled: true,
+  autoBackupIntervalHours: 24,
+  autoCollapseSidebar: false,
   autosaveNotesIntervalSeconds: 1,
   categorySortMode: 'favorites',
+  closeBehavior: 'exit',
   confirmCategoryDelete: true,
+  confirmExit: false,
   confirmTaskDelete: true,
   countCompletedTasks: true,
   counterCriticalAt: 31,
@@ -33,9 +38,17 @@ const defaultSettings: AppSettings = {
   counterMediumAt: 6,
   highlightTodayInWeek: true,
   includeTodayDueTasks: true,
+  language: 'ru',
+  launchMinimized: false,
+  launchWithWindows: false,
+  minimizeToTrayOnClose: false,
+  notifyBeforeTodayRefresh: false,
+  notifyDeadlines: false,
+  notifyOverdue: false,
   notesLineLimit: 50,
   openMode: 'normal',
   restoreTabs: false,
+  restoreWindowState: 'normal',
   showCategoryCounts: true,
   showLastModified: true,
   showSidebarCounts: true,
@@ -45,6 +58,7 @@ const defaultSettings: AppSettings = {
   startSection: 'inbox',
   taskSortMode: 'created',
   todayRefreshTime: '00:00',
+  trayEnabled: true,
   weekOrderMode: 'monday',
 };
 
@@ -672,10 +686,14 @@ const normalizeSettings = (settings: Partial<AppSettings>): AppSettings => ({
   ...defaultSettings,
   ...settings,
   autosaveNotesIntervalSeconds: clampNumber(settings.autosaveNotesIntervalSeconds, 1, 30, defaultSettings.autosaveNotesIntervalSeconds),
+  autoBackupIntervalHours: clampNumber(settings.autoBackupIntervalHours, 1, 168, defaultSettings.autoBackupIntervalHours),
   counterCriticalAt: clampNumber(settings.counterCriticalAt, 1, 999, defaultSettings.counterCriticalAt),
   counterHighAt: clampNumber(settings.counterHighAt, 1, 999, defaultSettings.counterHighAt),
   counterMediumAt: clampNumber(settings.counterMediumAt, 1, 999, defaultSettings.counterMediumAt),
+  closeBehavior: normalizeOneOf(settings.closeBehavior, ['ask', 'exit', 'tray'], defaultSettings.closeBehavior),
+  language: normalizeOneOf(settings.language, ['ru', 'en'], defaultSettings.language),
   notesLineLimit: clampNumber(settings.notesLineLimit, 5, 200, defaultSettings.notesLineLimit),
+  restoreWindowState: normalizeOneOf(settings.restoreWindowState, ['normal', 'maximized', 'fullscreen'], defaultSettings.restoreWindowState),
   todayRefreshTime: normalizeTime(settings.todayRefreshTime),
 });
 
@@ -691,6 +709,9 @@ const normalizeTime = (value: string | undefined) => {
   const cleanValue = value?.trim();
   return cleanValue && /^\d{2}:\d{2}$/.test(cleanValue) ? cleanValue : defaultSettings.todayRefreshTime;
 };
+
+const normalizeOneOf = <T extends string>(value: string | undefined, allowed: T[], fallback: T) =>
+  allowed.includes(value as T) ? (value as T) : fallback;
 
 const cleanOptional = (value: string | undefined) => {
   const cleanValue = value?.trim();

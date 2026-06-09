@@ -29,7 +29,11 @@ import {
   updateWorkspace,
 } from '../storage/repositories';
 
-export const registerTaskIpcHandlers = () => {
+interface RegisterTaskIpcHandlersOptions {
+  onSettingsUpdated?: () => void;
+}
+
+export const registerTaskIpcHandlers = (options: RegisterTaskIpcHandlersOptions = {}) => {
   ipcMain.handle('app-data:load', () => listAppData());
   ipcMain.handle('profile:complete-setup', (_event, input: ProfileSetupInput) => {
     if (!input.name.trim()) {
@@ -51,7 +55,11 @@ export const registerTaskIpcHandlers = () => {
     return completeProfileSetup(input);
   });
   ipcMain.handle('profile:reset', () => resetProfile());
-  ipcMain.handle('settings:update', (_event, input: UpdateSettingsInput) => updateSettings(input));
+  ipcMain.handle('settings:update', (_event, input: UpdateSettingsInput) => {
+    const settings = updateSettings(input);
+    options.onSettingsUpdated?.();
+    return settings;
+  });
   ipcMain.handle('categories:list', () => listCategories());
 
   ipcMain.handle('categories:create', (_event, input: CreateCategoryInput) => {

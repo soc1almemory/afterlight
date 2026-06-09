@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Category, Task } from '../shared/types';
 import { CategoryDialog } from './components/CategoryDialog';
 import { ContentView } from './components/ContentView';
+import { InfoDialog } from './components/InfoDialog';
 import { ProfileSetup } from './components/ProfileSetup';
 import { SearchDialog } from './components/SearchDialog';
 import { SettingsDialog } from './components/SettingsDialog';
@@ -19,55 +20,25 @@ export const App = () => {
   const [isSearchOpen, setSearchOpen] = useState(false);
   const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isSettingsOpen, setSettingsOpen] = useState(false);
+  const [infoDialog, setInfoDialog] = useState<'changelog' | 'help' | 'telegram' | undefined>();
   const activeScope = useTaskStore((state) => state.activeScope);
   const hasHydrated = useTaskStore((state) => state.hasHydrated);
   const hydrate = useTaskStore((state) => state.hydrate);
   const profile = useTaskStore((state) => state.profile);
   const settings = useTaskStore((state) => state.settings);
+  const setScope = useTaskStore((state) => state.setScope);
 
-  const pageClass = useMemo(() => {
-    if (!profile.isSetupComplete) return 'page-setup';
-    if (activeScope === 'today') return 'page-today';
-    if (activeScope === 'week') return 'page-week';
-    if (activeScope === 'category') return 'page-category-page';
-    return 'page-inbox';
-  }, [activeScope, profile.isSetupComplete]);
-
-  useEffect(() => {
-    document.body.className = pageClass;
-  }, [pageClass]);
-
-  useEffect(() => {
-    void hydrate();
-  }, [hydrate]);
-
-  useEffect(() => {
-    if (!hasHydrated || !profile.isSetupComplete) {
-      return;
-    }
-
-    void window.afterlightWindow?.setFullScreen(settings.openMode === 'fullscreen');
-  }, [hasHydrated, profile.isSetupComplete, settings.openMode]);
-
-  if (!hasHydrated) {
-    return <div className="app-loading">Загрузка Afterlight...</div>;
-  }
-
-  if (!profile.isSetupComplete) {
-    return <ProfileSetup />;
-  }
-
-  const openCreateDialog = (dueDate?: string) => {
+  const openCreateDialog = useCallback((dueDate?: string) => {
     setEditingTask(undefined);
     setInitialTaskDate(dueDate);
     setTaskDialogOpen(true);
-  };
+  }, []);
 
-  const openEditDialog = (task: Task) => {
+  const openEditDialog = useCallback((task: Task) => {
     setEditingTask(task);
     setInitialTaskDate(undefined);
     setTaskDialogOpen(true);
-  };
+  }, []);
 
   const closeDialog = () => {
     setTaskDialogOpen(false);
@@ -90,8 +61,91 @@ export const App = () => {
     setEditingCategory(undefined);
   };
 
+  const pageClass = useMemo(() => {
+    if (!profile.isSetupComplete) return 'page-setup';
+    if (activeScope === 'today') return 'page-today';
+    if (activeScope === 'week') return 'page-week';
+    if (activeScope === 'category') return 'page-category-page';
+    return 'page-inbox';
+  }, [activeScope, profile.isSetupComplete]);
+
+  useEffect(() => {
+    document.body.className = pageClass;
+  }, [pageClass]);
+
+  useEffect(() => {
+    void hydrate();
+  }, [hydrate]);
+
+  useEffect(() => {
+    const unsubscribeData = window.afterlightApi?.onDataChanged(() => {
+      void hydrate();
+    });
+    const unsubscribeQuickAction = window.afterlightWindow?.onQuickAction((action) => {
+      if (action === 'add-task') {
+        openCreateDialog();
+        return;
+      }
+
+      if (action === 'today') {
+        setScope('today');
+        return;
+      }
+
+      if (action === 'week') {
+        setScope('week');
+      }
+    });
+
+    return () => {
+      unsubscribeData?.();
+      unsubscribeQuickAction?.();
+    };
+  }, [hydrate, openCreateDialog, setScope]);
+
+  useEffect(() => {
+    if (!hasHydrated || !profile.isSetupComplete) {
+      return;
+    }
+
+    void window.afterlightWindow?.setFullScreen(settings.openMode === 'fullscreen');
+  }, [hasHydrated, profile.isSetupComplete, settings.openMode]);
+
+  if (!hasHydrated) {
+    return <div className="app-loading">Загрузка Afterlight...</div>;
+  }
+
+  if (!profile.isSetupComplete) {
+    return <ProfileSetup />;
+  }
+
+  const appClassName = [
+    'afterlight-app',
+    isSidebarCollapsed ? 'sidebar-collapsed' : '',
+    settings.autoCollapseSidebar ? 'auto-sidebar' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
   return (
-    <div className={isSidebarCollapsed ? 'afterlight-app sidebar-collapsed' : 'afterlight-app'}>
+    <div
+      className={appClassName}
+      onMouseMove={(event) => {
+        if (!settings.autoCollapseSidebar) {
+          return;
+        }
+
+        const target = event.target as HTMLElement;
+        if (target.closest('.sidebar')) {
+          setSidebarCollapsed(false);
+          return;
+        }
+
+        if (target.closest('.workspace')) {
+          setSidebarCollapsed(true);
+        }
+      }}
+    >
       <TitleBar
         isSidebarCollapsed={isSidebarCollapsed}
         onAddCategory={openCreateCategoryDialog}
@@ -100,14 +154,29 @@ export const App = () => {
       <Sidebar
         onAddCategory={openCreateCategoryDialog}
         onEditCategory={openEditCategoryDialog}
+        onMouseEnter={() => {
+          if (settings.autoCollapseSidebar) {
+            setSidebarCollapsed(false);
+          }
+        }}
+        onOpenInfo={setInfoDialog}
         onOpenSearch={() => setSearchOpen(true)}
         onOpenSettings={() => setSettingsOpen(true)}
       />
-      <ContentView onAddTask={openCreateDialog} onEditTask={openEditDialog} />
+      <ContentView
+        onAddTask={openCreateDialog}
+        onEditTask={openEditDialog}
+        onMouseEnter={() => {
+          if (settings.autoCollapseSidebar) {
+            setSidebarCollapsed(true);
+          }
+        }}
+      />
       <TaskDialog isOpen={isTaskDialogOpen} task={editingTask} initialDueDate={initialTaskDate} onClose={closeDialog} />
       <CategoryDialog isOpen={isCategoryDialogOpen} category={editingCategory} onClose={closeCategoryDialog} />
       <SearchDialog isOpen={isSearchOpen} onClose={() => setSearchOpen(false)} onEditTask={openEditDialog} />
       <SettingsDialog isOpen={isSettingsOpen} onClose={() => setSettingsOpen(false)} />
+      {infoDialog ? <InfoDialog kind={infoDialog} onClose={() => setInfoDialog(undefined)} /> : null}
     </div>
   );
 };

@@ -8,6 +8,9 @@ export type CategoryIconMode = 'color' | 'emoji' | 'hash';
 
 export type StartSectionMode = 'inbox' | 'today' | 'week' | 'last';
 export type WindowOpenMode = 'normal' | 'fullscreen';
+export type LanguageCode = 'ru' | 'en';
+export type WindowStateMode = 'normal' | 'maximized' | 'fullscreen';
+export type CloseBehaviorMode = 'ask' | 'exit' | 'tray';
 export type TaskSortMode = 'date' | 'priority' | 'manual' | 'created';
 export type WeekOrderMode = 'monday' | 'today';
 export type CategorySortMode = 'created' | 'alphabetical' | 'manual' | 'favorites';
@@ -120,9 +123,14 @@ export interface ProfileSetupInput {
 }
 
 export interface AppSettings {
+  autoBackupEnabled: boolean;
+  autoBackupIntervalHours: number;
+  autoCollapseSidebar: boolean;
   autosaveNotesIntervalSeconds: number;
   categorySortMode: CategorySortMode;
+  closeBehavior: CloseBehaviorMode;
   confirmCategoryDelete: boolean;
+  confirmExit: boolean;
   confirmTaskDelete: boolean;
   countCompletedTasks: boolean;
   counterCriticalAt: number;
@@ -130,9 +138,17 @@ export interface AppSettings {
   counterMediumAt: number;
   highlightTodayInWeek: boolean;
   includeTodayDueTasks: boolean;
+  language: LanguageCode;
+  launchMinimized: boolean;
+  launchWithWindows: boolean;
+  minimizeToTrayOnClose: boolean;
+  notifyBeforeTodayRefresh: boolean;
+  notifyDeadlines: boolean;
+  notifyOverdue: boolean;
   notesLineLimit: number;
   openMode: WindowOpenMode;
   restoreTabs: boolean;
+  restoreWindowState: WindowStateMode;
   showCategoryCounts: boolean;
   showLastModified: boolean;
   showSidebarCounts: boolean;
@@ -142,8 +158,11 @@ export interface AppSettings {
   startSection: StartSectionMode;
   taskSortMode: TaskSortMode;
   todayRefreshTime: string;
+  trayEnabled: boolean;
   weekOrderMode: WeekOrderMode;
 }
+
+export type SystemQuickAction = 'open' | 'add-task' | 'today' | 'week';
 
 export type UpdateSettingsInput = Partial<AppSettings>;
 

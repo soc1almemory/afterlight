@@ -11,10 +11,11 @@ import { AutoUnpackNativesPlugin } from '@electron-forge/plugin-auto-unpack-nati
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
+    icon: 'assets/logo-main',
   },
   rebuildConfig: {},
   makers: [
-    new MakerSquirrel({ name: 'afterlight' }),
+    new MakerSquirrel({ name: 'afterlight', setupIcon: 'assets/logo-main.ico' }),
     new MakerZIP({}, ['darwin']),
     new MakerRpm({}),
     new MakerDeb({}),

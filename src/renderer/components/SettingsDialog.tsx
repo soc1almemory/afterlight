@@ -72,7 +72,11 @@ export const SettingsDialog = ({ isOpen, onClose }: SettingsDialogProps) => {
           </button>
           {activePage === 'account' ? <AccountSettings onAfterReset={onClose} /> : null}
           {activePage === 'main' ? <MainSettings /> : null}
-          {activePage !== 'account' && activePage !== 'main' ? (
+          {activePage === 'language' ? <LanguageSettings /> : null}
+          {activePage === 'sidebar' ? <SidebarSettings /> : null}
+          {activePage === 'notifications' ? <NotificationsSettings /> : null}
+          {activePage === 'backups' ? <BackupsSettings /> : null}
+          {!['account', 'main', 'language', 'sidebar', 'notifications', 'backups'].includes(activePage) ? (
             <SettingsPlaceholder title={activeItem?.label ?? 'Раздел'} />
           ) : null}
         </main>
@@ -105,13 +109,52 @@ const MainSettings = () => {
           onChange={(restoreTabs) => void updateSettings({ restoreTabs })}
         />
         <SettingsSelect
-          label="Режим окна при запуске"
-          value={settings.openMode}
+          label="Открывать последнее состояние окна"
+          value={settings.restoreWindowState}
           options={[
             ['normal', 'Обычный'],
+            ['maximized', 'Maximized'],
             ['fullscreen', 'Полноэкранный'],
           ]}
-          onChange={(openMode) => void updateSettings({ openMode })}
+          onChange={(restoreWindowState) =>
+            void updateSettings({
+              restoreWindowState,
+              openMode: restoreWindowState === 'fullscreen' ? 'fullscreen' : 'normal',
+            })
+          }
+        />
+        <SettingsToggle
+          checked={settings.launchWithWindows}
+          label="Запускать Afterlight вместе с Windows"
+          onChange={(launchWithWindows) => void updateSettings({ launchWithWindows })}
+        />
+        <SettingsToggle
+          checked={settings.launchMinimized}
+          label="Запускать свернутым"
+          onChange={(launchMinimized) => void updateSettings({ launchMinimized })}
+        />
+      </SettingsGroup>
+
+      <SettingsGroup title="Поведение при закрытии">
+        <SettingsSelect
+          label="Кнопка закрытия"
+          value={settings.closeBehavior}
+          options={[
+            ['ask', 'Спрашивать перед выходом'],
+            ['exit', 'Закрывать приложение полностью'],
+            ['tray', 'Сворачивать в трей'],
+          ]}
+          onChange={(closeBehavior) => void updateSettings({ closeBehavior, minimizeToTrayOnClose: closeBehavior === 'tray' })}
+        />
+        <SettingsToggle
+          checked={settings.confirmExit}
+          label="Дополнительно спрашивать перед выходом"
+          onChange={(confirmExit) => void updateSettings({ confirmExit })}
+        />
+        <SettingsToggle
+          checked={settings.trayEnabled}
+          label="Показывать иконку Afterlight в системном трее"
+          onChange={(trayEnabled) => void updateSettings({ trayEnabled })}
         />
       </SettingsGroup>
 
@@ -261,6 +304,156 @@ const MainSettings = () => {
           max={30}
           value={settings.autosaveNotesIntervalSeconds}
           onChange={(autosaveNotesIntervalSeconds) => void updateSettings({ autosaveNotesIntervalSeconds })}
+        />
+        <SettingsToggle
+          checked={settings.autoBackupEnabled}
+          label="Автоматически создавать резервные копии SQLite"
+          onChange={(autoBackupEnabled) => void updateSettings({ autoBackupEnabled })}
+        />
+        <SettingsNumber
+          label="Интервал резервного копирования, часов"
+          min={1}
+          max={168}
+          value={settings.autoBackupIntervalHours}
+          onChange={(autoBackupIntervalHours) => void updateSettings({ autoBackupIntervalHours })}
+        />
+      </SettingsGroup>
+    </div>
+  );
+};
+
+const LanguageSettings = () => {
+  const settings = useTaskStore((state) => state.settings);
+  const updateSettings = useTaskStore((state) => state.updateSettings);
+
+  return (
+    <div className="settings-page main-settings-page">
+      <SettingsGroup title="Язык интерфейса">
+        <SettingsSelect
+          label="Язык"
+          value={settings.language}
+          options={[
+            ['ru', 'Русский'],
+            ['en', 'English'],
+          ]}
+          onChange={(language) => void updateSettings({ language })}
+        />
+        <p className="settings-hint">
+          Переключатель уже сохраняется в профиле. Базовые разделы интерфейса будут перестраиваться под выбранный язык.
+        </p>
+      </SettingsGroup>
+    </div>
+  );
+};
+
+const SidebarSettings = () => {
+  const settings = useTaskStore((state) => state.settings);
+  const updateSettings = useTaskStore((state) => state.updateSettings);
+
+  return (
+    <div className="settings-page main-settings-page">
+      <SettingsGroup title="Боковая панель">
+        <SettingsToggle
+          checked={settings.autoCollapseSidebar}
+          label="Автоматически сворачивать боковую панель, когда курсор в workspace"
+          onChange={(autoCollapseSidebar) => void updateSettings({ autoCollapseSidebar })}
+        />
+        <SettingsToggle
+          checked={settings.showSidebarCounts}
+          label="Показывать счётчики в sidebar"
+          onChange={(showSidebarCounts) => void updateSettings({ showSidebarCounts })}
+        />
+        <SettingsToggle
+          checked={settings.showCategoryCounts}
+          label="Показывать счётчики задач у категорий"
+          onChange={(showCategoryCounts) => void updateSettings({ showCategoryCounts })}
+        />
+      </SettingsGroup>
+    </div>
+  );
+};
+
+const NotificationsSettings = () => {
+  const settings = useTaskStore((state) => state.settings);
+  const updateSettings = useTaskStore((state) => state.updateSettings);
+
+  return (
+    <div className="settings-page main-settings-page">
+      <SettingsGroup title="Уведомления Windows">
+        <SettingsToggle
+          checked={settings.notifyDeadlines}
+          label="Уведомлять о задачах с дедлайном"
+          onChange={(notifyDeadlines) => void updateSettings({ notifyDeadlines })}
+        />
+        <SettingsToggle
+          checked={settings.notifyBeforeTodayRefresh}
+          label="Уведомлять перед обновлением страницы Сегодня"
+          onChange={(notifyBeforeTodayRefresh) => void updateSettings({ notifyBeforeTodayRefresh })}
+        />
+        <SettingsToggle
+          checked={settings.notifyOverdue}
+          label="Уведомлять о просроченных задачах"
+          onChange={(notifyOverdue) => void updateSettings({ notifyOverdue })}
+        />
+      </SettingsGroup>
+    </div>
+  );
+};
+
+const BackupsSettings = () => {
+  const settings = useTaskStore((state) => state.settings);
+  const updateSettings = useTaskStore((state) => state.updateSettings);
+  const hydrate = useTaskStore((state) => state.hydrate);
+  const [message, setMessage] = useState('');
+
+  const runAction = async (action: () => Promise<unknown>, successMessage: string) => {
+    try {
+      const result = await action();
+      await hydrate();
+      setMessage(typeof result === 'string' && result ? `${successMessage}: ${result}` : successMessage);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Не удалось выполнить действие.');
+    }
+  };
+
+  return (
+    <div className="settings-page main-settings-page">
+      <SettingsGroup title="Файловая интеграция">
+        <div className="settings-button-grid">
+          <button type="button" onClick={() => void runAction(() => window.afterlightApi!.exportTasksJson(), 'JSON экспортирован')}>
+            Экспорт задач в JSON
+          </button>
+          <button type="button" onClick={() => void runAction(() => window.afterlightApi!.exportTasksCsv(), 'CSV экспортирован')}>
+            Экспорт задач в CSV
+          </button>
+          <button type="button" onClick={() => void runAction(() => window.afterlightApi!.importTasksJson(), 'JSON импортирован')}>
+            Импорт задач из JSON
+          </button>
+          <button type="button" onClick={() => void runAction(() => window.afterlightApi!.openDataFolder(), 'Папка данных открыта')}>
+            Открыть папку данных
+          </button>
+          <button type="button" onClick={() => void runAction(() => window.afterlightApi!.openDatabase(), 'База данных открыта')}>
+            Открыть базу данных
+          </button>
+          <button type="button" onClick={() => void runAction(() => window.afterlightApi!.createBackup(), 'Резервная копия создана')}>
+            Создать резервную копию
+          </button>
+        </div>
+        {message ? <p className="settings-hint">{message}</p> : null}
+      </SettingsGroup>
+
+      <SettingsGroup title="Автоматические резервные копии">
+        <SettingsToggle
+          checked={settings.autoBackupEnabled}
+          label="Автоматически создавать резервные копии SQLite"
+          onChange={(autoBackupEnabled) => void updateSettings({ autoBackupEnabled })}
+        />
+        <SettingsNumber
+          label="Интервал, часов"
+          min={1}
+          max={168}
+          value={settings.autoBackupIntervalHours}
+          onChange={(autoBackupIntervalHours) => void updateSettings({ autoBackupIntervalHours })}
         />
       </SettingsGroup>
     </div>

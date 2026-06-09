@@ -1,22 +1,33 @@
 import { useMemo, useState } from 'react';
 import type { Category, Task, TaskScope } from '../../shared/types';
+import type { TranslationKey } from '../i18n';
+import { useTranslator } from '../i18n';
 import { assetUrl } from '../lib/assets';
 import { useTaskStore } from '../store/useTaskStore';
 
 interface SidebarProps {
   onAddCategory: () => void;
   onEditCategory: (category: Category) => void;
+  onMouseEnter?: () => void;
+  onOpenInfo: (kind: 'changelog' | 'help' | 'telegram') => void;
   onOpenSearch: () => void;
   onOpenSettings: () => void;
 }
 
-const primaryItems: Array<{ icon: string; label: string; scope: Exclude<TaskScope, 'category'> }> = [
-  { scope: 'inbox', label: 'Входящие', icon: 'incoming-icon.svg' },
-  { scope: 'today', label: 'Сегодня', icon: 'today-icon.svg' },
-  { scope: 'week', label: 'Неделя', icon: 'week-icon.svg' },
+const primaryItems: Array<{ icon: string; labelKey: TranslationKey; scope: Exclude<TaskScope, 'category'> }> = [
+  { scope: 'inbox', labelKey: 'inbox', icon: 'incoming-icon.svg' },
+  { scope: 'today', labelKey: 'today', icon: 'today-icon.svg' },
+  { scope: 'week', labelKey: 'week', icon: 'week-icon.svg' },
 ];
 
-export const Sidebar = ({ onAddCategory, onEditCategory, onOpenSearch, onOpenSettings }: SidebarProps) => {
+export const Sidebar = ({
+  onAddCategory,
+  onEditCategory,
+  onMouseEnter,
+  onOpenInfo,
+  onOpenSearch,
+  onOpenSettings,
+}: SidebarProps) => {
   const [isFavoritesOpen, setFavoritesOpen] = useState(true);
   const [isCategoriesOpen, setCategoriesOpen] = useState(true);
   const activeScope = useTaskStore((state) => state.activeScope);
@@ -28,13 +39,14 @@ export const Sidebar = ({ onAddCategory, onEditCategory, onOpenSearch, onOpenSet
   const workspace = useTaskStore((state) => state.workspace);
   const setScope = useTaskStore((state) => state.setScope);
   const setActiveCategory = useTaskStore((state) => state.setActiveCategory);
+  const t = useTranslator();
 
   const sortedCategories = useMemo(() => sortCategories(categories, settings.categorySortMode), [categories, settings.categorySortMode]);
   const favoriteCategories = useMemo(() => sortedCategories.filter((category) => category.isFavorite), [sortedCategories]);
   const regularCategories = useMemo(() => sortedCategories.filter((category) => !category.isFavorite), [sortedCategories]);
 
   return (
-    <aside className="sidebar">
+    <aside className="sidebar" onMouseEnter={onMouseEnter}>
       <div className="menu-top-container">
         <div className="user-row">
           <img className="user-avatar" src={profile.avatarDataUrl ?? assetUrl('default-avatar-light.png')} alt="" />
@@ -49,10 +61,10 @@ export const Sidebar = ({ onAddCategory, onEditCategory, onOpenSearch, onOpenSet
 
         <button className="search-menu-button" type="button" onClick={onOpenSearch}>
           <img src={assetUrl('search-icon.svg')} alt="" />
-          <span>Поиск</span>
+          <span>{t('search')}</span>
         </button>
 
-        <nav className="primary-nav" aria-label="Основные разделы">
+        <nav className="primary-nav" aria-label={t('categories')}>
           {primaryItems.map((item) => {
             const count = getPrimaryCount(item.scope, tasks, settings);
 
@@ -64,7 +76,7 @@ export const Sidebar = ({ onAddCategory, onEditCategory, onOpenSearch, onOpenSet
                 onClick={() => setScope(item.scope)}
               >
                 <img src={assetUrl(item.icon)} alt="" />
-                <span>{item.label}</span>
+                <span>{t(item.labelKey)}</span>
                 {settings.showSidebarCounts && count > 0 ? (
                   <span className={`primary-count ${getPrimaryCountClass(count, settings)}`}>{formatCount(count)}</span>
                 ) : null}
@@ -80,7 +92,7 @@ export const Sidebar = ({ onAddCategory, onEditCategory, onOpenSearch, onOpenSet
           onAddCategory={onAddCategory}
           onEditCategory={onEditCategory}
           onToggle={() => setFavoritesOpen((value) => !value)}
-          title="Избранное"
+          title={t('favorite')}
           activeCategoryId={activeCategoryId}
           activeScope={activeScope}
           tasks={tasks}
@@ -94,7 +106,7 @@ export const Sidebar = ({ onAddCategory, onEditCategory, onOpenSearch, onOpenSet
           onAddCategory={onAddCategory}
           onEditCategory={onEditCategory}
           onToggle={() => setCategoriesOpen((value) => !value)}
-          title="Категории"
+          title={t('categories')}
           activeCategoryId={activeCategoryId}
           activeScope={activeScope}
           tasks={tasks}
@@ -105,18 +117,23 @@ export const Sidebar = ({ onAddCategory, onEditCategory, onOpenSearch, onOpenSet
 
       <div className="bottom-menu" aria-label="Быстрые действия">
         <div className="bottom-menu-group">
-          <button className="bottom-menu-button" type="button" aria-label="История изменений">
+          <button
+            className="bottom-menu-button"
+            type="button"
+            aria-label={t('changelog')}
+            onClick={() => onOpenInfo('changelog')}
+          >
             <img src={assetUrl('changelog-icon.svg')} alt="" />
           </button>
-          <button className="bottom-menu-button" type="button" aria-label="Помощь">
+          <button className="bottom-menu-button" type="button" aria-label={t('help')} onClick={() => onOpenInfo('help')}>
             <img src={assetUrl('help-icon.svg')} alt="" />
           </button>
         </div>
         <div className="bottom-menu-group">
-          <button className="bottom-menu-button" type="button" aria-label="Telegram">
+          <button className="bottom-menu-button" type="button" aria-label="Telegram" onClick={() => onOpenInfo('telegram')}>
             <img src={assetUrl('telegram-icon.svg')} alt="" />
           </button>
-          <button className="bottom-menu-button" type="button" aria-label="Настройки" onClick={onOpenSettings}>
+          <button className="bottom-menu-button" type="button" aria-label={t('settings')} onClick={onOpenSettings}>
             <img src={assetUrl('settings-icon.svg')} alt="" />
           </button>
         </div>

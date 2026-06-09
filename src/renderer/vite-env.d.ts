@@ -9,6 +9,7 @@ import type {
   ProfileSetupInput,
   Task,
   TaskScope,
+  SystemQuickAction,
   UpdateCategoryInput,
   UpdateProfileInput,
   UpdateSettingsInput,
@@ -23,6 +24,7 @@ interface AfterlightWindowControls {
   toggleMaximize: () => Promise<void>;
   setFullScreen: (value: boolean) => Promise<void>;
   close: () => Promise<void>;
+  onQuickAction: (callback: (action: SystemQuickAction) => void) => () => void;
 }
 
 interface AfterlightSystemInfo {
@@ -47,6 +49,13 @@ interface AfterlightApi {
   updateNote: (scope: TaskScope, text: string, categoryId?: string) => Promise<Note>;
   updateProfile: (input: UpdateProfileInput) => Promise<UserProfile>;
   updateWorkspace: (input: UpdateWorkspaceInput) => Promise<Workspace>;
+  onDataChanged: (callback: () => void) => () => void;
+  exportTasksJson: () => Promise<string | undefined>;
+  exportTasksCsv: () => Promise<string | undefined>;
+  importTasksJson: () => Promise<number>;
+  openDataFolder: () => Promise<string>;
+  openDatabase: () => Promise<void>;
+  createBackup: () => Promise<string>;
 }
 
 declare global {

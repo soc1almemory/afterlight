@@ -42,9 +42,14 @@ const defaultWorkspace: Workspace = {
 };
 
 const defaultSettings: AppSettings = {
+  autoBackupEnabled: true,
+  autoBackupIntervalHours: 24,
+  autoCollapseSidebar: false,
   autosaveNotesIntervalSeconds: 1,
   categorySortMode: 'favorites',
+  closeBehavior: 'exit',
   confirmCategoryDelete: true,
+  confirmExit: false,
   confirmTaskDelete: true,
   countCompletedTasks: true,
   counterCriticalAt: 31,
@@ -52,9 +57,17 @@ const defaultSettings: AppSettings = {
   counterMediumAt: 6,
   highlightTodayInWeek: true,
   includeTodayDueTasks: true,
+  language: 'ru',
+  launchMinimized: false,
+  launchWithWindows: false,
+  minimizeToTrayOnClose: false,
+  notifyBeforeTodayRefresh: false,
+  notifyDeadlines: false,
+  notifyOverdue: false,
   notesLineLimit: 50,
   openMode: 'normal',
   restoreTabs: false,
+  restoreWindowState: 'normal',
   showCategoryCounts: true,
   showLastModified: true,
   showSidebarCounts: true,
@@ -64,6 +77,7 @@ const defaultSettings: AppSettings = {
   startSection: 'inbox',
   taskSortMode: 'created',
   todayRefreshTime: '00:00',
+  trayEnabled: true,
   weekOrderMode: 'monday',
 };
 
