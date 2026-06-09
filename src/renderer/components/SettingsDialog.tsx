@@ -574,7 +574,7 @@ const AccountSettings = ({ onAfterReset }: { onAfterReset: () => void }) => {
                 value={password}
                 type="password"
                 onChange={(event) => setPassword(event.target.value)}
-                placeholder="Оставьте пустым, чтобы не менять"
+                placeholder="************"
               />
             </label>
           </div>
