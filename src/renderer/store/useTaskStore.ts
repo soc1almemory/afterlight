@@ -17,7 +17,6 @@ import type {
   UserProfile,
   Workspace,
 } from '../../shared/types';
-import { categories as seedCategories, notes as seedNotes, tasks as seedTasks } from '../data/seed';
 
 interface AppRoute {
   categoryId?: string;
@@ -108,18 +107,18 @@ interface TaskState {
 
 export const useTaskStore = create<TaskState>((set, get) => ({
   activeScope: 'inbox',
-  activeCategoryId: 'study',
+  activeCategoryId: '',
   canGoBack: false,
   canGoForward: false,
-  categories: seedCategories,
+  categories: [],
   error: undefined,
   hasHydrated: false,
   isLoading: false,
-  notes: seedNotes,
+  notes: [],
   openTabs: [{ scope: 'inbox' }],
   profile: defaultProfile,
   settings: defaultSettings,
-  tasks: seedTasks,
+  tasks: [],
   workspace: defaultWorkspace,
   completeProfileSetup: async (input) => {
     const data = await requireApi().completeProfileSetup({

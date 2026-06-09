@@ -196,7 +196,7 @@ const CategorySection = ({
                 aria-label="Редактировать категорию"
                 onClick={() => onEditCategory(category)}
               >
-                <img src={assetUrl('add-edit-icon-container.svg')} alt="" />
+                <img src={assetUrl('edit-icon.svg')} alt="" />
               </button>
             </div>
           );

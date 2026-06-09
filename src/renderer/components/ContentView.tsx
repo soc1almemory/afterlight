@@ -34,6 +34,7 @@ export const ContentView = ({ onAddTask, onEditTask }: ContentViewProps) => {
   const tasks = useTaskStore((state) => state.tasks);
   const notes = useTaskStore((state) => state.notes);
   const settings = useTaskStore((state) => state.settings);
+  const toggleCategoryFavorite = useTaskStore((state) => state.toggleCategoryFavorite);
   const updateNote = useTaskStore((state) => state.updateNote);
   const [refreshLabel, setRefreshLabel] = useState(getTodayRefreshLabel(settings.todayRefreshTime));
   const [draftNoteText, setDraftNoteText] = useState('');
@@ -134,6 +135,20 @@ export const ContentView = ({ onAddTask, onEditTask }: ContentViewProps) => {
           {activeScope === 'today' ? <span className="refresh-status">{refreshLabel}</span> : null}
         </div>
         <div className="control-actions">
+          {activeScope === 'category' && activeCategory ? (
+            <button
+              className="category-page-favorite-status"
+              type="button"
+              aria-label={activeCategory.isFavorite ? 'Убрать из избранного' : 'Добавить в избранное'}
+              onClick={() => void toggleCategoryFavorite(activeCategory.id)}
+            >
+              <img
+                className="control-bar-star-icon"
+                src={assetUrl(activeCategory.isFavorite ? 'control-bar-star.svg' : 'control-bar-star-empty.svg')}
+                alt=""
+              />
+            </button>
+          ) : null}
           <button type="button" aria-label="Дополнительно">
             <img src={assetUrl('tochki-icon.svg')} alt="" />
           </button>
@@ -143,11 +158,6 @@ export const ContentView = ({ onAddTask, onEditTask }: ContentViewProps) => {
       <section className="task-panel" aria-labelledby="task-panel-title">
         <div className="task-panel-heading">
           <h1 id="task-panel-title">{title}</h1>
-          {activeScope === 'category' ? (
-            <button type="button" aria-label="Добавить в избранное">
-              <img src={assetUrl('favorite-container-star.svg')} alt="" />
-            </button>
-          ) : null}
         </div>
 
         {error ? <div className="app-error">{error}</div> : null}

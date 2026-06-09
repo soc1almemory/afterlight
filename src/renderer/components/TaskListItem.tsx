@@ -37,7 +37,7 @@ export const TaskListItem = ({ task, withSeparator, onEditTask }: TaskListItemPr
           <strong className={isCompleted ? 'task-title completed' : 'task-title'}>{task.title}</strong>
         </button>
         <button className="task-edit-button" type="button" aria-label="Редактировать задачу" onClick={() => onEditTask(task)}>
-          <img src={assetUrl('add-edit-icon-container.svg')} alt="" />
+          <img src={assetUrl('edit-icon.svg')} alt="" />
         </button>
       </div>
 

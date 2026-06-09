@@ -23,6 +23,7 @@ export interface Task {
   scope: TaskScope;
   categoryId?: string;
   isExpired?: boolean;
+  updatedAt?: string;
 }
 
 export interface CreateTaskInput {
@@ -53,6 +54,7 @@ export interface Category {
   emoji?: string;
   iconMode: CategoryIconMode;
   isFavorite: boolean;
+  updatedAt?: string;
 }
 
 export interface CreateCategoryInput {

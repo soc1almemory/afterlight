@@ -831,6 +831,7 @@ body {
 
 .control-actions {
   display: flex;
+  align-items: center;
   gap: 8px;
 }
 
@@ -852,6 +853,15 @@ body {
 .task-panel-heading img {
   width: 18px;
   height: 18px;
+}
+
+.control-actions .category-page-favorite-status {
+  padding: 5px;
+}
+
+.control-actions .category-page-favorite-status img {
+  width: 25px;
+  height: 25px;
 }
 
 .task-panel {
@@ -1231,7 +1241,7 @@ body {
   border-radius: 8px;
   background: #ffffff;
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.2);
-  overflow: auto;
+  overflow: hidden;
 }
 
 .search-input-row {
@@ -1269,6 +1279,11 @@ body {
 
 .search-group:last-child {
   border-bottom: 0;
+}
+
+.search-group.history {
+  max-height: 270px;
+  overflow-y: auto;
 }
 
 .search-group-title {
@@ -1319,6 +1334,21 @@ body {
   width: 22px;
   color: #111111;
   font-size: 22px;
+  line-height: 1;
+  text-align: center;
+}
+
+.search-category-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  flex: 0 0 auto;
+  margin: 0 4px;
+}
+
+.search-emoji {
+  width: 22px;
+  font-size: 18px;
   line-height: 1;
   text-align: center;
 }
@@ -1546,7 +1576,7 @@ body {
   width: min(620px, 100%);
   min-height: 42px;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   gap: 18px;
   color: #333333;
@@ -1646,11 +1676,11 @@ body {
 }
 
 .settings-action.danger h4,
-.settings-action.danger button {
+.settings-action.danger > button {
   color: #ff5a5f;
 }
 
-.settings-action.danger button {
+.settings-action.danger > button {
   border-color: #ff5a5f;
 }
 

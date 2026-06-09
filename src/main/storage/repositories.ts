@@ -59,6 +59,7 @@ interface CategoryRow {
   icon_mode: string;
   emoji: string | null;
   is_favorite: number;
+  updated_at: string | null;
 }
 
 interface TaskRow {
@@ -72,6 +73,7 @@ interface TaskRow {
   scope: TaskScope;
   category_id: string | null;
   is_expired: number;
+  updated_at: string;
 }
 
 interface NoteRow {
@@ -126,7 +128,7 @@ export const listCategories = (): Category[] => {
   const workspaceId = getActiveWorkspaceId();
   const rows = getDatabase()
     .prepare(
-      `SELECT id, title, color, icon_mode, emoji, is_favorite
+      `SELECT id, title, color, icon_mode, emoji, is_favorite, updated_at
        FROM categories
        WHERE workspace_id = @workspaceId
        ORDER BY created_at ASC`,
@@ -149,8 +151,8 @@ export const createCategory = (input: CreateCategoryInput): Category => {
 
   getDatabase()
     .prepare(
-      `INSERT INTO categories (id, workspace_id, title, color, icon_mode, emoji, is_favorite)
-       VALUES (@id, @workspaceId, @title, @color, @iconMode, @emoji, @isFavorite)`,
+      `INSERT INTO categories (id, workspace_id, title, color, icon_mode, emoji, is_favorite, updated_at)
+       VALUES (@id, @workspaceId, @title, @color, @iconMode, @emoji, @isFavorite, CURRENT_TIMESTAMP)`,
     )
     .run({
       ...category,
@@ -177,7 +179,8 @@ export const updateCategory = (input: UpdateCategoryInput): Category | null => {
            color = @color,
            icon_mode = @iconMode,
            emoji = @emoji,
-           is_favorite = @isFavorite
+           is_favorite = @isFavorite,
+           updated_at = CURRENT_TIMESTAMP
        WHERE id = @id AND workspace_id = @workspaceId`,
     )
     .run({
@@ -202,7 +205,12 @@ export const toggleCategoryFavorite = (categoryId: string): Category | null => {
   }
 
   getDatabase()
-    .prepare('UPDATE categories SET is_favorite = @isFavorite WHERE id = @id AND workspace_id = @workspaceId')
+    .prepare(
+      `UPDATE categories
+       SET is_favorite = @isFavorite,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = @id AND workspace_id = @workspaceId`,
+    )
     .run({ id: categoryId, workspaceId, isFavorite: Number(!category.isFavorite) });
 
   return getCategory(categoryId);
@@ -237,7 +245,7 @@ export const listTasks = (): Task[] => {
   const workspaceId = getActiveWorkspaceId();
   const rows = getDatabase()
     .prepare(
-      `SELECT id, title, description, due_date, due_at, priority, status, scope, category_id, is_expired
+      `SELECT id, title, description, due_date, due_at, priority, status, scope, category_id, is_expired, updated_at
        FROM tasks
        WHERE workspace_id = @workspaceId
        ORDER BY status ASC, due_date ASC, created_at DESC`,
@@ -500,7 +508,7 @@ const getTask = (taskId: string): Task | null => {
 
   const row = getDatabase()
     .prepare(
-      `SELECT id, title, description, due_date, due_at, priority, status, scope, category_id, is_expired
+      `SELECT id, title, description, due_date, due_at, priority, status, scope, category_id, is_expired, updated_at
        FROM tasks
        WHERE id = @taskId AND workspace_id = @workspaceId`,
     )
@@ -512,7 +520,7 @@ const getTask = (taskId: string): Task | null => {
 const getCategory = (categoryId: string): Category | null => {
   const row = getDatabase()
     .prepare(
-      `SELECT id, title, color, icon_mode, emoji, is_favorite
+      `SELECT id, title, color, icon_mode, emoji, is_favorite, updated_at
        FROM categories
        WHERE id = @categoryId AND workspace_id = @workspaceId`,
     )
@@ -547,6 +555,7 @@ const mapCategory = (row: CategoryRow): Category => ({
   emoji: row.emoji ?? undefined,
   iconMode: normalizeIconMode(row.icon_mode, row.emoji ?? undefined),
   isFavorite: Boolean(row.is_favorite),
+  updatedAt: row.updated_at ?? undefined,
 });
 
 const mapTask = (row: TaskRow): Task => ({
@@ -560,6 +569,7 @@ const mapTask = (row: TaskRow): Task => ({
   scope: row.scope,
   categoryId: row.category_id ?? undefined,
   isExpired: Boolean(row.is_expired),
+  updatedAt: row.updated_at,
 });
 
 const getProfile = (): UserProfile => {

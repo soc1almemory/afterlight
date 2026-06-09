@@ -463,8 +463,8 @@ const SettingsToggle = ({
   onChange: (value: boolean) => void;
 }) => (
   <label className="settings-toggle-row">
-    <span>{label}</span>
     <input checked={checked} type="checkbox" onChange={(event) => onChange(event.target.checked)} />
+    <span>{label}</span>
   </label>
 );
 

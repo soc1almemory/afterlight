@@ -2,7 +2,6 @@ import { app } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
 import Database from 'better-sqlite3';
-import { seedCategories, seedNotes, seedTasks } from '../../shared/seedData';
 
 let connection: Database.Database | null = null;
 
@@ -49,7 +48,8 @@ export const initializeDatabase = () => {
       icon_mode TEXT NOT NULL DEFAULT 'color',
       emoji TEXT,
       is_favorite INTEGER NOT NULL DEFAULT 0,
-      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
 
     CREATE TABLE IF NOT EXISTS tasks (
@@ -98,65 +98,10 @@ export const initializeDatabase = () => {
     CREATE INDEX IF NOT EXISTS idx_categories_workspace ON categories(workspace_id);
     CREATE INDEX IF NOT EXISTS idx_notes_workspace ON notes(workspace_id);
   `);
-
-  seedDatabase(connection);
-
   return connection;
 };
 
 export const getDatabase = () => connection ?? initializeDatabase();
-
-const seedDatabase = (database: Database.Database) => {
-  const categoryCount = database.prepare('SELECT COUNT(*) AS count FROM categories').get() as { count: number };
-  const taskCount = database.prepare('SELECT COUNT(*) AS count FROM tasks').get() as { count: number };
-  const noteCount = database.prepare('SELECT COUNT(*) AS count FROM notes').get() as { count: number };
-
-  const insertCategory = database.prepare(`
-    INSERT INTO categories (id, title, color, icon_mode, emoji, is_favorite)
-    VALUES (@id, @title, @color, @iconMode, @emoji, @isFavorite)
-  `);
-
-  const insertTask = database.prepare(`
-    INSERT INTO tasks (id, title, description, due_date, due_at, priority, status, scope, category_id, is_expired)
-    VALUES (@id, @title, @description, @dueDate, @dueLabel, @priority, @status, @scope, @categoryId, @isExpired)
-  `);
-
-  const insertNote = database.prepare(`
-    INSERT INTO notes (id, scope, category_id, text)
-    VALUES (@id, @scope, @categoryId, @text)
-  `);
-
-  const seed = database.transaction(() => {
-    if (categoryCount.count === 0) {
-      seedCategories.forEach((category) => {
-        insertCategory.run({
-          ...category,
-          emoji: category.emoji ?? null,
-          isFavorite: Number(category.isFavorite),
-        });
-      });
-    }
-
-    if (taskCount.count === 0) {
-      seedTasks.forEach((task) => {
-        insertTask.run({
-          ...task,
-          categoryId: task.categoryId ?? null,
-          description: task.description ?? null,
-          dueDate: task.dueDate ?? null,
-          dueLabel: task.dueLabel ?? null,
-          isExpired: Number(Boolean(task.isExpired)),
-        });
-      });
-    }
-
-    if (noteCount.count === 0) {
-      seedNotes.forEach((note) => insertNote.run({ ...note, categoryId: note.categoryId ?? null }));
-    }
-  });
-
-  seed();
-};
 
 const seedProfileAndWorkspace = (database: Database.Database) => {
   const profile = database.prepare('SELECT id FROM profiles LIMIT 1').get() as { id: string } | undefined;
@@ -235,6 +180,7 @@ const migrateDatabase = (database: Database.Database) => {
   const hasCategoryIconModeColumn = categoryColumns.some((column) => column.name === 'icon_mode');
   const hasCategoryEmojiColumn = categoryColumns.some((column) => column.name === 'emoji');
   const hasCategoryWorkspaceColumn = categoryColumns.some((column) => column.name === 'workspace_id');
+  const hasCategoryUpdatedAtColumn = categoryColumns.some((column) => column.name === 'updated_at');
 
   if (!hasCategoryIconModeColumn) {
     database.exec("ALTER TABLE categories ADD COLUMN icon_mode TEXT NOT NULL DEFAULT 'color'");
@@ -246,6 +192,11 @@ const migrateDatabase = (database: Database.Database) => {
 
   if (!hasCategoryWorkspaceColumn) {
     database.exec(`ALTER TABLE categories ADD COLUMN workspace_id TEXT NOT NULL DEFAULT '${DEFAULT_WORKSPACE_ID}'`);
+  }
+
+  if (!hasCategoryUpdatedAtColumn) {
+    database.exec('ALTER TABLE categories ADD COLUMN updated_at TEXT');
+    database.exec('UPDATE categories SET updated_at = COALESCE(created_at, CURRENT_TIMESTAMP) WHERE updated_at IS NULL');
   }
 
   const noteColumns = database.prepare('PRAGMA table_info(notes)').all() as Array<{ name: string }>;
