@@ -79,6 +79,13 @@ export const initializeDatabase = () => {
       FOREIGN KEY(category_id) REFERENCES categories(id)
     );
 
+    CREATE TABLE IF NOT EXISTS app_settings (
+      workspace_id TEXT PRIMARY KEY,
+      settings_json TEXT NOT NULL,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(workspace_id) REFERENCES workspaces(id)
+    );
+
     CREATE INDEX IF NOT EXISTS idx_tasks_scope ON tasks(scope);
     CREATE INDEX IF NOT EXISTS idx_tasks_category ON tasks(category_id);
   `);

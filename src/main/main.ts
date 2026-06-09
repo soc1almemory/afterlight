@@ -72,6 +72,10 @@ ipcMain.handle('window:toggle-maximize', () => {
   mainWindow.maximize();
 });
 
+ipcMain.handle('window:set-fullscreen', (_event, value: boolean) => {
+  mainWindow?.setFullScreen(value);
+});
+
 ipcMain.handle('window:close', () => {
   mainWindow?.close();
 });

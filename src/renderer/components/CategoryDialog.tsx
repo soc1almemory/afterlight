@@ -14,12 +14,14 @@ const colorOptions = ['#7c65ff', '#00a878', '#ff9f1c', '#ff3f3f', '#76b9ff', '#5
 export const CategoryDialog = ({ category, isOpen, onClose }: CategoryDialogProps) => {
   const createCategory = useTaskStore((state) => state.createCategory);
   const deleteCategory = useTaskStore((state) => state.deleteCategory);
+  const settings = useTaskStore((state) => state.settings);
   const updateCategory = useTaskStore((state) => state.updateCategory);
   const [title, setTitle] = useState('');
   const [color, setColor] = useState(colorOptions[0]);
   const [emoji, setEmoji] = useState('');
   const [iconMode, setIconMode] = useState<CategoryIconMode>('color');
   const [isFavorite, setFavorite] = useState(false);
+  const [isConfirmingDelete, setConfirmingDelete] = useState(false);
 
   useEffect(() => {
     if (!isOpen) {
@@ -31,6 +33,7 @@ export const CategoryDialog = ({ category, isOpen, onClose }: CategoryDialogProp
     setEmoji(category?.emoji ?? '');
     setIconMode(category?.iconMode ?? 'color');
     setFavorite(category?.isFavorite ?? false);
+    setConfirmingDelete(false);
   }, [category, isOpen]);
 
   if (!isOpen) {
@@ -69,6 +72,11 @@ export const CategoryDialog = ({ category, isOpen, onClose }: CategoryDialogProp
 
   const handleDelete = async () => {
     if (!category) {
+      return;
+    }
+
+    if (settings.confirmCategoryDelete && !isConfirmingDelete) {
+      setConfirmingDelete(true);
       return;
     }
 
@@ -151,10 +159,10 @@ export const CategoryDialog = ({ category, isOpen, onClose }: CategoryDialogProp
         <div className={category ? 'dialog-actions split' : 'dialog-actions'}>
           {category ? (
             <button className="danger-button" type="button" onClick={() => void handleDelete()}>
-              Удалить
+              {settings.confirmCategoryDelete && isConfirmingDelete ? 'Подтвердить удаление' : 'Удалить'}
             </button>
           ) : null}
-          <button type="button" onClick={onClose}>
+          <button type="button" onClick={isConfirmingDelete ? () => setConfirmingDelete(false) : onClose}>
             Отмена
           </button>
           <button type="submit">Сохранить</button>

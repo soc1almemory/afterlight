@@ -10,6 +10,7 @@ import type {
   TaskScope,
   UpdateCategoryInput,
   UpdateProfileInput,
+  UpdateSettingsInput,
   UpdateTaskInput,
   UpdateWorkspaceInput,
   UserProfile,
@@ -19,6 +20,7 @@ import type {
 const windowControls = {
   minimize: () => ipcRenderer.invoke('window:minimize'),
   toggleMaximize: () => ipcRenderer.invoke('window:toggle-maximize'),
+  setFullScreen: (value: boolean) => ipcRenderer.invoke('window:set-fullscreen', value),
   close: () => ipcRenderer.invoke('window:close'),
 };
 
@@ -27,6 +29,7 @@ contextBridge.exposeInMainWorld('afterlightApi', {
   loadData: (): Promise<AppData> => ipcRenderer.invoke('app-data:load'),
   completeProfileSetup: (input: ProfileSetupInput): Promise<AppData> => ipcRenderer.invoke('profile:complete-setup', input),
   resetProfile: (): Promise<AppData> => ipcRenderer.invoke('profile:reset'),
+  updateSettings: (input: UpdateSettingsInput): Promise<AppData['settings']> => ipcRenderer.invoke('settings:update', input),
   listCategories: (): Promise<Category[]> => ipcRenderer.invoke('categories:list'),
   createCategory: (input: CreateCategoryInput): Promise<Category> => ipcRenderer.invoke('categories:create', input),
   updateCategory: (input: UpdateCategoryInput): Promise<Category> => ipcRenderer.invoke('categories:update', input),

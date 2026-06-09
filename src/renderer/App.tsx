@@ -23,6 +23,7 @@ export const App = () => {
   const hasHydrated = useTaskStore((state) => state.hasHydrated);
   const hydrate = useTaskStore((state) => state.hydrate);
   const profile = useTaskStore((state) => state.profile);
+  const settings = useTaskStore((state) => state.settings);
 
   const pageClass = useMemo(() => {
     if (!profile.isSetupComplete) return 'page-setup';
@@ -39,6 +40,14 @@ export const App = () => {
   useEffect(() => {
     void hydrate();
   }, [hydrate]);
+
+  useEffect(() => {
+    if (!hasHydrated || !profile.isSetupComplete) {
+      return;
+    }
+
+    void window.afterlightWindow?.setFullScreen(settings.openMode === 'fullscreen');
+  }, [hasHydrated, profile.isSetupComplete, settings.openMode]);
 
   if (!hasHydrated) {
     return <div className="app-loading">Загрузка Afterlight...</div>;

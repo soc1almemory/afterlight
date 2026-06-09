@@ -23,6 +23,7 @@ export const TaskDialog = ({ initialDueDate, isOpen, task, onClose }: TaskDialog
   const categories = useTaskStore((state) => state.categories);
   const createTask = useTaskStore((state) => state.createTask);
   const deleteTask = useTaskStore((state) => state.deleteTask);
+  const settings = useTaskStore((state) => state.settings);
   const updateTask = useTaskStore((state) => state.updateTask);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -30,6 +31,7 @@ export const TaskDialog = ({ initialDueDate, isOpen, task, onClose }: TaskDialog
   const [dueLabel, setDueLabel] = useState('');
   const [priority, setPriority] = useState<TaskPriority>(4);
   const [categoryId, setCategoryId] = useState('');
+  const [isConfirmingDelete, setConfirmingDelete] = useState(false);
 
   useEffect(() => {
     if (!isOpen) {
@@ -42,6 +44,7 @@ export const TaskDialog = ({ initialDueDate, isOpen, task, onClose }: TaskDialog
     setDueLabel(task?.dueLabel ?? '');
     setPriority(task?.priority ?? 4);
     setCategoryId(task?.categoryId ?? (activeScope === 'category' ? activeCategoryId : ''));
+    setConfirmingDelete(false);
   }, [activeCategoryId, activeScope, initialDueDate, isOpen, task]);
 
   if (!isOpen) {
@@ -79,6 +82,11 @@ export const TaskDialog = ({ initialDueDate, isOpen, task, onClose }: TaskDialog
 
   const handleDelete = async () => {
     if (!task) {
+      return;
+    }
+
+    if (settings.confirmTaskDelete && !isConfirmingDelete) {
+      setConfirmingDelete(true);
       return;
     }
 
@@ -158,10 +166,10 @@ export const TaskDialog = ({ initialDueDate, isOpen, task, onClose }: TaskDialog
         <div className={task ? 'dialog-actions split' : 'dialog-actions'}>
           {task ? (
             <button className="danger-button" type="button" onClick={() => void handleDelete()}>
-              Удалить
+              {settings.confirmTaskDelete && isConfirmingDelete ? 'Подтвердить удаление' : 'Удалить'}
             </button>
           ) : null}
-          <button type="button" onClick={onClose}>
+          <button type="button" onClick={isConfirmingDelete ? () => setConfirmingDelete(false) : onClose}>
             Отмена
           </button>
           <button type="submit">Сохранить</button>

@@ -32,6 +32,7 @@ export const TitleBar = ({ isSidebarCollapsed, onAddCategory, onToggleSidebar }:
   const goForward = useTaskStore((state) => state.goForward);
   const moveTab = useTaskStore((state) => state.moveTab);
   const openTabs = useTaskStore((state) => state.openTabs);
+  const settings = useTaskStore((state) => state.settings);
   const setActiveCategory = useTaskStore((state) => state.setActiveCategory);
   const setScope = useTaskStore((state) => state.setScope);
 
@@ -61,7 +62,7 @@ export const TitleBar = ({ isSidebarCollapsed, onAddCategory, onToggleSidebar }:
         </button>
       </div>
 
-      <div className="tab-navigation">
+      {settings.showTabBar ? <div className="tab-navigation">
         <div className="nav-arrows">
           <button type="button" aria-label="Назад" disabled={!canGoBack} onClick={goBack}>
             <img src={assetUrl('left-nav-arrow.svg')} alt="" />
@@ -89,7 +90,7 @@ export const TitleBar = ({ isSidebarCollapsed, onAddCategory, onToggleSidebar }:
         <button className="add-tab-button" type="button" aria-label="Создать категорию" onClick={onAddCategory}>
           <img src={assetUrl('add-icon.svg')} alt="" />
         </button>
-      </div>
+      </div> : null}
 
       <div className="drag-region" />
       <div className="window-actions">

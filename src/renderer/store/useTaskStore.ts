@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type {
   AppData,
+  AppSettings,
   Category,
   CreateCategoryInput,
   CreateTaskInput,
@@ -10,6 +11,7 @@ import type {
   TaskScope,
   UpdateCategoryInput,
   UpdateProfileInput,
+  UpdateSettingsInput,
   UpdateTaskInput,
   UpdateWorkspaceInput,
   UserProfile,
@@ -40,6 +42,32 @@ const defaultWorkspace: Workspace = {
   title: 'Личное пространство',
 };
 
+const defaultSettings: AppSettings = {
+  autosaveNotesIntervalSeconds: 1,
+  categorySortMode: 'favorites',
+  confirmCategoryDelete: true,
+  confirmTaskDelete: true,
+  countCompletedTasks: true,
+  counterCriticalAt: 31,
+  counterHighAt: 16,
+  counterMediumAt: 6,
+  highlightTodayInWeek: true,
+  includeTodayDueTasks: true,
+  notesLineLimit: 50,
+  openMode: 'normal',
+  restoreTabs: false,
+  showCategoryCounts: true,
+  showLastModified: true,
+  showSidebarCounts: true,
+  showTabBar: true,
+  showTodayOverdueFirst: true,
+  showWeekNoDate: true,
+  startSection: 'inbox',
+  taskSortMode: 'created',
+  todayRefreshTime: '00:00',
+  weekOrderMode: 'monday',
+};
+
 interface TaskState {
   activeScope: TaskScope;
   activeCategoryId: string;
@@ -51,6 +79,7 @@ interface TaskState {
   isLoading: boolean;
   notes: Note[];
   profile: UserProfile;
+  settings: AppSettings;
   tasks: Task[];
   workspace: Workspace;
   completeProfileSetup: (input: ProfileSetupInput) => Promise<void>;
@@ -71,6 +100,7 @@ interface TaskState {
   toggleTask: (taskId: string) => Promise<void>;
   updateCategory: (input: UpdateCategoryInput) => Promise<void>;
   updateProfile: (input: UpdateProfileInput) => Promise<void>;
+  updateSettings: (input: UpdateSettingsInput) => Promise<void>;
   updateTask: (input: UpdateTaskInput) => Promise<void>;
   updateWorkspace: (input: UpdateWorkspaceInput) => Promise<void>;
   updateNote: (scope: TaskScope, text: string, categoryId?: string) => Promise<void>;
@@ -88,6 +118,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   notes: seedNotes,
   openTabs: [{ scope: 'inbox' }],
   profile: defaultProfile,
+  settings: defaultSettings,
   tasks: seedTasks,
   workspace: defaultWorkspace,
   completeProfileSetup: async (input) => {
@@ -109,7 +140,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
     set((state) => ({
       ...openRoute(state, { categoryId: category.id, scope: 'category' }),
-      categories: sortCategories([category, ...state.categories]),
+      categories: sortCategories([...state.categories, category]),
       error: undefined,
     }));
   },
@@ -188,7 +219,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
     try {
       const data = await requireApi().loadData();
-      set(appDataToState(data));
+      set({ ...appDataToState(data), ...getStartupRouteState(data.settings) });
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : 'Не удалось загрузить данные.',
@@ -209,6 +240,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       const openTabs = [...state.openTabs];
       const [movedRoute] = openTabs.splice(sourceIndex, 1);
       openTabs.splice(targetIndex, 0, movedRoute);
+      persistNavigationState({ ...state, openTabs });
 
       return getTabNavigationState({ ...state, openTabs });
     });
@@ -261,6 +293,18 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     });
 
     set({ error: undefined, profile });
+  },
+  updateSettings: async (input) => {
+    const settings = await requireApi().updateSettings(input);
+
+    set((state) => {
+      const nextRouteState =
+        input.showTabBar === false
+          ? { ...getInitialRouteState(), activeScope: state.activeScope, activeCategoryId: state.activeCategoryId }
+          : {};
+
+      return { ...nextRouteState, error: undefined, settings };
+    });
   },
   updateTask: async (input) => {
     const task = await requireApi().updateTask({
@@ -330,6 +374,7 @@ const appDataToState = (data: AppData) => ({
   isLoading: false,
   notes: data.notes,
   profile: data.profile,
+  settings: data.settings,
   tasks: data.tasks,
   workspace: data.workspace,
 });
@@ -342,8 +387,68 @@ const getInitialRouteState = () => ({
   openTabs: [{ scope: 'inbox' as const }],
 });
 
-const sortCategories = (categories: Category[]) =>
-  [...categories].sort((first, second) => Number(second.isFavorite) - Number(first.isFavorite));
+const NAVIGATION_STORAGE_KEY = 'afterlight.navigation';
+
+const getStartupRouteState = (settings: AppSettings): TabStateUpdate => {
+  if (settings.restoreTabs) {
+    const restoredState = readNavigationState();
+
+    if (restoredState) {
+      return restoredState;
+    }
+  }
+
+  if (settings.startSection === 'last') {
+    return readNavigationState() ?? getInitialRouteState();
+  }
+
+  return activateRoute(getInitialRouteState(), { scope: settings.startSection });
+};
+
+const persistNavigationState = (state: Pick<TaskState, 'activeCategoryId' | 'activeScope' | 'openTabs'>) => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.localStorage.setItem(
+    NAVIGATION_STORAGE_KEY,
+    JSON.stringify({
+      activeCategoryId: state.activeCategoryId,
+      activeScope: state.activeScope,
+      openTabs: state.openTabs,
+    }),
+  );
+};
+
+const readNavigationState = (): TabStateUpdate | undefined => {
+  if (typeof window === 'undefined') {
+    return undefined;
+  }
+
+  try {
+    const rawValue = window.localStorage.getItem(NAVIGATION_STORAGE_KEY);
+    const parsed = rawValue ? (JSON.parse(rawValue) as Pick<TaskState, 'activeCategoryId' | 'activeScope' | 'openTabs'>) : undefined;
+
+    if (!parsed?.openTabs?.length) {
+      return undefined;
+    }
+
+    const safeState = {
+      activeCategoryId: parsed.activeCategoryId ?? '',
+      activeScope: parsed.activeScope ?? 'inbox',
+      openTabs: parsed.openTabs,
+    };
+
+    return {
+      ...safeState,
+      ...getTabNavigationState(safeState),
+    };
+  } catch {
+    return undefined;
+  }
+};
+
+const sortCategories = (categories: Category[]) => categories;
 
 const getCurrentRoute = (state: Pick<TaskState, 'activeCategoryId' | 'activeScope'>): AppRoute => ({
   categoryId: state.activeScope === 'category' ? state.activeCategoryId : undefined,
@@ -381,6 +486,7 @@ const activateRoute = (
     activeScope: route.scope,
     openTabs: state.openTabs,
   };
+  persistNavigationState(nextState);
 
   return {
     ...nextState,
@@ -417,6 +523,7 @@ const closeRoute = (
   const fallbackRoute = safeTabs[Math.max(0, closingIndex - 1)] ?? safeTabs[0];
 
   if (!wasActive) {
+    persistNavigationState({ ...state, openTabs: safeTabs });
     return getTabNavigationState({ ...state, openTabs: safeTabs });
   }
 

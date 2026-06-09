@@ -23,13 +23,15 @@ export const Sidebar = ({ onAddCategory, onEditCategory, onOpenSearch, onOpenSet
   const activeCategoryId = useTaskStore((state) => state.activeCategoryId);
   const categories = useTaskStore((state) => state.categories);
   const profile = useTaskStore((state) => state.profile);
+  const settings = useTaskStore((state) => state.settings);
   const tasks = useTaskStore((state) => state.tasks);
   const workspace = useTaskStore((state) => state.workspace);
   const setScope = useTaskStore((state) => state.setScope);
   const setActiveCategory = useTaskStore((state) => state.setActiveCategory);
 
-  const favoriteCategories = useMemo(() => categories.filter((category) => category.isFavorite), [categories]);
-  const regularCategories = useMemo(() => categories.filter((category) => !category.isFavorite), [categories]);
+  const sortedCategories = useMemo(() => sortCategories(categories, settings.categorySortMode), [categories, settings.categorySortMode]);
+  const favoriteCategories = useMemo(() => sortedCategories.filter((category) => category.isFavorite), [sortedCategories]);
+  const regularCategories = useMemo(() => sortedCategories.filter((category) => !category.isFavorite), [sortedCategories]);
 
   return (
     <aside className="sidebar">
@@ -53,7 +55,7 @@ export const Sidebar = ({ onAddCategory, onEditCategory, onOpenSearch, onOpenSet
 
         <nav className="primary-nav" aria-label="Основные разделы">
           {primaryItems.map((item) => {
-            const count = getPrimaryCount(item.scope, tasks);
+            const count = getPrimaryCount(item.scope, tasks, settings);
 
             return (
               <button
@@ -64,7 +66,9 @@ export const Sidebar = ({ onAddCategory, onEditCategory, onOpenSearch, onOpenSet
               >
                 <img src={assetUrl(item.icon)} alt="" />
                 <span>{item.label}</span>
-                {count > 0 ? <span className={`primary-count ${getPrimaryCountClass(count)}`}>{formatCount(count)}</span> : null}
+                {settings.showSidebarCounts && count > 0 ? (
+                  <span className={`primary-count ${getPrimaryCountClass(count, settings)}`}>{formatCount(count)}</span>
+                ) : null}
               </button>
             );
           })}
@@ -81,6 +85,7 @@ export const Sidebar = ({ onAddCategory, onEditCategory, onOpenSearch, onOpenSet
           activeCategoryId={activeCategoryId}
           activeScope={activeScope}
           tasks={tasks}
+          settings={settings}
           setActiveCategory={setActiveCategory}
         />
 
@@ -94,6 +99,7 @@ export const Sidebar = ({ onAddCategory, onEditCategory, onOpenSearch, onOpenSet
           activeCategoryId={activeCategoryId}
           activeScope={activeScope}
           tasks={tasks}
+          settings={settings}
           setActiveCategory={setActiveCategory}
         />
       </div>
@@ -130,6 +136,7 @@ const CategorySection = ({
   onEditCategory,
   onToggle,
   setActiveCategory,
+  settings,
   tasks,
   title,
 }: {
@@ -142,6 +149,7 @@ const CategorySection = ({
   onEditCategory: (category: Category) => void;
   onToggle: () => void;
   setActiveCategory: (categoryId: string) => void;
+  settings: ReturnType<typeof useTaskStore.getState>['settings'];
   tasks: Task[];
   title: string;
 }) => (
@@ -164,7 +172,9 @@ const CategorySection = ({
     {isOpen ? (
       <div className="category-list">
         {categories.map((category) => {
-          const taskCount = tasks.filter((task) => task.categoryId === category.id).length;
+          const taskCount = tasks.filter((task) =>
+            task.categoryId === category.id && (settings.countCompletedTasks || task.status !== 'completed'),
+          ).length;
 
           return (
             <div
@@ -178,7 +188,7 @@ const CategorySection = ({
               <button className="category-nav-button" type="button" onClick={() => setActiveCategory(category.id)}>
                 <CategoryMarker category={category} />
                 <span className="category-name">{category.title}</span>
-                <span className="category-count">{taskCount}</span>
+                {settings.showCategoryCounts ? <span className="category-count">{taskCount}</span> : null}
               </button>
               <button
                 className="category-icon-button"
@@ -208,29 +218,39 @@ const CategoryMarker = ({ category }: { category: Category }) => {
   return <span className="category-dot" style={{ backgroundColor: category.color }} />;
 };
 
-const getPrimaryCount = (scope: Exclude<TaskScope, 'category'>, tasks: Task[]) => {
+const getPrimaryCount = (
+  scope: Exclude<TaskScope, 'category'>,
+  tasks: Task[],
+  settings: ReturnType<typeof useTaskStore.getState>['settings'],
+) => {
+  const countableTasks = settings.countCompletedTasks ? tasks : tasks.filter((task) => task.status !== 'completed');
+
   if (scope === 'today') {
-    return tasks.filter((task) => task.dueDate === getTodayDate() || isActiveOverdueTask(task) || task.scope === 'today').length;
+    return countableTasks.filter((task) =>
+      (settings.includeTodayDueTasks && task.dueDate === getTodayDate(settings.todayRefreshTime)) ||
+      isActiveOverdueTask(task, settings) ||
+      task.scope === 'today',
+    ).length;
   }
 
   if (scope === 'week') {
     const weekDates = getCurrentWeekDates();
-    return tasks.filter((task) => task.scope === 'week' || Boolean(task.dueDate && weekDates.includes(task.dueDate))).length;
+    return countableTasks.filter((task) => task.scope === 'week' || Boolean(task.dueDate && weekDates.includes(task.dueDate))).length;
   }
 
-  return tasks.filter((task) => task.scope === 'inbox').length;
+  return countableTasks.filter((task) => task.scope === 'inbox').length;
 };
 
-const getPrimaryCountClass = (count: number) => {
-  if (count >= 31) {
+const getPrimaryCountClass = (count: number, settings: ReturnType<typeof useTaskStore.getState>['settings']) => {
+  if (count >= settings.counterCriticalAt) {
     return 'critical';
   }
 
-  if (count >= 16) {
+  if (count >= settings.counterHighAt) {
     return 'high';
   }
 
-  if (count >= 6) {
+  if (count >= settings.counterMediumAt) {
     return 'medium';
   }
 
@@ -239,8 +259,23 @@ const getPrimaryCountClass = (count: number) => {
 
 const formatCount = (count: number) => (count > 99 ? '99+' : String(count));
 
-const isActiveOverdueTask = (task: Task) =>
-  task.status === 'active' && Boolean(task.dueDate && task.dueDate < getTodayDate());
+const sortCategories = (
+  categories: Category[],
+  mode: ReturnType<typeof useTaskStore.getState>['settings']['categorySortMode'],
+) => {
+  if (mode === 'alphabetical') {
+    return [...categories].sort((first, second) => first.title.localeCompare(second.title, 'ru-RU'));
+  }
+
+  if (mode === 'favorites') {
+    return [...categories].sort((first, second) => Number(second.isFavorite) - Number(first.isFavorite));
+  }
+
+  return categories;
+};
+
+const isActiveOverdueTask = (task: Task, settings: ReturnType<typeof useTaskStore.getState>['settings']) =>
+  task.status === 'active' && Boolean(task.dueDate && task.dueDate < getTodayDate(settings.todayRefreshTime));
 
 const getCurrentWeekDates = () => {
   const today = new Date();
@@ -257,7 +292,21 @@ const getCurrentWeekDates = () => {
   });
 };
 
-const getTodayDate = () => getDateInputValue(new Date());
+const getTodayDate = (refreshTime?: string) => {
+  const date = new Date();
+
+  if (refreshTime) {
+    const [hours, minutes] = refreshTime.split(':').map((part) => Number.parseInt(part, 10));
+    const refreshMoment = new Date(date);
+    refreshMoment.setHours(Number.isFinite(hours) ? hours : 0, Number.isFinite(minutes) ? minutes : 0, 0, 0);
+
+    if (date.getTime() < refreshMoment.getTime()) {
+      date.setDate(date.getDate() - 1);
+    }
+  }
+
+  return getDateInputValue(date);
+};
 
 const getDateInputValue = (date: Date) => {
   const year = date.getFullYear();

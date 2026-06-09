@@ -11,6 +11,7 @@ import type {
   TaskScope,
   UpdateCategoryInput,
   UpdateProfileInput,
+  UpdateSettingsInput,
   UpdateTaskInput,
   UpdateWorkspaceInput,
   UserProfile,
@@ -20,6 +21,7 @@ import type {
 interface AfterlightWindowControls {
   minimize: () => Promise<void>;
   toggleMaximize: () => Promise<void>;
+  setFullScreen: (value: boolean) => Promise<void>;
   close: () => Promise<void>;
 }
 
@@ -32,6 +34,7 @@ interface AfterlightApi {
   loadData: () => Promise<AppData>;
   completeProfileSetup: (input: ProfileSetupInput) => Promise<AppData>;
   resetProfile: () => Promise<AppData>;
+  updateSettings: (input: UpdateSettingsInput) => Promise<AppData['settings']>;
   listCategories: () => Promise<Category[]>;
   createCategory: (input: CreateCategoryInput) => Promise<Category>;
   updateCategory: (input: UpdateCategoryInput) => Promise<Category>;

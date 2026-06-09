@@ -1518,6 +1518,58 @@ body {
   font-weight: 800;
 }
 
+.settings-field select {
+  height: 42px;
+  border: 1px solid #d7d7d7;
+  border-radius: 8px;
+  background: #f1f1f1;
+  padding: 0 12px;
+  font-weight: 800;
+  outline: none;
+}
+
+.main-settings-page {
+  padding-right: 44px;
+}
+
+.settings-options-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.settings-option-field {
+  width: min(520px, 100%);
+}
+
+.settings-toggle-row {
+  width: min(620px, 100%);
+  min-height: 42px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+  color: #333333;
+  font-weight: 800;
+}
+
+.settings-toggle-row input {
+  width: 18px;
+  height: 18px;
+  accent-color: #5967ff;
+}
+
+.settings-threshold-grid {
+  width: min(620px, 100%);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.settings-threshold-grid .settings-field {
+  width: 100%;
+}
+
 .workspace-settings-field {
   width: min(520px, 100%);
 }

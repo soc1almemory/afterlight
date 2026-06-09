@@ -6,6 +6,12 @@ export type TaskScope = 'inbox' | 'today' | 'week' | 'category';
 
 export type CategoryIconMode = 'color' | 'emoji' | 'hash';
 
+export type StartSectionMode = 'inbox' | 'today' | 'week' | 'last';
+export type WindowOpenMode = 'normal' | 'fullscreen';
+export type TaskSortMode = 'date' | 'priority' | 'manual' | 'created';
+export type WeekOrderMode = 'monday' | 'today';
+export type CategorySortMode = 'created' | 'alphabetical' | 'manual' | 'favorites';
+
 export interface Task {
   id: string;
   title: string;
@@ -110,10 +116,39 @@ export interface ProfileSetupInput {
   workspaceTitle: string;
 }
 
+export interface AppSettings {
+  autosaveNotesIntervalSeconds: number;
+  categorySortMode: CategorySortMode;
+  confirmCategoryDelete: boolean;
+  confirmTaskDelete: boolean;
+  countCompletedTasks: boolean;
+  counterCriticalAt: number;
+  counterHighAt: number;
+  counterMediumAt: number;
+  highlightTodayInWeek: boolean;
+  includeTodayDueTasks: boolean;
+  notesLineLimit: number;
+  openMode: WindowOpenMode;
+  restoreTabs: boolean;
+  showCategoryCounts: boolean;
+  showLastModified: boolean;
+  showSidebarCounts: boolean;
+  showTabBar: boolean;
+  showTodayOverdueFirst: boolean;
+  showWeekNoDate: boolean;
+  startSection: StartSectionMode;
+  taskSortMode: TaskSortMode;
+  todayRefreshTime: string;
+  weekOrderMode: WeekOrderMode;
+}
+
+export type UpdateSettingsInput = Partial<AppSettings>;
+
 export interface AppData {
   categories: Category[];
   notes: Note[];
   profile: UserProfile;
+  settings: AppSettings;
   tasks: Task[];
   workspace: Workspace;
 }

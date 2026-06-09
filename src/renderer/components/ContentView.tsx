@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ChangeEvent, DragEvent, KeyboardEvent } from 'react';
-import type { Task, TaskScope } from '../../shared/types';
+import type { AppSettings, Task, TaskScope } from '../../shared/types';
 import { assetUrl } from '../lib/assets';
 import { useTaskStore } from '../store/useTaskStore';
 import { TaskListItem } from './TaskListItem';
@@ -25,8 +25,6 @@ const titles: Record<TaskScope, string> = {
 
 const dayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 
-const MAX_NOTE_LINES = 50;
-
 export const ContentView = ({ onAddTask, onEditTask }: ContentViewProps) => {
   const activeScope = useTaskStore((state) => state.activeScope);
   const activeCategoryId = useTaskStore((state) => state.activeCategoryId);
@@ -35,22 +33,29 @@ export const ContentView = ({ onAddTask, onEditTask }: ContentViewProps) => {
   const isLoading = useTaskStore((state) => state.isLoading);
   const tasks = useTaskStore((state) => state.tasks);
   const notes = useTaskStore((state) => state.notes);
+  const settings = useTaskStore((state) => state.settings);
   const updateNote = useTaskStore((state) => state.updateNote);
-  const [refreshLabel, setRefreshLabel] = useState(getTodayRefreshLabel());
+  const [refreshLabel, setRefreshLabel] = useState(getTodayRefreshLabel(settings.todayRefreshTime));
+  const [draftNoteText, setDraftNoteText] = useState('');
   const notesTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const saveNoteTimeoutRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
-    const updateRefreshLabel = () => setRefreshLabel(getTodayRefreshLabel());
+    const updateRefreshLabel = () => setRefreshLabel(getTodayRefreshLabel(settings.todayRefreshTime));
     updateRefreshLabel();
     const intervalId = window.setInterval(updateRefreshLabel, 60_000);
 
     return () => window.clearInterval(intervalId);
-  }, []);
+  }, [settings.todayRefreshTime]);
 
   const activeCategory = categories.find((category) => category.id === activeCategoryId);
   const title = activeScope === 'category' ? activeCategory?.title ?? titles.category : titles[activeScope];
-  const visibleTasks = tasks.filter((task) => isTaskVisible(task, activeScope, activeCategoryId));
-  const weekGroups = activeScope === 'week' ? buildWeekGroups(tasks) : [];
+  const visibleTasks = sortTasks(
+    tasks.filter((task) => isTaskVisible(task, activeScope, activeCategoryId, settings)),
+    settings,
+    activeScope,
+  );
+  const weekGroups = activeScope === 'week' ? buildWeekGroups(tasks, settings) : [];
   const activeNote = notes.find((note) => {
     if (activeScope === 'category') {
       return note.scope === 'category' && note.categoryId === activeCategoryId;
@@ -61,6 +66,10 @@ export const ContentView = ({ onAddTask, onEditTask }: ContentViewProps) => {
   const noteText = activeNote?.text ?? '';
 
   useEffect(() => {
+    setDraftNoteText(noteText);
+  }, [activeCategoryId, activeScope, noteText]);
+
+  useEffect(() => {
     const editor = notesTextareaRef.current;
 
     if (!editor) {
@@ -69,15 +78,41 @@ export const ContentView = ({ onAddTask, onEditTask }: ContentViewProps) => {
 
     const computedStyle = window.getComputedStyle(editor);
     const lineHeight = Number.parseFloat(computedStyle.lineHeight) || 22;
-    const maxHeight = lineHeight * MAX_NOTE_LINES;
+    const maxHeight = lineHeight * settings.notesLineLimit;
 
     editor.style.height = 'auto';
     editor.style.height = `${Math.min(editor.scrollHeight, maxHeight)}px`;
     editor.style.overflowY = editor.scrollHeight > maxHeight ? 'auto' : 'hidden';
-  }, [activeCategoryId, activeScope, noteText]);
+  }, [activeCategoryId, activeScope, draftNoteText, settings.notesLineLimit]);
+
+  useEffect(() => () => {
+    if (saveNoteTimeoutRef.current) {
+      window.clearTimeout(saveNoteTimeoutRef.current);
+    }
+  }, []);
 
   const handleNoteChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
-    void updateNote(activeScope, limitNoteLines(event.target.value), activeCategoryId);
+    const limitedText = limitNoteLines(event.target.value, settings.notesLineLimit);
+    setDraftNoteText(limitedText);
+
+    if (saveNoteTimeoutRef.current) {
+      window.clearTimeout(saveNoteTimeoutRef.current);
+    }
+
+    saveNoteTimeoutRef.current = window.setTimeout(() => {
+      void updateNote(activeScope, limitedText, activeCategoryId);
+    }, settings.autosaveNotesIntervalSeconds * 1000);
+  };
+
+  const flushNote = () => {
+    if (saveNoteTimeoutRef.current) {
+      window.clearTimeout(saveNoteTimeoutRef.current);
+      saveNoteTimeoutRef.current = undefined;
+    }
+
+    if (draftNoteText !== noteText) {
+      void updateNote(activeScope, draftNoteText, activeCategoryId);
+    }
   };
 
   const handleNoteKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -85,7 +120,7 @@ export const ContentView = ({ onAddTask, onEditTask }: ContentViewProps) => {
 
     if (
       event.key === 'Enter' &&
-      wouldExceedNoteLineLimit(editor.value, editor.selectionStart, editor.selectionEnd)
+      wouldExceedNoteLineLimit(editor.value, editor.selectionStart, editor.selectionEnd, settings.notesLineLimit)
     ) {
       event.preventDefault();
     }
@@ -95,7 +130,7 @@ export const ContentView = ({ onAddTask, onEditTask }: ContentViewProps) => {
     <main className="workspace">
       <div className="control-strip">
         <div className="control-status">
-          <span>{isLoading ? 'Загрузка данных...' : 'Изменено 2ч назад'}</span>
+          {isLoading || settings.showLastModified ? <span>{isLoading ? 'Загрузка данных...' : 'Изменено 2ч назад'}</span> : null}
           {activeScope === 'today' ? <span className="refresh-status">{refreshLabel}</span> : null}
         </div>
         <div className="control-actions">
@@ -118,7 +153,7 @@ export const ContentView = ({ onAddTask, onEditTask }: ContentViewProps) => {
         {error ? <div className="app-error">{error}</div> : null}
 
         {activeScope === 'week' ? (
-          <WeekTaskList groups={weekGroups} onAddTask={onAddTask} onEditTask={onEditTask} />
+          <WeekTaskList groups={weekGroups} onAddTask={onAddTask} onEditTask={onEditTask} settings={settings} />
         ) : (
           <div className="task-list">
             {visibleTasks.map((task, index) => (
@@ -131,7 +166,7 @@ export const ContentView = ({ onAddTask, onEditTask }: ContentViewProps) => {
           <button
             className="inline-add-task"
             type="button"
-            onClick={() => onAddTask(activeScope === 'today' ? getTodayDate() : undefined)}
+            onClick={() => onAddTask(activeScope === 'today' ? getTodayDate(settings.todayRefreshTime) : undefined)}
           >
             <img src={assetUrl('add-task-icon.svg')} alt="" />
             <span>Добавить задачу</span>
@@ -142,9 +177,10 @@ export const ContentView = ({ onAddTask, onEditTask }: ContentViewProps) => {
           <span>Заметки</span>
           <textarea
             ref={notesTextareaRef}
-            value={noteText}
+            value={draftNoteText}
             rows={1}
             onChange={handleNoteChange}
+            onBlur={flushNote}
             onKeyDown={handleNoteKeyDown}
             placeholder="Напишите что-нибудь важное, чтобы не забыть."
           />
@@ -158,10 +194,12 @@ const WeekTaskList = ({
   groups,
   onAddTask,
   onEditTask,
+  settings,
 }: {
   groups: WeekGroup[];
   onAddTask: (dueDate?: string) => void;
   onEditTask: (task: Task) => void;
+  settings: AppSettings;
 }) => {
   const updateTask = useTaskStore((state) => state.updateTask);
   const today = getTodayDate();
@@ -194,7 +232,7 @@ const WeekTaskList = ({
   return (
     <div className="week-list">
       {groups.map((group) => {
-        const isToday = group.date === today;
+        const isToday = settings.highlightTodayInWeek && group.date === today;
 
         return (
           <section
@@ -226,13 +264,18 @@ const WeekTaskList = ({
   );
 };
 
-const isTaskVisible = (task: Task, activeScope: TaskScope, activeCategoryId: string) => {
+const isTaskVisible = (task: Task, activeScope: TaskScope, activeCategoryId: string, settings: AppSettings) => {
   if (activeScope === 'category') {
     return task.categoryId === activeCategoryId;
   }
 
   if (activeScope === 'today') {
-    return task.dueDate === getTodayDate() || isActiveOverdueTask(task) || (task.scope === 'today' && task.status === 'active');
+    const today = getTodayDate(settings.todayRefreshTime);
+    return (
+      (settings.includeTodayDueTasks && task.dueDate === today) ||
+      isActiveOverdueTask(task, settings) ||
+      (task.scope === 'today' && task.status === 'active')
+    );
   }
 
   if (activeScope === 'week') {
@@ -242,41 +285,67 @@ const isTaskVisible = (task: Task, activeScope: TaskScope, activeCategoryId: str
   return task.scope === activeScope;
 };
 
-const limitNoteLines = (value: string) => {
+const sortTasks = (tasks: Task[], settings: AppSettings, activeScope: TaskScope) => {
+  const sortedTasks = [...tasks];
+
+  if (activeScope === 'today' && settings.showTodayOverdueFirst) {
+    sortedTasks.sort((first, second) => Number(isActiveOverdueTask(second, settings)) - Number(isActiveOverdueTask(first, settings)));
+  }
+
+  if (settings.taskSortMode === 'date') {
+    sortedTasks.sort((first, second) => (first.dueDate ?? '9999-12-31').localeCompare(second.dueDate ?? '9999-12-31'));
+  }
+
+  if (settings.taskSortMode === 'priority') {
+    sortedTasks.sort((first, second) => first.priority - second.priority);
+  }
+
+  if (activeScope === 'today' && settings.showTodayOverdueFirst) {
+    sortedTasks.sort((first, second) => Number(isActiveOverdueTask(second, settings)) - Number(isActiveOverdueTask(first, settings)));
+  }
+
+  return sortedTasks;
+};
+
+const limitNoteLines = (value: string, maxLines: number) => {
   const lines = value.split('\n');
 
-  if (lines.length <= MAX_NOTE_LINES) {
+  if (lines.length <= maxLines) {
     return value;
   }
 
-  const visibleLines = lines.slice(0, MAX_NOTE_LINES - 1);
-  const overflowLine = lines.slice(MAX_NOTE_LINES - 1).join(' ');
+  const visibleLines = lines.slice(0, maxLines - 1);
+  const overflowLine = lines.slice(maxLines - 1).join(' ');
 
   return [...visibleLines, overflowLine].join('\n');
 };
 
-const wouldExceedNoteLineLimit = (value: string, selectionStart: number, selectionEnd: number) => {
+const wouldExceedNoteLineLimit = (value: string, selectionStart: number, selectionEnd: number, maxLines: number) => {
   const nextValue = `${value.slice(0, selectionStart)}\n${value.slice(selectionEnd)}`;
 
-  return nextValue.split('\n').length > MAX_NOTE_LINES;
+  return nextValue.split('\n').length > maxLines;
 };
 
-const buildWeekGroups = (tasks: Task[]): WeekGroup[] => {
-  const weekDates = getCurrentWeekDates();
+const buildWeekGroups = (tasks: Task[], settings: AppSettings): WeekGroup[] => {
+  const weekDates = orderWeekDates(getCurrentWeekDates(), settings.weekOrderMode);
   const withoutDateTasks = tasks.filter((task) => task.scope === 'week' && !task.dueDate);
-  const groups: WeekGroup[] = [
+  const dateGroups: WeekGroup[] = weekDates.map((date) => ({
+    date,
+    label: dayLabels[getWeekdayIndex(date)],
+    tasks: sortTasks(tasks.filter((task) => task.dueDate === date), settings, 'week'),
+  }));
+
+  if (!settings.showWeekNoDate) {
+    return dateGroups;
+  }
+
+  return [
     {
       label: 'Распределитель',
-      tasks: withoutDateTasks,
+      tasks: sortTasks(withoutDateTasks, settings, 'week'),
     },
-    ...weekDates.map((date, index) => ({
-      date,
-      label: dayLabels[index],
-      tasks: tasks.filter((task) => task.dueDate === date),
-    })),
+    ...dateGroups,
   ];
-
-  return groups;
 };
 
 const isTaskInCurrentWeek = (task: Task) => {
@@ -287,8 +356,8 @@ const isTaskInCurrentWeek = (task: Task) => {
   return getCurrentWeekDates().includes(task.dueDate);
 };
 
-const isActiveOverdueTask = (task: Task) =>
-  task.status === 'active' && Boolean(task.dueDate && task.dueDate < getTodayDate());
+const isActiveOverdueTask = (task: Task, settings: AppSettings) =>
+  task.status === 'active' && Boolean(task.dueDate && task.dueDate < getTodayDate(settings.todayRefreshTime));
 
 const getCurrentWeekDates = () => {
   const today = new Date();
@@ -305,13 +374,48 @@ const getCurrentWeekDates = () => {
   });
 };
 
-const getTodayDate = () => toDateInputValue(new Date());
+const orderWeekDates = (weekDates: string[], mode: AppSettings['weekOrderMode']) => {
+  if (mode !== 'today') {
+    return weekDates;
+  }
 
-const getTodayRefreshLabel = () => {
+  const todayIndex = weekDates.indexOf(getTodayDate());
+  return todayIndex < 0 ? weekDates : [...weekDates.slice(todayIndex), ...weekDates.slice(0, todayIndex)];
+};
+
+const getWeekdayIndex = (dateValue: string) => {
+  const date = new Date(`${dateValue}T00:00:00`);
+  const day = date.getDay();
+  return day === 0 ? 6 : day - 1;
+};
+
+const getTodayDate = (refreshTime?: string) => {
+  const date = new Date();
+
+  if (refreshTime) {
+    const [hours, minutes] = refreshTime.split(':').map((part) => Number.parseInt(part, 10));
+    const refreshMoment = new Date(date);
+    refreshMoment.setHours(Number.isFinite(hours) ? hours : 0, Number.isFinite(minutes) ? minutes : 0, 0, 0);
+
+    if (date.getTime() < refreshMoment.getTime()) {
+      date.setDate(date.getDate() - 1);
+    }
+  }
+
+  return toDateInputValue(date);
+};
+
+const getTodayRefreshLabel = (refreshTime: string) => {
   const now = new Date();
-  const tomorrow = new Date(now);
-  tomorrow.setHours(24, 0, 0, 0);
-  const minutesLeft = Math.max(1, Math.ceil((tomorrow.getTime() - now.getTime()) / 60_000));
+  const [hours, minutes] = refreshTime.split(':').map((part) => Number.parseInt(part, 10));
+  const nextRefresh = new Date(now);
+  nextRefresh.setHours(Number.isFinite(hours) ? hours : 0, Number.isFinite(minutes) ? minutes : 0, 0, 0);
+
+  if (nextRefresh.getTime() <= now.getTime()) {
+    nextRefresh.setDate(nextRefresh.getDate() + 1);
+  }
+
+  const minutesLeft = Math.max(1, Math.ceil((nextRefresh.getTime() - now.getTime()) / 60_000));
   const hoursLeft = Math.floor(minutesLeft / 60);
   const remainingMinutes = minutesLeft % 60;
 

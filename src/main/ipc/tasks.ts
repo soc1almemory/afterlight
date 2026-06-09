@@ -6,6 +6,7 @@ import type {
   TaskScope,
   UpdateCategoryInput,
   UpdateProfileInput,
+  UpdateSettingsInput,
   UpdateTaskInput,
   UpdateWorkspaceInput,
 } from '../../shared/types';
@@ -23,6 +24,7 @@ import {
   updateCategory,
   updateNote,
   updateProfile,
+  updateSettings,
   updateTask,
   updateWorkspace,
 } from '../storage/repositories';
@@ -49,6 +51,7 @@ export const registerTaskIpcHandlers = () => {
     return completeProfileSetup(input);
   });
   ipcMain.handle('profile:reset', () => resetProfile());
+  ipcMain.handle('settings:update', (_event, input: UpdateSettingsInput) => updateSettings(input));
   ipcMain.handle('categories:list', () => listCategories());
 
   ipcMain.handle('categories:create', (_event, input: CreateCategoryInput) => {

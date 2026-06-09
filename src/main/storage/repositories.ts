@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import type {
   AppData,
+  AppSettings,
   Category,
   CategoryIconMode,
   CreateCategoryInput,
@@ -13,12 +14,39 @@ import type {
   TaskStatus,
   UpdateCategoryInput,
   UpdateProfileInput,
+  UpdateSettingsInput,
   UpdateTaskInput,
   UpdateWorkspaceInput,
   UserProfile,
   Workspace,
 } from '../../shared/types';
 import { getDatabase } from './database';
+
+const defaultSettings: AppSettings = {
+  autosaveNotesIntervalSeconds: 1,
+  categorySortMode: 'favorites',
+  confirmCategoryDelete: true,
+  confirmTaskDelete: true,
+  countCompletedTasks: true,
+  counterCriticalAt: 31,
+  counterHighAt: 16,
+  counterMediumAt: 6,
+  highlightTodayInWeek: true,
+  includeTodayDueTasks: true,
+  notesLineLimit: 50,
+  openMode: 'normal',
+  restoreTabs: false,
+  showCategoryCounts: true,
+  showLastModified: true,
+  showSidebarCounts: true,
+  showTabBar: true,
+  showTodayOverdueFirst: true,
+  showWeekNoDate: true,
+  startSection: 'inbox',
+  taskSortMode: 'created',
+  todayRefreshTime: '00:00',
+  weekOrderMode: 'monday',
+};
 
 const DEFAULT_PROFILE_NAME = 'Username';
 const DEFAULT_PROFILE_EMAIL = 'username@gmail.com';
@@ -72,9 +100,27 @@ export const listAppData = (): AppData => ({
   categories: listCategories(),
   notes: listNotes(),
   profile: getProfile(),
+  settings: getSettings(),
   tasks: listTasks(),
   workspace: getActiveWorkspace(),
 });
+
+export const updateSettings = (input: UpdateSettingsInput): AppSettings => {
+  const workspaceId = getActiveWorkspaceId();
+  const settings = normalizeSettings({ ...getSettings(), ...input });
+
+  getDatabase()
+    .prepare(
+      `INSERT INTO app_settings (workspace_id, settings_json, updated_at)
+       VALUES (@workspaceId, @settingsJson, CURRENT_TIMESTAMP)
+       ON CONFLICT(workspace_id) DO UPDATE SET
+         settings_json = excluded.settings_json,
+         updated_at = CURRENT_TIMESTAMP`,
+    )
+    .run({ workspaceId, settingsJson: JSON.stringify(settings) });
+
+  return settings;
+};
 
 export const listCategories = (): Category[] => {
   const workspaceId = getActiveWorkspaceId();
@@ -83,7 +129,7 @@ export const listCategories = (): Category[] => {
       `SELECT id, title, color, icon_mode, emoji, is_favorite
        FROM categories
        WHERE workspace_id = @workspaceId
-       ORDER BY is_favorite DESC, created_at ASC`,
+       ORDER BY created_at ASC`,
     )
     .all({ workspaceId }) as CategoryRow[];
 
@@ -384,6 +430,15 @@ export const resetProfile = (): AppData => {
     database.prepare('DELETE FROM notes WHERE workspace_id = @workspaceId').run({ workspaceId: workspace.id });
     database.prepare('DELETE FROM tasks WHERE workspace_id = @workspaceId').run({ workspaceId: workspace.id });
     database.prepare('DELETE FROM categories WHERE workspace_id = @workspaceId').run({ workspaceId: workspace.id });
+    database
+      .prepare(
+        `INSERT INTO app_settings (workspace_id, settings_json, updated_at)
+         VALUES (@workspaceId, @settingsJson, CURRENT_TIMESTAMP)
+         ON CONFLICT(workspace_id) DO UPDATE SET
+           settings_json = excluded.settings_json,
+           updated_at = CURRENT_TIMESTAMP`,
+      )
+      .run({ workspaceId: workspace.id, settingsJson: JSON.stringify(defaultSettings) });
 
     database
       .prepare(
@@ -571,6 +626,53 @@ const mapWorkspace = (row: WorkspaceRow): Workspace => ({
   profileId: row.profile_id,
   title: row.title,
 });
+
+const getSettings = (): AppSettings => {
+  const workspaceId = getActiveWorkspaceId();
+  const row = getDatabase()
+    .prepare('SELECT settings_json FROM app_settings WHERE workspace_id = ?')
+    .get(workspaceId) as { settings_json: string } | undefined;
+
+  if (!row) {
+    getDatabase()
+      .prepare(
+        `INSERT INTO app_settings (workspace_id, settings_json, updated_at)
+         VALUES (@workspaceId, @settingsJson, CURRENT_TIMESTAMP)`,
+      )
+      .run({ workspaceId, settingsJson: JSON.stringify(defaultSettings) });
+    return defaultSettings;
+  }
+
+  try {
+    return normalizeSettings(JSON.parse(row.settings_json) as Partial<AppSettings>);
+  } catch {
+    return defaultSettings;
+  }
+};
+
+const normalizeSettings = (settings: Partial<AppSettings>): AppSettings => ({
+  ...defaultSettings,
+  ...settings,
+  autosaveNotesIntervalSeconds: clampNumber(settings.autosaveNotesIntervalSeconds, 1, 30, defaultSettings.autosaveNotesIntervalSeconds),
+  counterCriticalAt: clampNumber(settings.counterCriticalAt, 1, 999, defaultSettings.counterCriticalAt),
+  counterHighAt: clampNumber(settings.counterHighAt, 1, 999, defaultSettings.counterHighAt),
+  counterMediumAt: clampNumber(settings.counterMediumAt, 1, 999, defaultSettings.counterMediumAt),
+  notesLineLimit: clampNumber(settings.notesLineLimit, 5, 200, defaultSettings.notesLineLimit),
+  todayRefreshTime: normalizeTime(settings.todayRefreshTime),
+});
+
+const clampNumber = (value: number | undefined, min: number, max: number, fallback: number) => {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return fallback;
+  }
+
+  return Math.min(max, Math.max(min, Math.round(value)));
+};
+
+const normalizeTime = (value: string | undefined) => {
+  const cleanValue = value?.trim();
+  return cleanValue && /^\d{2}:\d{2}$/.test(cleanValue) ? cleanValue : defaultSettings.todayRefreshTime;
+};
 
 const cleanOptional = (value: string | undefined) => {
   const cleanValue = value?.trim();
