@@ -1,0 +1,452 @@
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, Notification, shell, Tray } from 'electron';
+import type { OpenDialogOptions } from 'electron';
+import fs from 'node:fs';
+import path from 'node:path';
+import started from 'electron-squirrel-startup';
+import type { AppSettings, CreateTaskInput, SystemQuickAction, Task } from '../shared/types';
+import { registerTaskIpcHandlers } from './ipc/tasks';
+import { getDatabase, getStoragePaths, initializeDatabase } from './storage/database';
+import { createTask, listAppData } from './storage/repositories';
+
+declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
+declare const MAIN_WINDOW_VITE_NAME: string;
+
+if (started) {
+  app.quit();
+}
+
+let mainWindow: BrowserWindow | null = null;
+let tray: Tray | null = null;
+let isQuitting = false;
+let notificationInterval: NodeJS.Timeout | undefined;
+let backupInterval: NodeJS.Timeout | undefined;
+const notifiedKeys = new Set<string>();
+
+const assetPath = (...segments: string[]) => path.join(__dirname, '../../assets', ...segments);
+
+const getIconPath = () => {
+  const pngPath = assetPath('logo-main.png');
+  return fs.existsSync(pngPath) ? pngPath : assetPath('afterlight-icon.svg');
+};
+
+const getCurrentSettings = (): AppSettings => listAppData().settings;
+
+registerTaskIpcHandlers({
+  onSettingsUpdated: () => applySystemSettings(),
+});
+
+const createWindow = async () => {
+  await initializeDatabase();
+  const settings = getCurrentSettings();
+
+  mainWindow = new BrowserWindow({
+    width: 1280,
+    height: 760,
+    minWidth: 1024,
+    minHeight: 640,
+    frame: false,
+    titleBarStyle: 'hidden',
+    backgroundColor: '#fafafa',
+    icon: getIconPath(),
+    show: !settings.launchMinimized,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: false,
+    },
+  });
+
+  attachWindowEvents();
+  applyWindowState(settings);
+
+  if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
+    await mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
+    mainWindow.webContents.openDevTools({ mode: 'detach' });
+  } else {
+    await mainWindow.loadFile(path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`));
+  }
+
+  if (!settings.launchMinimized) {
+    mainWindow.show();
+  }
+
+  applySystemSettings();
+};
+
+app.whenReady().then(createWindow);
+
+app.on('before-quit', () => {
+  isQuitting = true;
+});
+
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin' && isQuitting) {
+    app.quit();
+  }
+});
+
+app.on('activate', () => {
+  if (BrowserWindow.getAllWindows().length === 0) {
+    void createWindow();
+    return;
+  }
+
+  showMainWindow();
+});
+
+ipcMain.handle('window:minimize', () => {
+  mainWindow?.minimize();
+});
+
+ipcMain.handle('window:toggle-maximize', () => {
+  if (!mainWindow) return;
+
+  if (mainWindow.isMaximized()) {
+    mainWindow.unmaximize();
+    return;
+  }
+
+  mainWindow.maximize();
+});
+
+ipcMain.handle('window:set-fullscreen', (_event, value: boolean) => {
+  mainWindow?.setFullScreen(value);
+});
+
+ipcMain.handle('window:close', () => {
+  mainWindow?.close();
+});
+
+ipcMain.handle('system:export-json', () => exportTasksJson());
+ipcMain.handle('system:export-csv', () => exportTasksCsv());
+ipcMain.handle('system:import-json', () => importTasksJson());
+ipcMain.handle('system:open-data-folder', () => shell.openPath(getStoragePaths().storageDir));
+ipcMain.handle('system:open-database', () => {
+  shell.showItemInFolder(getStoragePaths().databasePath);
+});
+ipcMain.handle('system:create-backup', () => createDatabaseBackup());
+
+const attachWindowEvents = () => {
+  if (!mainWindow) return;
+
+  mainWindow.on('close', async (event) => {
+    if (isQuitting) {
+      return;
+    }
+
+    const settings = getCurrentSettings();
+
+    if (settings.closeBehavior === 'tray' || settings.minimizeToTrayOnClose) {
+      event.preventDefault();
+      mainWindow?.hide();
+      return;
+    }
+
+    if (settings.closeBehavior === 'ask' || settings.confirmExit) {
+      event.preventDefault();
+      const result = await dialog.showMessageBox(mainWindow!, {
+        buttons: ['Отмена', 'Выйти'],
+        cancelId: 0,
+        defaultId: 0,
+        message: 'Закрыть Afterlight?',
+        type: 'question',
+      });
+
+      if (result.response === 1) {
+        isQuitting = true;
+        mainWindow?.close();
+      }
+
+      return;
+    }
+
+    isQuitting = true;
+  });
+};
+
+const applySystemSettings = () => {
+  const settings = getCurrentSettings();
+  app.setLoginItemSettings({
+    openAtLogin: settings.launchWithWindows,
+    openAsHidden: settings.launchMinimized,
+  });
+
+  if (settings.trayEnabled || settings.minimizeToTrayOnClose || settings.closeBehavior === 'tray') {
+    ensureTray();
+  } else {
+    tray?.destroy();
+    tray = null;
+  }
+
+  scheduleNotifications(settings);
+  scheduleBackups(settings);
+};
+
+const applyWindowState = (settings: AppSettings) => {
+  if (!mainWindow) return;
+
+  if (settings.restoreWindowState === 'fullscreen' || settings.openMode === 'fullscreen') {
+    mainWindow.setFullScreen(true);
+    return;
+  }
+
+  if (settings.restoreWindowState === 'maximized') {
+    mainWindow.maximize();
+  }
+};
+
+const ensureTray = () => {
+  if (tray) {
+    updateTrayMenu();
+    return;
+  }
+
+  const image = nativeImage.createFromPath(getIconPath());
+  tray = new Tray(image.isEmpty() ? getIconPath() : image);
+  tray.setToolTip('Afterlight');
+  tray.on('double-click', showMainWindow);
+  updateTrayMenu();
+};
+
+const updateTrayMenu = () => {
+  if (!tray) return;
+
+  tray.setContextMenu(
+    Menu.buildFromTemplate([
+      { label: 'Открыть Afterlight', click: () => sendQuickAction('open') },
+      { label: 'Добавить задачу', click: () => sendQuickAction('add-task') },
+      { label: 'Открыть Сегодня', click: () => sendQuickAction('today') },
+      { label: 'Открыть Неделю', click: () => sendQuickAction('week') },
+      { type: 'separator' },
+      {
+        label: 'Выйти',
+        click: () => {
+          isQuitting = true;
+          app.quit();
+        },
+      },
+    ]),
+  );
+};
+
+const showMainWindow = () => {
+  if (!mainWindow) return;
+
+  if (mainWindow.isMinimized()) {
+    mainWindow.restore();
+  }
+
+  mainWindow.show();
+  mainWindow.focus();
+};
+
+const sendQuickAction = (action: SystemQuickAction) => {
+  showMainWindow();
+  mainWindow?.webContents.send('system:quick-action', action);
+};
+
+const scheduleNotifications = (settings: AppSettings) => {
+  if (notificationInterval) {
+    clearInterval(notificationInterval);
+    notificationInterval = undefined;
+  }
+
+  if (!settings.notifyDeadlines && !settings.notifyBeforeTodayRefresh && !settings.notifyOverdue) {
+    return;
+  }
+
+  const tick = () => runNotificationSweep(settings);
+  tick();
+  notificationInterval = setInterval(tick, 60_000);
+};
+
+const runNotificationSweep = (settings: AppSettings) => {
+  if (!Notification.isSupported()) {
+    return;
+  }
+
+  const tasks = listAppData().tasks;
+  const now = new Date();
+
+  if (settings.notifyDeadlines) {
+    tasks.filter(isActiveTaskWithTodayTime).forEach((task) => {
+      const deadline = getTaskDeadline(task);
+      if (!deadline) return;
+
+      const minutesLeft = Math.round((deadline.getTime() - now.getTime()) / 60_000);
+      if (minutesLeft < 0 || minutesLeft > 15) return;
+
+      notifyOnce(`deadline:${task.id}:${toDateKey(now)}`, 'Afterlight', `Скоро дедлайн: ${task.title}`);
+    });
+  }
+
+  if (settings.notifyOverdue) {
+    const overdueTasks = tasks.filter((task) => task.status === 'active' && task.dueDate && task.dueDate < getTodayDate());
+    if (overdueTasks.length > 0) {
+      notifyOnce(`overdue:${toDateKey(now)}:${now.getHours()}`, 'Afterlight', `Просроченных задач: ${overdueTasks.length}`);
+    }
+  }
+
+  if (settings.notifyBeforeTodayRefresh) {
+    const refresh = getNextRefresh(settings.todayRefreshTime);
+    const minutesLeft = Math.round((refresh.getTime() - now.getTime()) / 60_000);
+    if (minutesLeft >= 0 && minutesLeft <= 15) {
+      notifyOnce(`today-refresh:${toDateKey(refresh)}`, 'Afterlight', 'Список “Сегодня” скоро обновится.');
+    }
+  }
+};
+
+const scheduleBackups = (settings: AppSettings) => {
+  if (backupInterval) {
+    clearInterval(backupInterval);
+    backupInterval = undefined;
+  }
+
+  if (!settings.autoBackupEnabled) {
+    return;
+  }
+
+  backupInterval = setInterval(() => {
+    void createDatabaseBackup();
+  }, settings.autoBackupIntervalHours * 60 * 60 * 1000);
+};
+
+const notifyOnce = (key: string, title: string, body: string) => {
+  if (notifiedKeys.has(key)) {
+    return;
+  }
+
+  notifiedKeys.add(key);
+  new Notification({ title, body, icon: getIconPath() }).show();
+};
+
+const exportTasksJson = async () => {
+  const options = {
+    defaultPath: 'afterlight-tasks.json',
+    filters: [{ name: 'JSON', extensions: ['json'] }],
+  };
+  const result = mainWindow ? await dialog.showSaveDialog(mainWindow, options) : await dialog.showSaveDialog(options);
+
+  if (result.canceled || !result.filePath) {
+    return undefined;
+  }
+
+  fs.writeFileSync(result.filePath, JSON.stringify(listAppData().tasks, null, 2), 'utf8');
+  return result.filePath;
+};
+
+const exportTasksCsv = async () => {
+  const options = {
+    defaultPath: 'afterlight-tasks.csv',
+    filters: [{ name: 'CSV', extensions: ['csv'] }],
+  };
+  const result = mainWindow ? await dialog.showSaveDialog(mainWindow, options) : await dialog.showSaveDialog(options);
+
+  if (result.canceled || !result.filePath) {
+    return undefined;
+  }
+
+  fs.writeFileSync(result.filePath, tasksToCsv(listAppData().tasks), 'utf8');
+  return result.filePath;
+};
+
+const importTasksJson = async () => {
+  const options: OpenDialogOptions = {
+    filters: [{ name: 'JSON', extensions: ['json'] }],
+    properties: ['openFile'],
+  };
+  const result = mainWindow ? await dialog.showOpenDialog(mainWindow, options) : await dialog.showOpenDialog(options);
+
+  if (result.canceled || !result.filePaths[0]) {
+    return 0;
+  }
+
+  const raw = fs.readFileSync(result.filePaths[0], 'utf8');
+  const parsed = JSON.parse(raw) as Array<Partial<CreateTaskInput>>;
+  let count = 0;
+
+  parsed.forEach((item) => {
+    if (!item.title?.trim()) {
+      return;
+    }
+
+    createTask({
+      title: item.title,
+      description: item.description,
+      dueDate: item.dueDate,
+      dueLabel: item.dueLabel,
+      priority: item.priority,
+      scope: item.scope ?? 'inbox',
+      categoryId: item.categoryId,
+    });
+    count += 1;
+  });
+
+  mainWindow?.webContents.send('system:data-changed');
+  return count;
+};
+
+const createDatabaseBackup = async () => {
+  const { backupDir } = getStoragePaths();
+  fs.mkdirSync(backupDir, { recursive: true });
+  const backupPath = path.join(backupDir, `afterlight-${new Date().toISOString().replace(/[:.]/g, '-')}.sqlite`);
+  await getDatabase().backup(backupPath);
+  return backupPath;
+};
+
+const tasksToCsv = (tasks: Task[]) => {
+  const rows = [
+    ['id', 'title', 'description', 'dueDate', 'dueTime', 'priority', 'status', 'scope', 'categoryId'],
+    ...tasks.map((task) => [
+      task.id,
+      task.title,
+      task.description ?? '',
+      task.dueDate ?? '',
+      task.dueLabel ?? '',
+      String(task.priority),
+      task.status,
+      task.scope,
+      task.categoryId ?? '',
+    ]),
+  ];
+
+  return rows.map((row) => row.map(csvCell).join(',')).join('\n');
+};
+
+const csvCell = (value: string) => `"${value.replace(/"/g, '""')}"`;
+
+const isActiveTaskWithTodayTime = (task: Task) =>
+  task.status === 'active' && task.dueDate === getTodayDate() && Boolean(task.dueLabel);
+
+const getTaskDeadline = (task: Task) => {
+  if (!task.dueDate || !task.dueLabel) {
+    return undefined;
+  }
+
+  return new Date(`${task.dueDate}T${task.dueLabel}:00`);
+};
+
+const getNextRefresh = (refreshTime: string) => {
+  const [hours, minutes] = refreshTime.split(':').map((part) => Number.parseInt(part, 10));
+  const nextRefresh = new Date();
+  nextRefresh.setHours(Number.isFinite(hours) ? hours : 0, Number.isFinite(minutes) ? minutes : 0, 0, 0);
+
+  if (nextRefresh.getTime() <= Date.now()) {
+    nextRefresh.setDate(nextRefresh.getDate() + 1);
+  }
+
+  return nextRefresh;
+};
+
+const getTodayDate = () => {
+  const date = new Date();
+  return toDateKey(date);
+};
+
+const toDateKey = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};

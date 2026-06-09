@@ -1,0 +1,43 @@
+{
+  "name": "afterlight",
+  "version": "0.1.0",
+  "description": "Afterlight — lightweight Windows task manager",
+  "main": ".vite/build/main.js",
+  "author": "Afterlight",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "dev": "electron-forge start",
+    "start": "electron-forge start",
+    "package": "electron-forge package",
+    "make": "electron-forge make",
+    "build": "tsc --noEmit && electron-forge package",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@electron-forge/plugin-auto-unpack-natives": "^7.8.1",
+    "better-sqlite3": "^11.9.1",
+    "electron-squirrel-startup": "^1.0.1",
+    "zustand": "^5.0.3"
+  },
+  "devDependencies": {
+    "@electron-forge/cli": "^7.8.1",
+    "@electron-forge/maker-deb": "^7.8.1",
+    "@electron-forge/maker-rpm": "^7.8.1",
+    "@electron-forge/maker-squirrel": "^7.8.1",
+    "@electron-forge/maker-zip": "^7.8.1",
+    "@electron-forge/plugin-fuses": "^7.8.1",
+    "@electron-forge/plugin-vite": "^7.8.1",
+    "@electron/fuses": "^1.8.0",
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/node": "^22.13.10",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
+    "@vitejs/plugin-react": "^4.3.4",
+    "electron": "^35.0.1",
+    "typescript": "^5.8.2",
+    "vite": "^6.2.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  }
+}
