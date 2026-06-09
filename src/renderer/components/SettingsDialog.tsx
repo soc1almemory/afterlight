@@ -171,7 +171,7 @@ const MainSettings = () => {
         />
         <SettingsToggle
           checked={settings.includeTodayDueTasks}
-          label="Автоматически добавлять задачи с сегодняшней датой в Сегодня"
+          label="Автоматически добавлять задачи с сегодняшней датой в «Сегодня»"
           onChange={(includeTodayDueTasks) => void updateSettings({ includeTodayDueTasks })}
         />
       </SettingsGroup>
@@ -207,7 +207,7 @@ const MainSettings = () => {
         />
         <SettingsToggle
           checked={settings.showWeekNoDate}
-          label="Показывать распределитель Без даты"
+          label="Показывать распределитель «Без даты»"
           onChange={(showWeekNoDate) => void updateSettings({ showWeekNoDate })}
         />
         <SettingsToggle
@@ -259,7 +259,7 @@ const MainSettings = () => {
       <SettingsGroup title="Интерфейс">
         <SettingsToggle
           checked={settings.showSidebarCounts}
-          label="Показывать счётчики в sidebar"
+          label="Показывать счётчики в боковой панели"
           onChange={(showSidebarCounts) => void updateSettings({ showSidebarCounts })}
         />
         <div className="settings-threshold-grid">
@@ -287,12 +287,12 @@ const MainSettings = () => {
         </div>
         <SettingsToggle
           checked={settings.showTabBar}
-          label="Включить tab-bar"
+          label="Включить панель вкладок"
           onChange={(showTabBar) => void updateSettings({ showTabBar })}
         />
         <SettingsToggle
           checked={settings.showLastModified}
-          label="Показывать Изменено N минут назад"
+          label="Показывать время последнего изменения"
           onChange={(showLastModified) => void updateSettings({ showLastModified })}
         />
       </SettingsGroup>
