@@ -152,7 +152,11 @@ export const Sidebar = ({
             aria-label={t('changelog')}
             onClick={() => onOpenInfo('changelog')}
           >
-            <img className="preserve-icon-color" src={assetUrl('changelog-icon.svg')} alt="" />
+            <img
+              className="preserve-icon-color"
+              src={assetUrl(settings.theme === 'dark' ? 'changelog-icon-default-dt.svg' : 'changelog-icon-default.svg')}
+              alt=""
+            />
           </button>
           <button className="bottom-menu-button" type="button" aria-label={t('help')} onClick={() => onOpenInfo('help')}>
             <img

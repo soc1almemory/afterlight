@@ -19,14 +19,19 @@ import type {
 } from '../../shared/types';
 
 const THEME_STORAGE_KEY = 'afterlight.theme';
+const ROUTE_HISTORY_LIMIT = 24;
 
 interface AppRoute {
   categoryId?: string;
   scope: TaskScope;
 }
 
+interface RouteVisit extends AppRoute {
+  openedAt: string;
+}
+
 type TabStateUpdate = Partial<
-  Pick<TaskState, 'activeCategoryId' | 'activeScope' | 'canGoBack' | 'canGoForward' | 'openTabs'>
+  Pick<TaskState, 'activeCategoryId' | 'activeScope' | 'canGoBack' | 'canGoForward' | 'openTabs' | 'routeHistory'>
 >;
 
 const defaultProfile: UserProfile = {
@@ -111,6 +116,7 @@ interface TaskState {
   moveTab: (sourceKey: string, targetKey: string) => void;
   openTabs: AppRoute[];
   resetProfile: () => Promise<void>;
+  routeHistory: RouteVisit[];
   setActiveCategory: (categoryId: string) => void;
   setScope: (scope: TaskScope) => void;
   toggleCategoryFavorite: (categoryId: string) => Promise<void>;
@@ -135,6 +141,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   notes: [],
   openTabs: [{ scope: 'inbox' }],
   profile: defaultProfile,
+  routeHistory: [],
   settings: defaultSettings,
   tasks: [],
   workspace: defaultWorkspace,
@@ -426,27 +433,31 @@ const getInitialRouteState = () => ({
   canGoBack: false,
   canGoForward: false,
   openTabs: [{ scope: 'inbox' as const }],
+  routeHistory: [],
 });
 
 const NAVIGATION_STORAGE_KEY = 'afterlight.navigation';
 
 const getStartupRouteState = (settings: AppSettings): TabStateUpdate => {
-  if (settings.restoreTabs) {
-    const restoredState = readNavigationState();
+  const restoredState = readNavigationState();
+  const routeHistory = restoredState?.routeHistory ?? [];
 
+  if (settings.restoreTabs) {
     if (restoredState) {
       return restoredState;
     }
   }
 
   if (settings.startSection === 'last') {
-    return readNavigationState() ?? getInitialRouteState();
+    return restoredState ?? getInitialRouteState();
   }
 
-  return activateRoute(getInitialRouteState(), { scope: settings.startSection });
+  return activateRoute({ ...getInitialRouteState(), routeHistory }, { scope: settings.startSection }, false);
 };
 
-const persistNavigationState = (state: Pick<TaskState, 'activeCategoryId' | 'activeScope' | 'openTabs'>) => {
+const persistNavigationState = (
+  state: Pick<TaskState, 'activeCategoryId' | 'activeScope' | 'openTabs'> & { routeHistory?: RouteVisit[] },
+) => {
   if (typeof window === 'undefined') {
     return;
   }
@@ -457,6 +468,7 @@ const persistNavigationState = (state: Pick<TaskState, 'activeCategoryId' | 'act
       activeCategoryId: state.activeCategoryId,
       activeScope: state.activeScope,
       openTabs: state.openTabs,
+      routeHistory: state.routeHistory ?? [],
     }),
   );
 };
@@ -468,7 +480,9 @@ const readNavigationState = (): TabStateUpdate | undefined => {
 
   try {
     const rawValue = window.localStorage.getItem(NAVIGATION_STORAGE_KEY);
-    const parsed = rawValue ? (JSON.parse(rawValue) as Pick<TaskState, 'activeCategoryId' | 'activeScope' | 'openTabs'>) : undefined;
+    const parsed = rawValue
+      ? (JSON.parse(rawValue) as Pick<TaskState, 'activeCategoryId' | 'activeScope' | 'openTabs'> & { routeHistory?: RouteVisit[] })
+      : undefined;
 
     if (!parsed?.openTabs?.length) {
       return undefined;
@@ -478,6 +492,7 @@ const readNavigationState = (): TabStateUpdate | undefined => {
       activeCategoryId: parsed.activeCategoryId ?? '',
       activeScope: parsed.activeScope ?? 'inbox',
       openTabs: parsed.openTabs,
+      routeHistory: normalizeRouteHistory(parsed.routeHistory),
     };
 
     return {
@@ -525,24 +540,29 @@ const getActiveTabIndex = (state: Pick<TaskState, 'activeCategoryId' | 'activeSc
   return activeIndex >= 0 ? activeIndex : 0;
 };
 
-const getTabNavigationState = (state: Pick<TaskState, 'activeCategoryId' | 'activeScope' | 'openTabs'>) => {
+const getTabNavigationState = (
+  state: Pick<TaskState, 'activeCategoryId' | 'activeScope' | 'openTabs'> & { routeHistory?: RouteVisit[] },
+) => {
   const activeIndex = getActiveTabIndex(state);
 
   return {
     canGoBack: activeIndex > 0,
     canGoForward: activeIndex < state.openTabs.length - 1,
     openTabs: state.openTabs,
+    routeHistory: state.routeHistory ?? [],
   };
 };
 
 const activateRoute = (
-  state: Pick<TaskState, 'activeCategoryId' | 'activeScope' | 'openTabs'>,
+  state: Pick<TaskState, 'activeCategoryId' | 'activeScope' | 'openTabs'> & { routeHistory?: RouteVisit[] },
   route: AppRoute,
+  recordVisit = true,
 ): TabStateUpdate => {
   const nextState = {
     activeCategoryId: route.categoryId ?? state.activeCategoryId,
     activeScope: route.scope,
     openTabs: state.openTabs,
+    routeHistory: recordVisit ? addRouteVisit(state.routeHistory ?? [], route) : state.routeHistory ?? [],
   };
   persistNavigationState(nextState);
 
@@ -553,7 +573,7 @@ const activateRoute = (
 };
 
 const openRoute = (
-  state: Pick<TaskState, 'activeCategoryId' | 'activeScope' | 'openTabs'>,
+  state: Pick<TaskState, 'activeCategoryId' | 'activeScope' | 'openTabs' | 'routeHistory'>,
   route: AppRoute,
 ): TabStateUpdate => {
   const openTabs = state.openTabs.some((tab) => isSameRoute(tab, route)) ? state.openTabs : [...state.openTabs, route];
@@ -561,7 +581,7 @@ const openRoute = (
 };
 
 const closeRoute = (
-  state: Pick<TaskState, 'activeCategoryId' | 'activeScope' | 'openTabs'>,
+  state: Pick<TaskState, 'activeCategoryId' | 'activeScope' | 'openTabs' | 'routeHistory'>,
   route: AppRoute,
   force = false,
 ): TabStateUpdate => {
@@ -585,8 +605,49 @@ const closeRoute = (
     return getTabNavigationState({ ...state, openTabs: safeTabs });
   }
 
-  return activateRoute({ ...state, openTabs: safeTabs }, fallbackRoute);
+  return activateRoute({ ...state, openTabs: safeTabs }, fallbackRoute, false);
 };
+
+const addRouteVisit = (routeHistory: RouteVisit[], route: AppRoute): RouteVisit[] => {
+  const nextVisit: RouteVisit = {
+    categoryId: route.scope === 'category' ? route.categoryId : undefined,
+    openedAt: new Date().toISOString(),
+    scope: route.scope,
+  };
+
+  return [nextVisit, ...routeHistory.filter((visit) => !isSameRoute(visit, route))].slice(0, ROUTE_HISTORY_LIMIT);
+};
+
+const normalizeRouteHistory = (value: unknown): RouteVisit[] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((item): RouteVisit | undefined => {
+      if (!item || typeof item !== 'object') {
+        return undefined;
+      }
+
+      const visit = item as Partial<RouteVisit>;
+      const scope = visit.scope === 'today' || visit.scope === 'week' || visit.scope === 'category' ? visit.scope : 'inbox';
+      const openedAt = typeof visit.openedAt === 'string' ? visit.openedAt : undefined;
+
+      if (!openedAt) {
+        return undefined;
+      }
+
+      return {
+        ...(scope === 'category' && typeof visit.categoryId === 'string' ? { categoryId: visit.categoryId } : {}),
+        openedAt,
+        scope,
+      };
+    })
+    .filter(isRouteVisit)
+    .slice(0, ROUTE_HISTORY_LIMIT);
+};
+
+const isRouteVisit = (visit: RouteVisit | undefined): visit is RouteVisit => Boolean(visit);
 
 const requireApi = () => {
   if (!window.afterlightApi) {

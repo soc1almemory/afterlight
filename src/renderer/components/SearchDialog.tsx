@@ -31,6 +31,7 @@ export const SearchDialog = ({ isOpen, onClose, onEditTask }: SearchDialogProps)
   const [query, setQuery] = useState('');
   const categories = useTaskStore((state) => state.categories);
   const profile = useTaskStore((state) => state.profile);
+  const routeHistory = useTaskStore((state) => state.routeHistory);
   const setActiveCategory = useTaskStore((state) => state.setActiveCategory);
   const setScope = useTaskStore((state) => state.setScope);
   const settings = useTaskStore((state) => state.settings);
@@ -43,7 +44,7 @@ export const SearchDialog = ({ isOpen, onClose, onEditTask }: SearchDialogProps)
     }
   }, [isOpen]);
 
-  const items = useMemo(() => {
+  const searchItems = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase('ru-RU');
     const allItems: SearchItem[] = [
       ...scopeItems.map((item) => ({
@@ -82,7 +83,7 @@ export const SearchDialog = ({ isOpen, onClose, onEditTask }: SearchDialogProps)
     ];
 
     if (!normalizedQuery) {
-      return allItems;
+      return [];
     }
 
     return allItems.filter((item) => {
@@ -91,12 +92,59 @@ export const SearchDialog = ({ isOpen, onClose, onEditTask }: SearchDialogProps)
     });
   }, [categories, onClose, onEditTask, query, setActiveCategory, setScope, settings.theme, t, tasks]);
 
+  const historyItems = useMemo(
+    () =>
+      routeHistory
+        .map((visit): SearchItem | undefined => {
+          if (visit.scope === 'category') {
+            const category = categories.find((item) => item.id === visit.categoryId);
+
+            if (!category) {
+              return undefined;
+            }
+
+            return {
+              category,
+              id: `history-category-${category.id}`,
+              kind: 'category' as const,
+              label: category.title,
+              meta: formatUpdatedAt(visit.openedAt),
+              onSelect: () => {
+                setActiveCategory(category.id);
+                onClose();
+              },
+            };
+          }
+
+          const scopeItem = scopeItems.find((item) => item.scope === visit.scope);
+
+          if (!scopeItem) {
+            return undefined;
+          }
+
+          return {
+            id: `history-scope-${visit.scope}`,
+            icon: scopeItem.icon,
+            kind: 'scope' as const,
+            label: t(scopeItem.labelKey),
+            meta: formatUpdatedAt(visit.openedAt),
+            onSelect: () => {
+              setScope(visit.scope);
+              onClose();
+            },
+          };
+        })
+        .filter(isSearchItem),
+    [categories, onClose, routeHistory, setActiveCategory, setScope, t],
+  );
+
   if (!isOpen) {
     return null;
   }
 
-  const recentItems = items.slice(0, 4);
-  const historyItems = items.slice(4, 10);
+  const hasQuery = query.trim().length > 0;
+  const recentItems = hasQuery ? searchItems.slice(0, 8) : historyItems.slice(0, 4);
+  const olderHistoryItems = hasQuery ? [] : historyItems.slice(4, 12);
 
   return (
     <div className="search-overlay" role="presentation" onMouseDown={onClose}>
@@ -111,9 +159,9 @@ export const SearchDialog = ({ isOpen, onClose, onEditTask }: SearchDialogProps)
           />
         </div>
 
-        <SearchGroup title={query ? t('results') : t('recent')} items={recentItems} emptyLabel={t('nothingFound')} />
-        {historyItems.length > 0 ? (
-          <SearchGroup isScrollable title={t('history')} items={historyItems} emptyLabel={t('nothingFound')} />
+        <SearchGroup title={hasQuery ? t('results') : t('recent')} items={recentItems} emptyLabel={t('nothingFound')} />
+        {olderHistoryItems.length > 0 ? (
+          <SearchGroup isScrollable title={t('history')} items={olderHistoryItems} emptyLabel={t('nothingFound')} />
         ) : null}
       </section>
     </div>
@@ -140,6 +188,8 @@ const SearchGroup = ({
     )}
   </div>
 );
+
+const isSearchItem = (item: SearchItem | undefined): item is SearchItem => Boolean(item);
 
 const SearchResultButton = ({ item }: { item: SearchItem }) => (
   <button className="search-result" type="button" onClick={item.onSelect}>
