@@ -10,6 +10,8 @@ import type {
   Task,
   TaskScope,
   SystemQuickAction,
+  TelegramBotStatus,
+  TelegramConfigInput,
   UpdateCategoryInput,
   UpdateProfileInput,
   UpdateSettingsInput,
@@ -63,6 +65,11 @@ contextBridge.exposeInMainWorld('afterlightApi', {
   openDataFolder: (): Promise<string> => ipcRenderer.invoke('system:open-data-folder'),
   openDatabase: (): Promise<void> => ipcRenderer.invoke('system:open-database'),
   createBackup: (): Promise<string> => ipcRenderer.invoke('system:create-backup'),
+  getTelegramStatus: (): Promise<TelegramBotStatus> => ipcRenderer.invoke('telegram:status'),
+  configureTelegram: (input: TelegramConfigInput): Promise<TelegramBotStatus> =>
+    ipcRenderer.invoke('telegram:configure', input),
+  testTelegram: (token?: string): Promise<TelegramBotStatus> => ipcRenderer.invoke('telegram:test', token),
+  disconnectTelegram: (): Promise<TelegramBotStatus> => ipcRenderer.invoke('telegram:disconnect'),
 });
 contextBridge.exposeInMainWorld('afterlightSystem', {
   platform: process.platform,

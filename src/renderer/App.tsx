@@ -6,6 +6,7 @@ import { InfoDialog } from './components/InfoDialog';
 import { ProfileSetup } from './components/ProfileSetup';
 import { SearchDialog } from './components/SearchDialog';
 import { SettingsDialog } from './components/SettingsDialog';
+import type { SettingsPage } from './components/SettingsDialog';
 import { Sidebar } from './components/Sidebar';
 import { TaskDialog } from './components/TaskDialog';
 import { TitleBar } from './components/TitleBar';
@@ -21,7 +22,8 @@ export const App = () => {
   const [isSearchOpen, setSearchOpen] = useState(false);
   const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isSettingsOpen, setSettingsOpen] = useState(false);
-  const [infoDialog, setInfoDialog] = useState<'changelog' | 'help' | 'telegram' | undefined>();
+  const [settingsInitialPage, setSettingsInitialPage] = useState<SettingsPage>('account');
+  const [infoDialog, setInfoDialog] = useState<'changelog' | 'help' | undefined>();
   const activeScope = useTaskStore((state) => state.activeScope);
   const hasHydrated = useTaskStore((state) => state.hasHydrated);
   const hydrate = useTaskStore((state) => state.hydrate);
@@ -61,6 +63,11 @@ export const App = () => {
   const closeCategoryDialog = () => {
     setCategoryDialogOpen(false);
     setEditingCategory(undefined);
+  };
+
+  const openSettings = (page: SettingsPage = 'account') => {
+    setSettingsInitialPage(page);
+    setSettingsOpen(true);
   };
 
   const pageClass = useMemo(() => {
@@ -164,7 +171,8 @@ export const App = () => {
         }}
         onOpenInfo={setInfoDialog}
         onOpenSearch={() => setSearchOpen(true)}
-        onOpenSettings={() => setSettingsOpen(true)}
+        onOpenSettings={() => openSettings()}
+        onOpenTelegramSettings={() => openSettings('telegram')}
       />
       <ContentView
         onAddTask={openCreateDialog}
@@ -178,7 +186,7 @@ export const App = () => {
       <TaskDialog isOpen={isTaskDialogOpen} task={editingTask} initialDueDate={initialTaskDate} onClose={closeDialog} />
       <CategoryDialog isOpen={isCategoryDialogOpen} category={editingCategory} onClose={closeCategoryDialog} />
       <SearchDialog isOpen={isSearchOpen} onClose={() => setSearchOpen(false)} onEditTask={openEditDialog} />
-      <SettingsDialog isOpen={isSettingsOpen} onClose={() => setSettingsOpen(false)} />
+      <SettingsDialog initialPage={settingsInitialPage} isOpen={isSettingsOpen} onClose={() => setSettingsOpen(false)} />
       {infoDialog ? <InfoDialog kind={infoDialog} onClose={() => setInfoDialog(undefined)} /> : null}
     </div>
   );

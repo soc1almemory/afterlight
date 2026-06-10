@@ -2,7 +2,7 @@ import { assetUrl } from '../lib/assets';
 import { useTaskStore } from '../store/useTaskStore';
 
 interface InfoDialogProps {
-  kind: 'changelog' | 'help' | 'telegram';
+  kind: 'changelog' | 'help';
   onClose: () => void;
 }
 

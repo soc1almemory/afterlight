@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import type { Category, Task, TaskScope } from '../../shared/types';
+import { useEffect, useMemo, useState } from 'react';
+import type { Category, Task, TaskScope, TelegramBotStatus } from '../../shared/types';
 import type { TranslationKey } from '../i18n';
 import { useTranslator } from '../i18n';
 import { assetUrl } from '../lib/assets';
@@ -9,9 +9,10 @@ interface SidebarProps {
   onAddCategory: () => void;
   onEditCategory: (category: Category) => void;
   onMouseEnter?: () => void;
-  onOpenInfo: (kind: 'changelog' | 'help' | 'telegram') => void;
+  onOpenInfo: (kind: 'changelog' | 'help') => void;
   onOpenSearch: () => void;
   onOpenSettings: () => void;
+  onOpenTelegramSettings: () => void;
 }
 
 const primaryItems: Array<{ icon: string; labelKey: TranslationKey; scope: Exclude<TaskScope, 'category'> }> = [
@@ -27,9 +28,11 @@ export const Sidebar = ({
   onOpenInfo,
   onOpenSearch,
   onOpenSettings,
+  onOpenTelegramSettings,
 }: SidebarProps) => {
   const [isFavoritesOpen, setFavoritesOpen] = useState(true);
   const [isCategoriesOpen, setCategoriesOpen] = useState(true);
+  const [telegramStatus, setTelegramStatus] = useState<TelegramBotStatus | undefined>();
   const activeScope = useTaskStore((state) => state.activeScope);
   const activeCategoryId = useTaskStore((state) => state.activeCategoryId);
   const categories = useTaskStore((state) => state.categories);
@@ -45,6 +48,31 @@ export const Sidebar = ({
   const favoriteCategories = useMemo(() => sortedCategories.filter((category) => category.isFavorite), [sortedCategories]);
   const regularCategories = useMemo(() => sortedCategories.filter((category) => !category.isFavorite), [sortedCategories]);
   const defaultAvatar = assetUrl(settings.theme === 'dark' ? 'default-avatar-dark.png' : 'default-avatar-light.png');
+  const isTelegramConnected = Boolean(telegramStatus?.isRunning && telegramStatus.chatId);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadTelegramStatus = async () => {
+      try {
+        const status = await window.afterlightApi?.getTelegramStatus();
+
+        if (isMounted && status) {
+          setTelegramStatus(status);
+        }
+      } catch {
+        // The bottom menu should stay usable even when Telegram status is unavailable.
+      }
+    };
+
+    void loadTelegramStatus();
+    const intervalId = window.setInterval(loadTelegramStatus, 3000);
+
+    return () => {
+      isMounted = false;
+      window.clearInterval(intervalId);
+    };
+  }, []);
 
   return (
     <aside className="sidebar" onMouseEnter={onMouseEnter}>
@@ -135,10 +163,16 @@ export const Sidebar = ({
           </button>
         </div>
         <div className="bottom-menu-group">
-          <button className="bottom-menu-button" type="button" aria-label="Telegram" onClick={() => onOpenInfo('telegram')}>
+          <button className="bottom-menu-button" type="button" aria-label="Telegram" onClick={onOpenTelegramSettings}>
             <img
               className="preserve-icon-color"
-              src={assetUrl(settings.theme === 'dark' ? 'telegram-icon-dt.svg' : 'telegram-icon.svg')}
+              src={assetUrl(
+                isTelegramConnected
+                  ? 'telegram-icon-connected.svg'
+                  : settings.theme === 'dark'
+                    ? 'telegram-icon-dt.svg'
+                    : 'telegram-icon.svg',
+              )}
               alt=""
             />
           </button>

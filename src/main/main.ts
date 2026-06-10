@@ -3,10 +3,19 @@ import type { OpenDialogOptions } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
-import type { AppSettings, CreateTaskInput, SystemQuickAction, Task } from '../shared/types';
+import type { AppSettings, CreateTaskInput, SystemQuickAction, Task, TelegramConfigInput } from '../shared/types';
 import { registerTaskIpcHandlers } from './ipc/tasks';
 import { getDatabase, getStoragePaths, initializeDatabase } from './storage/database';
 import { createTask, listAppData } from './storage/repositories';
+import {
+  configureTelegramBotRuntime,
+  disconnectTelegramBot,
+  getTelegramBotStatus,
+  restartTelegramBot,
+  stopTelegramBot,
+  testTelegramBotConnection,
+  updateTelegramBotConfig,
+} from './telegram/bot';
 
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
 declare const MAIN_WINDOW_VITE_NAME: string;
@@ -64,6 +73,10 @@ registerTaskIpcHandlers({
   onSettingsUpdated: () => applySystemSettings(),
 });
 
+configureTelegramBotRuntime({
+  onDataChanged: () => mainWindow?.webContents.send('system:data-changed'),
+});
+
 const createWindow = async () => {
   await initializeDatabase();
   const settings = getCurrentSettings();
@@ -101,12 +114,14 @@ const createWindow = async () => {
   }
 
   applySystemSettings();
+  void restartTelegramBot();
 };
 
 app.whenReady().then(createWindow);
 
 app.on('before-quit', () => {
   isQuitting = true;
+  stopTelegramBot();
 });
 
 app.on('window-all-closed', () => {
@@ -155,6 +170,10 @@ ipcMain.handle('system:open-database', () => {
   shell.showItemInFolder(getStoragePaths().databasePath);
 });
 ipcMain.handle('system:create-backup', () => createDatabaseBackup());
+ipcMain.handle('telegram:status', () => getTelegramBotStatus());
+ipcMain.handle('telegram:configure', (_event, input: TelegramConfigInput) => updateTelegramBotConfig(input));
+ipcMain.handle('telegram:test', (_event, token?: string) => testTelegramBotConnection(token));
+ipcMain.handle('telegram:disconnect', () => disconnectTelegramBot());
 
 const attachWindowEvents = () => {
   if (!mainWindow) return;

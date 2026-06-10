@@ -1,15 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ChangeEvent, FormEvent, ReactNode } from 'react';
-import type { UpdateSettingsInput } from '../../shared/types';
+import type { TelegramBotStatus, UpdateSettingsInput } from '../../shared/types';
 import { assetUrl } from '../lib/assets';
 import { useTaskStore } from '../store/useTaskStore';
 
 interface SettingsDialogProps {
+  initialPage?: SettingsPage;
   isOpen: boolean;
   onClose: () => void;
 }
 
-type SettingsPage = 'account' | 'main' | 'language' | 'theme' | 'sidebar' | 'notifications' | 'telegram' | 'backups';
+export type SettingsPage = 'account' | 'main' | 'language' | 'theme' | 'sidebar' | 'notifications' | 'telegram' | 'backups';
 
 const settingsItems: Array<{ id: SettingsPage; icon: string }> = [
   { id: 'account', icon: 'settings-account-icon.svg' },
@@ -157,7 +158,24 @@ const settingsCopy = {
     },
     telegram: {
       title: 'Интеграция Telegram',
-      description: 'Раздел подготовлен. Подключение бота, токена и быстрых действий будет добавлено позже.',
+      description: 'Локальный бот работает только пока Afterlight запущен. Напишите боту /start, затем отправляйте текст задачи или /add текст.',
+      token: 'Токен бота',
+      tokenPlaceholder: 'Вставьте новый токен из BotFather',
+      enabled: 'Включить локального Telegram-бота',
+      save: 'Сохранить и запустить',
+      test: 'Проверить подключение',
+      disconnect: 'Отключить',
+      status: 'Статус',
+      running: 'бот запущен',
+      stopped: 'бот остановлен',
+      tokenSaved: 'токен сохранён',
+      tokenMissing: 'токен не сохранён',
+      chat: 'chat_id',
+      bot: 'бот',
+      saved: 'Настройки Telegram сохранены',
+      tested: '✅ Подключение проверено',
+      disconnected: 'Telegram отключён',
+      failed: 'Не удалось выполнить действие.',
     },
   },
   en: {
@@ -294,7 +312,24 @@ const settingsCopy = {
     },
     telegram: {
       title: 'Telegram integration',
-      description: 'This section is prepared. Bot connection, token setup, and quick actions will be added later.',
+      description: 'The local bot works only while Afterlight is running. Send /start to the bot, then send task text or /add task text.',
+      token: 'Bot token',
+      tokenPlaceholder: 'Paste a new token from BotFather',
+      enabled: 'Enable local Telegram bot',
+      save: 'Save and start',
+      test: 'Test connection',
+      disconnect: 'Disconnect',
+      status: 'Status',
+      running: 'bot is running',
+      stopped: 'bot is stopped',
+      tokenSaved: 'token saved',
+      tokenMissing: 'token not saved',
+      chat: 'chat_id',
+      bot: 'bot',
+      saved: 'Telegram settings saved',
+      tested: '✅ Connection tested',
+      disconnected: 'Telegram disconnected',
+      failed: 'Could not complete the action.',
     },
   },
 } as const;
@@ -304,15 +339,15 @@ const useSettingsCopy = () => {
   return settingsCopy[language];
 };
 
-export const SettingsDialog = ({ isOpen, onClose }: SettingsDialogProps) => {
-  const [activePage, setActivePage] = useState<SettingsPage>('account');
+export const SettingsDialog = ({ initialPage = 'account', isOpen, onClose }: SettingsDialogProps) => {
+  const [activePage, setActivePage] = useState<SettingsPage>(initialPage);
   const copy = useSettingsCopy();
 
   useEffect(() => {
     if (isOpen) {
-      setActivePage('account');
+      setActivePage(initialPage);
     }
-  }, [isOpen]);
+  }, [initialPage, isOpen]);
 
   if (!isOpen) {
     return null;
@@ -564,16 +599,120 @@ const NotificationsSettings = () => {
 
 const TelegramSettings = () => {
   const copy = useSettingsCopy();
+  const settings = useTaskStore((state) => state.settings);
+  const [enabled, setEnabled] = useState(false);
+  const [message, setMessage] = useState('');
+  const [status, setStatus] = useState<TelegramBotStatus | undefined>();
+  const [token, setToken] = useState('');
+  const isTelegramConnected = Boolean(status?.isRunning && status.chatId);
+  const statusIcon = isTelegramConnected
+    ? settings.theme === 'dark'
+      ? 'settings-telegram-status-connected-dt.svg'
+      : 'settings-telegram-status-connected.svg'
+    : settings.theme === 'dark'
+      ? 'settings-telegram-status-notconnected-dt.svg'
+      : 'settings-telegram-status-notconnected.svg';
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadStatus = async () => {
+      try {
+        const telegramStatus = await window.afterlightApi!.getTelegramStatus();
+
+        if (isMounted) {
+          setEnabled(telegramStatus.enabled);
+          setStatus(telegramStatus);
+        }
+      } catch (error) {
+        if (isMounted) {
+          setMessage(error instanceof Error ? error.message : copy.telegram.failed);
+        }
+      }
+    };
+
+    void loadStatus();
+    const intervalId = window.setInterval(loadStatus, 3000);
+
+    return () => {
+      isMounted = false;
+      window.clearInterval(intervalId);
+    };
+  }, [copy.telegram.failed]);
+
+  const runAction = async (action: () => Promise<TelegramBotStatus>, successMessage: string) => {
+    try {
+      const nextStatus = await action();
+      setStatus(nextStatus);
+      setEnabled(nextStatus.enabled);
+      setMessage(nextStatus.lastError ?? successMessage);
+      return nextStatus;
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : copy.telegram.failed);
+      return undefined;
+    }
+  };
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const nextStatus = await runAction(
+      () => window.afterlightApi!.configureTelegram({ enabled: true, token: token.trim() || undefined }),
+      copy.telegram.saved,
+    );
+
+    if (nextStatus && !nextStatus.lastError) {
+      setToken('');
+    }
+  };
+
+  const handleTest = async () => {
+    await runAction(() => window.afterlightApi!.testTelegram(token.trim() || undefined), copy.telegram.tested);
+  };
+
+  const handleDisconnect = async () => {
+    const nextStatus = await runAction(() => window.afterlightApi!.disconnectTelegram(), copy.telegram.disconnected);
+
+    if (nextStatus) {
+      setToken('');
+    }
+  };
 
   return (
-    <div className="settings-page">
-      <section className="settings-section">
-        <h3>{copy.telegram.title}</h3>
-        <div className="settings-divider" />
-        <div className="settings-placeholder">
-          <p>{copy.telegram.description}</p>
-        </div>
-      </section>
+    <div className="settings-page main-settings-page">
+      <form className="settings-form" onSubmit={handleSubmit}>
+        <SettingsGroup title={copy.telegram.title}>
+          <img className="telegram-status-icon preserve-icon-color" src={assetUrl(statusIcon)} alt="" />
+          <p className="settings-hint">{copy.telegram.description}</p>
+          <div className="telegram-status">
+            <strong>{copy.telegram.status}</strong>
+            <span>{status?.isRunning ? copy.telegram.running : copy.telegram.stopped}</span>
+            <span>{status?.hasToken ? copy.telegram.tokenSaved : copy.telegram.tokenMissing}</span>
+            {status?.botUsername ? <span>{copy.telegram.bot}: @{status.botUsername}</span> : null}
+            {status?.chatId ? <span>{copy.telegram.chat}: {status.chatId}</span> : null}
+          </div>
+          <label className="settings-field settings-option-field">
+            <span>{copy.telegram.token}</span>
+            <input
+              autoComplete="off"
+              placeholder={status?.hasToken ? copy.telegram.tokenSaved : copy.telegram.tokenPlaceholder}
+              type="password"
+              value={token}
+              onChange={(event) => setToken(event.target.value)}
+            />
+          </label>
+          <SettingsToggle checked={enabled} label={copy.telegram.enabled} onChange={setEnabled} />
+          <div className="settings-button-grid telegram-actions">
+            <button type="submit">{copy.telegram.save}</button>
+            <button type="button" onClick={() => void handleTest()}>
+              {copy.telegram.test}
+            </button>
+            <button type="button" onClick={() => void handleDisconnect()}>
+              {copy.telegram.disconnect}
+            </button>
+          </div>
+          {message || status?.lastError ? <p className="settings-hint">{status?.lastError ?? message}</p> : null}
+        </SettingsGroup>
+      </form>
     </div>
   );
 };

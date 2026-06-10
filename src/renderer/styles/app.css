@@ -1830,6 +1830,46 @@ body {
   background: #2b2b2b;
 }
 
+.telegram-status-icon {
+  width: 128px;
+  height: 128px;
+  align-self: center;
+}
+
+.telegram-actions {
+  width: min(520px, 100%);
+  grid-template-columns: repeat(3, max-content);
+  justify-content: flex-start;
+}
+
+.telegram-actions button {
+  min-width: 132px;
+  min-height: 34px;
+  border-radius: 7px;
+  padding: 0 14px;
+  font-size: 14px;
+}
+
+.telegram-status {
+  width: min(620px, 100%);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: #515151;
+  font-weight: 800;
+}
+
+.telegram-status strong {
+  color: #111111;
+}
+
+.telegram-status span {
+  border-radius: 6px;
+  background: #f1f1f1;
+  padding: 5px 8px;
+}
+
 .settings-threshold-grid .settings-field {
   width: 100%;
 }
@@ -2637,6 +2677,15 @@ body.theme-dark .primary-count {
 
 body.theme-dark .primary-count.low {
   background: #171717;
+}
+
+body.theme-dark .telegram-status,
+body.theme-dark .telegram-status strong {
+  color: #ffffff;
+}
+
+body.theme-dark .telegram-status span {
+  background: #303030;
 }
 
 body.theme-dark .task-meta time {

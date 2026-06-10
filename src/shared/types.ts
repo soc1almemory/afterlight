@@ -168,6 +168,21 @@ export type SystemQuickAction = 'open' | 'add-task' | 'today' | 'week';
 
 export type UpdateSettingsInput = Partial<AppSettings>;
 
+export interface TelegramConfigInput {
+  enabled: boolean;
+  token?: string;
+}
+
+export interface TelegramBotStatus {
+  enabled: boolean;
+  hasToken: boolean;
+  isRunning: boolean;
+  chatId?: number;
+  botUsername?: string;
+  lastError?: string;
+  lastUpdateAt?: string;
+}
+
 export interface AppData {
   categories: Category[];
   notes: Note[];

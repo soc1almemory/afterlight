@@ -10,6 +10,8 @@ import type {
   Task,
   TaskScope,
   SystemQuickAction,
+  TelegramBotStatus,
+  TelegramConfigInput,
   UpdateCategoryInput,
   UpdateProfileInput,
   UpdateSettingsInput,
@@ -57,6 +59,10 @@ interface AfterlightApi {
   openDataFolder: () => Promise<string>;
   openDatabase: () => Promise<void>;
   createBackup: () => Promise<string>;
+  getTelegramStatus: () => Promise<TelegramBotStatus>;
+  configureTelegram: (input: TelegramConfigInput) => Promise<TelegramBotStatus>;
+  testTelegram: (token?: string) => Promise<TelegramBotStatus>;
+  disconnectTelegram: () => Promise<TelegramBotStatus>;
 }
 
 declare global {
