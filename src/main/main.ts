@@ -24,6 +24,13 @@ if (started) {
   app.quit();
 }
 
+const hasSingleInstanceLock = app.requestSingleInstanceLock();
+
+if (!hasSingleInstanceLock) {
+  app.quit();
+  process.exit(0);
+}
+
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 let isQuitting = false;
@@ -118,6 +125,10 @@ const createWindow = async () => {
 };
 
 app.whenReady().then(createWindow);
+
+app.on('second-instance', () => {
+  showMainWindow();
+});
 
 app.on('before-quit', () => {
   isQuitting = true;

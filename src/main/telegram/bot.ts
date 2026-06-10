@@ -142,7 +142,15 @@ export const restartTelegramBot = async () => {
     writeConfig({ ...config, botUsername: bot.username });
   } catch (error) {
     if (isCurrentPollingSession(sessionId)) {
-      lastError = getErrorMessage(error);
+      const message = getErrorMessage(error);
+
+      if (isNetworkFetchFailure(message)) {
+        lastError = 'Telegram connection failed. Retrying...';
+        scheduleNextPoll(POLL_RETRY_DELAY_MS, sessionId);
+        return;
+      }
+
+      lastError = message;
       isRunning = false;
     }
     return;
@@ -204,7 +212,15 @@ const pollTelegram = async (sessionId: number) => {
     }
 
     if (isRunning && isCurrentPollingSession(sessionId)) {
-      lastError = getErrorMessage(error);
+      const message = getErrorMessage(error);
+
+      if (isTelegramPollingConflict(message)) {
+        stopTelegramBot();
+        lastError = 'Telegram bot is already running in another Afterlight window. Close the duplicate app instance and start again.';
+        return;
+      }
+
+      lastError = isNetworkFetchFailure(message) ? 'Telegram connection failed. Retrying...' : message;
       scheduleNextPoll(POLL_RETRY_DELAY_MS, sessionId);
     }
   }
@@ -394,6 +410,11 @@ const cleanToken = (value: string | undefined) => {
 };
 
 const getErrorMessage = (error: unknown) => (error instanceof Error ? error.message : 'Telegram bot error.');
+
+const isTelegramPollingConflict = (message: string) =>
+  message.includes('Conflict: terminated by other getUpdates request');
+
+const isNetworkFetchFailure = (message: string) => message === 'fetch failed';
 
 const getTodayDate = () => getRelativeDate(0);
 
