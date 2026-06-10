@@ -809,6 +809,7 @@ body {
   grid-row: 2;
   position: relative;
   --workspace-panel-top: 66px;
+  --workspace-panel-width: min(1102px, calc(100% - 96px));
   min-width: 0;
   min-height: 0;
   display: flex;
@@ -824,7 +825,8 @@ body {
   top: var(--workspace-panel-top);
   bottom: 0;
   left: 50%;
-  width: min(1102px, calc(100% - 96px));
+  min-height: calc(100% - var(--workspace-panel-top));
+  width: var(--workspace-panel-width);
   transform: translateX(-50%);
   border-right: 1px solid #f1f1f1;
   border-left: 1px solid #f1f1f1;
@@ -838,6 +840,8 @@ body {
 }
 
 .control-strip {
+  position: relative;
+  z-index: 20;
   align-self: stretch;
   width: auto;
   min-height: 40px;
@@ -948,7 +952,7 @@ body {
   position: relative;
   width: min(1102px, 100%);
   min-height: max(680px, calc(100vh - 106px));
-  background: transparent;
+  background: #ffffff;
   border: 0;
   padding: 64px 88px 32px;
   display: flex;
@@ -961,10 +965,8 @@ body {
   position: absolute;
   inset: 0;
   z-index: 0;
-  border: 1px solid #f1f1f1;
-  border-bottom: 0;
-  border-radius: 5px 5px 0 0;
-  background: #ffffff;
+  border-top: 1px solid #f1f1f1;
+  background: transparent;
   pointer-events: none;
 }
 
@@ -2288,6 +2290,33 @@ body.theme-dark img[src*='.svg?'] {
   filter: brightness(0) invert(1);
 }
 
+body.theme-dark img[src*='settings-account-icon.svg'],
+body.theme-dark img[src*='settigns-sidebar-icon.svg'],
+body.theme-dark img[src*='settings-notifications-icon.svg'],
+body.theme-dark img[src*='settigns-telegram-icon.svg'],
+body.theme-dark img[src*='settigns-copies-icon.svg'],
+body.theme-dark img[src*='search-icon.svg'],
+body.theme-dark img[src*='incoming-icon.svg'],
+body.theme-dark img[src*='today-icon.svg'],
+body.theme-dark img[src*='week-icon.svg'],
+body.theme-dark img[src*='edit-icon.svg'],
+body.theme-dark img[src*='settings-close-icon.svg'],
+body.theme-dark img[src*='control-bar-star-empty.svg'],
+body.theme-dark img[src*='control-eraser-icon.svg'],
+body.theme-dark img[src*='settings-delete-avatar-icon.svg'],
+body.theme-dark img[src*='drop-down-icon.svg'],
+body.theme-dark img[src*='popup-search-icon.svg'],
+body.theme-dark img[src*='search-incoming-icon.svg'],
+body.theme-dark img[src*='seartch-today-icon.svg'],
+body.theme-dark img[src*='search-week-icon.svg'],
+body.theme-dark img[src*='tochki-icon.svg'],
+body.theme-dark img[src*='star-empty.svg'],
+body.theme-dark img[src*='Minimize.svg'],
+body.theme-dark img[src*='Maximize.svg'],
+body.theme-dark img[src*='Close.svg'] {
+  filter: brightness(0) invert(1) !important;
+}
+
 body.theme-dark img[src*='add-task-icon.svg'],
 body.theme-dark img[src*='control-delete-icon.svg'],
 body.theme-dark img[src*='control-bar-star.svg'],
@@ -2297,6 +2326,25 @@ body.theme-dark img[src*='changelog-icon.svg'],
 body.theme-dark img[src*='checkbox-checked.svg'],
 body.theme-dark img.preserve-icon-color {
   filter: none;
+}
+
+body.theme-dark .window-actions img,
+body.theme-dark .app-tab img:not(.preserve-icon-color),
+body.theme-dark .nav-arrows img:not(.preserve-icon-color),
+body.theme-dark .add-tab-button img:not(.preserve-icon-color),
+body.theme-dark .search-menu-button img:not(.preserve-icon-color),
+body.theme-dark .primary-nav-item img:not(.preserve-icon-color),
+body.theme-dark .menu-section-actions img:not(.preserve-icon-color),
+body.theme-dark .category-icon-button img:not(.preserve-icon-color),
+body.theme-dark .settings-nav-item img:not(.preserve-icon-color),
+body.theme-dark .settings-close-button img:not(.preserve-icon-color),
+body.theme-dark .delete-avatar-button img:not(.preserve-icon-color),
+body.theme-dark .control-actions img:not(.preserve-icon-color),
+body.theme-dark .control-menu button img:not(.preserve-icon-color),
+body.theme-dark .task-edit-button img:not(.preserve-icon-color),
+body.theme-dark .search-input-row img:not(.preserve-icon-color),
+body.theme-dark .search-result-title img:not(.preserve-icon-color) {
+  filter: brightness(0) invert(1) !important;
 }
 
 body.theme-dark .app-titlebar,
@@ -2332,6 +2380,10 @@ body.theme-dark .category-dialog,
 body.theme-dark .info-dialog {
   background: #1f1f1f;
   border-color: #303030;
+}
+
+body.theme-dark .task-panel {
+  background: #1f1f1f;
 }
 
 body.theme-dark .app-tab,
@@ -2381,6 +2433,11 @@ body.theme-dark .nav-arrows button:hover:not(:disabled),
 body.theme-dark .add-tab-button:hover {
   background: #343434;
   color: #ffffff;
+}
+
+body.theme-dark .delete-avatar-button:hover:not(:disabled) {
+  background: #242424;
+  border-color: #393939;
 }
 
 body.theme-dark .week-day {
@@ -2542,6 +2599,10 @@ body.theme-dark .primary-count {
   color: #ffffff;
 }
 
+body.theme-dark .primary-count.low {
+  background: #171717;
+}
+
 body.theme-dark .task-meta time {
   background: #5a2d2d;
   color: #ffffff;
@@ -2560,11 +2621,8 @@ body.theme-dark .settings-toast {
 
   .workspace {
     --workspace-panel-top: 58px;
+    --workspace-panel-width: min(1102px, calc(100% - 48px));
     padding: 0 24px 24px;
-  }
-
-  .workspace::before {
-    width: min(1102px, calc(100% - 48px));
   }
 
   .control-strip {
