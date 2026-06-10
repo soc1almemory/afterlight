@@ -159,6 +159,7 @@ const settingsCopy = {
     telegram: {
       title: 'Интеграция Telegram',
       description: 'Локальный бот работает только пока Afterlight запущен. Напишите боту /start, чтобы начать.',
+      usernameHint: 'Юзернейм бота: @afterlight_task_bot',
       token: 'Токен бота',
       tokenPlaceholder: 'Вставьте новый токен из BotFather',
       enabled: 'Включить локального Telegram-бота',
@@ -314,6 +315,7 @@ const settingsCopy = {
     telegram: {
       title: 'Telegram integration',
       description: 'The local bot only works while Afterlight is running. Write to the bot /start to get started.',
+      usernameHint: 'Bot username: @afterlight_task_bot',
       token: 'Bot token',
       tokenPlaceholder: 'Paste a new token from BotFather',
       enabled: 'Enable local Telegram bot',
@@ -698,6 +700,7 @@ const TelegramSettings = () => {
         <SettingsGroup title={copy.telegram.title}>
           <img className="telegram-status-icon preserve-icon-color" src={assetUrl(statusIcon)} alt="" />
           <p className="settings-hint">{copy.telegram.description}</p>
+          <p className="settings-hint">{copy.telegram.usernameHint}</p>
           <div className="telegram-status">
             <strong>{copy.telegram.status}</strong>
             <span>{status?.isRunning ? copy.telegram.running : copy.telegram.stopped}</span>

@@ -3,13 +3,14 @@ import path from 'node:path';
 import type {
   Category,
   CreateTaskInput,
+  LanguageCode,
   SystemQuickAction,
   Task,
   TaskScope,
   TelegramBotStatus,
   TelegramConfigInput,
 } from '../../shared/types';
-import { createTask, deleteTask, listAppData, listCategories, listTasks, toggleTask } from '../storage/repositories';
+import { createCategory, createTask, deleteTask, listCategories, listTasks, toggleTask } from '../storage/repositories';
 import { getStoragePaths } from '../storage/database';
 
 type TelegramConversation =
@@ -19,20 +20,25 @@ type TelegramConversation =
       mode: 'awaiting_task_text';
       scope: TaskScope;
     }
+  | {
+      mode: 'awaiting_category_title';
+    }
   | undefined;
 
 interface TelegramConfig {
+  botMessageIds?: number[];
   botUsername?: string;
   chatId?: number;
   conversation?: TelegramConversation;
   enabled: boolean;
+  language?: LanguageCode;
   lastUpdateId?: number;
   token?: string;
 }
 
 interface TelegramUser {
-  id: number;
   first_name?: string;
+  id: number;
   username?: string;
 }
 
@@ -89,30 +95,192 @@ interface TelegramApiResponse<T> {
   result: T;
 }
 
+type BotCopy = typeof botCopy.ru;
+
 const POLL_TIMEOUT_SECONDS = 25;
 const POLL_RETRY_DELAY_MS = 5000;
 const TASK_LIST_LIMIT = 8;
+const STORED_BOT_MESSAGE_LIMIT = 16;
+const CATEGORY_COLORS = ['#7c65ff', '#ffb84d', '#45c27a', '#4aa3ff', '#f06795', '#9b7cff'];
 
-const menuLabels = {
-  addTask: '➕ Добавить задачу',
-  categories: '📂 Категории',
-  help: '❓ Помощь',
-  inbox: '📥 Входящие',
-  openApp: '⚙️ Открыть Afterlight',
-  today: '📅 Сегодня',
-  week: '🗓 Неделя',
+const botCopy = {
+  ru: {
+    buttons: {
+      addTask: '➕ Добавить задачу',
+      cancel: '❌️ Отмена',
+      categories: '📂 Категории',
+      createCategory: '➕ Категория',
+      deleteTask: '🗑 Удалить',
+      doneTask: '✅ Выполнить',
+      help: '❓ Помощь',
+      inbox: '📥 Входящие',
+      language: '🌐 Язык / Language',
+      restoreTask: '↩️ Вернуть',
+      today: '📅 Сегодня',
+      week: '🗓 Неделя',
+    },
+    commands: {
+      add: 'Добавить задачу',
+      categories: 'Показать категории',
+      help: 'Помощь и примеры',
+      inbox: 'Показать входящие',
+      language: 'Выбрать язык',
+      menu: 'Открыть главное меню',
+      start: 'Запустить меню',
+      today: 'Показать задачи на сегодня',
+      week: 'Показать неделю',
+    },
+    text: {
+      alreadyConnected: 'Afterlight уже подключён. Главное меню открыто.',
+      botConnected: 'Afterlight подключён. Теперь можно управлять задачами прямо из Telegram.',
+      cancel: 'Действие отменено. Главное меню открыто.',
+      categoryCreated: (title: string) => `Категория создана: #${title}`,
+      categoryEmpty: 'Название категории пустое. Напишите название или нажмите “❌️ Отмена”.',
+      categoryExists: (title: string) => `Категория #${title} уже есть. Можно сразу добавлять в неё задачи.`,
+      categoryPrompt:
+        'Напишите название новой категории.\n\nПримеры:\nРабота\nУчёба\nДом\n\nПосле создания можно писать задачи с хэштегом, например: “Позвонить клиенту завтра 12:00 #Работа”.',
+      chooseLanguage: 'Выберите язык бота.',
+      connectedElsewhere: 'Этот бот уже подключён к другому рабочему пространству Afterlight.',
+      connectPrompt: 'Откройте настройки Afterlight, включите Telegram-интеграцию и отправьте /start, чтобы привязать этот чат.',
+      createdPrefix: 'Добавлено:',
+      deleted: (title?: string) => `Удалено: ${title ?? 'задача'}`,
+      emptyList: 'Активных задач нет.',
+      emptyTask: 'Название задачи пустое. Напишите задачу по примеру ниже или нажмите “❌️ Отмена”.',
+      helpIntro: 'Afterlight bot работает полностью внутри Telegram:',
+      invalidCommand: 'Команда не распознана. Вот что можно сделать:',
+      languageSaved: 'Язык сохранён. Главное меню обновлено.',
+      noCategories: 'Категорий пока нет. Создайте первую кнопкой ниже.',
+      taskCompleted: (title: string) => `Готово: ${title}`,
+      taskNotFound: 'Задача не найдена.',
+      taskRestored: (title: string) => `Вернул в активные: ${title}`,
+      taskWasDeleted: 'Задача уже удалена или не найдена.',
+      unknownCategory: (name: string) => `Категория #${name} не найдена. Создайте её кнопкой “➕ Категория” или выберите существующую.`,
+      writeTask: (target: string) => `Напишите задачу для раздела: ${target}`,
+    },
+    title: {
+      categories: 'Категории:',
+      category: 'Категория',
+      inbox: '📥 Входящие',
+      today: '📅 Сегодня',
+      week: '🗓 Неделя',
+    },
+    guide: [
+      'Как писать задачи:',
+      '• Купить молоко',
+      '• Купить молоко сегодня',
+      '• Купить молоко завтра 18:00',
+      '• Сдать отчёт 12.06 14:30',
+      '• Позвонить клиенту #Работа',
+      '• Домашка завтра #Учёба',
+      '',
+      'Что понимает бот:',
+      '• Дата: сегодня, завтра, 12.06, 12.06.2026',
+      '• Время: 09:30, 18:00',
+      '• Категория: #Название, если такая категория уже есть',
+      '',
+      'Можно также использовать /add текст задачи.',
+    ],
+    help: [
+      '• добавляет задачи обычным сообщением или через кнопку',
+      '• понимает дату, время и #Категорию',
+      '• показывает входящие, сегодня, неделю и категории',
+      '• закрывает и удаляет задачи кнопками',
+      '• создаёт категории прямо из Telegram',
+      '',
+      'Быстрые команды:',
+      '/add Купить молоко завтра 18:00',
+      '/inbox, /today, /week, /categories, /language',
+    ],
+  },
+  en: {
+    buttons: {
+      addTask: '➕ Add task',
+      cancel: '❌️ Cancel',
+      categories: '📂 Categories',
+      createCategory: '➕ Category',
+      deleteTask: '🗑 Delete',
+      doneTask: '✅ Done',
+      help: '❓ Help',
+      inbox: '📥 Inbox',
+      language: '🌐 Language / Язык',
+      restoreTask: '↩️ Restore',
+      today: '📅 Today',
+      week: '🗓 Week',
+    },
+    commands: {
+      add: 'Add a task',
+      categories: 'Show categories',
+      help: 'Help and examples',
+      inbox: 'Show inbox',
+      language: 'Choose language',
+      menu: 'Open main menu',
+      start: 'Open menu',
+      today: 'Show today tasks',
+      week: 'Show week',
+    },
+    text: {
+      alreadyConnected: 'Afterlight is already connected. Main menu is open.',
+      botConnected: 'Afterlight is connected. You can now manage tasks directly from Telegram.',
+      cancel: 'Action canceled. Main menu is open.',
+      categoryCreated: (title: string) => `Category created: #${title}`,
+      categoryEmpty: 'Category name is empty. Send a name or tap “❌️ Cancel”.',
+      categoryExists: (title: string) => `Category #${title} already exists. You can add tasks to it right away.`,
+      categoryPrompt:
+        'Send the new category name.\n\nExamples:\nWork\nStudy\nHome\n\nAfter creating it, use a hashtag in tasks, for example: “Call client tomorrow 12:00 #Work”.',
+      chooseLanguage: 'Choose bot language.',
+      connectedElsewhere: 'This bot is already connected to another Afterlight workspace.',
+      connectPrompt: 'Open Afterlight settings, enable Telegram integration, then send /start to connect this chat.',
+      createdPrefix: 'Added:',
+      deleted: (title?: string) => `Deleted: ${title ?? 'task'}`,
+      emptyList: 'No active tasks.',
+      emptyTask: 'Task title is empty. Send a task using the examples below or tap “❌️ Cancel”.',
+      helpIntro: 'Afterlight bot works fully inside Telegram:',
+      invalidCommand: 'Unknown command. Here is what you can do:',
+      languageSaved: 'Language saved. Main menu updated.',
+      noCategories: 'No categories yet. Create the first one with the button below.',
+      taskCompleted: (title: string) => `Done: ${title}`,
+      taskNotFound: 'Task not found.',
+      taskRestored: (title: string) => `Moved back to active: ${title}`,
+      taskWasDeleted: 'Task was already deleted or not found.',
+      unknownCategory: (name: string) => `Category #${name} was not found. Create it with “➕ Category” or pick an existing one.`,
+      writeTask: (target: string) => `Send a task for: ${target}`,
+    },
+    title: {
+      categories: 'Categories:',
+      category: 'Category',
+      inbox: '📥 Inbox',
+      today: '📅 Today',
+      week: '🗓 Week',
+    },
+    guide: [
+      'How to write tasks:',
+      '• Buy milk',
+      '• Buy milk today',
+      '• Buy milk tomorrow 18:00',
+      '• Submit report 12.06 14:30',
+      '• Call client #Work',
+      '• Homework tomorrow #Study',
+      '',
+      'What the bot understands:',
+      '• Date: today, tomorrow, 12.06, 12.06.2026',
+      '• Time: 09:30, 18:00',
+      '• Category: #Name, if this category already exists',
+      '',
+      'You can also use /add task text.',
+    ],
+    help: [
+      '• adds tasks from a normal message or button',
+      '• understands date, time, and #Category',
+      '• shows inbox, today, week, and categories',
+      '• completes and deletes tasks with buttons',
+      '• creates categories directly from Telegram',
+      '',
+      'Quick commands:',
+      '/add Buy milk tomorrow 18:00',
+      '/inbox, /today, /week, /categories, /language',
+    ],
+  },
 } as const;
-
-const mainMenuKeyboard: ReplyKeyboardMarkup = {
-  is_persistent: true,
-  keyboard: [
-    [{ text: menuLabels.addTask }, { text: menuLabels.inbox }],
-    [{ text: menuLabels.today }, { text: menuLabels.week }],
-    [{ text: menuLabels.categories }, { text: menuLabels.openApp }],
-    [{ text: menuLabels.help }],
-  ],
-  resize_keyboard: true,
-};
 
 let isRunning = false;
 let lastError: string | undefined;
@@ -121,14 +289,12 @@ let pollAbortController: AbortController | undefined;
 let pollSessionId = 0;
 let pollTimer: NodeJS.Timeout | undefined;
 let onDataChanged: (() => void) | undefined;
-let onQuickAction: ((action: SystemQuickAction) => void) | undefined;
 
 export const configureTelegramBotRuntime = (options: {
   onDataChanged: () => void;
   onQuickAction?: (action: SystemQuickAction) => void;
 }) => {
   onDataChanged = options.onDataChanged;
-  onQuickAction = options.onQuickAction;
 };
 
 export const getTelegramBotStatus = (): TelegramBotStatus => {
@@ -154,6 +320,7 @@ export const updateTelegramBotConfig = async (input: TelegramConfigInput): Promi
   };
 
   if (input.token !== undefined) {
+    nextConfig.botMessageIds = [];
     nextConfig.botUsername = undefined;
     nextConfig.chatId = undefined;
     nextConfig.conversation = undefined;
@@ -173,7 +340,7 @@ export const updateTelegramBotConfig = async (input: TelegramConfigInput): Promi
 
 export const disconnectTelegramBot = (): TelegramBotStatus => {
   stopTelegramBot();
-  writeConfig({ enabled: false });
+  writeConfig({ enabled: false, language: getLanguage(readConfig()) });
   lastError = undefined;
   lastUpdateAt = undefined;
   return getTelegramBotStatus();
@@ -191,7 +358,7 @@ export const testTelegramBotConnection = async (token?: string): Promise<Telegra
   try {
     const bot = await telegramApi<{ id: number; username?: string }>(tokenToTest, 'getMe');
     writeConfig({ ...config, botUsername: bot.username });
-    await setupBotCommands(tokenToTest);
+    await setupBotCommands(tokenToTest, getLanguage(config));
     lastError = undefined;
     lastUpdateAt = new Date().toISOString();
   } catch (error) {
@@ -216,7 +383,7 @@ export const restartTelegramBot = async () => {
   try {
     const bot = await telegramApi<{ id: number; username?: string }>(config.token, 'getMe');
     writeConfig({ ...config, botUsername: bot.username });
-    await setupBotCommands(config.token);
+    await setupBotCommands(config.token, getLanguage(config));
   } catch (error) {
     if (isCurrentPollingSession(sessionId)) {
       const message = getErrorMessage(error);
@@ -264,11 +431,16 @@ const pollTelegram = async (sessionId: number) => {
 
   try {
     pollAbortController = new AbortController();
-    const updates = await telegramApi<TelegramUpdate[]>(config.token, 'getUpdates', {
-      allowed_updates: ['callback_query', 'message'],
-      offset: config.lastUpdateId ? config.lastUpdateId + 1 : undefined,
-      timeout: POLL_TIMEOUT_SECONDS,
-    }, pollAbortController.signal);
+    const updates = await telegramApi<TelegramUpdate[]>(
+      config.token,
+      'getUpdates',
+      {
+        allowed_updates: ['callback_query', 'message'],
+        offset: config.lastUpdateId ? config.lastUpdateId + 1 : undefined,
+        timeout: POLL_TIMEOUT_SECONDS,
+      },
+      pollAbortController.signal,
+    );
 
     let nextConfig = readConfig();
     for (const update of updates) {
@@ -278,6 +450,7 @@ const pollTelegram = async (sessionId: number) => {
       };
       writeConfig(nextConfig);
       await handleUpdate(update, nextConfig.token);
+      nextConfig = readConfig();
     }
 
     lastError = undefined;
@@ -333,88 +506,97 @@ const handleUpdate = async (update: TelegramUpdate, token?: string) => {
   }
 
   const config = readConfig();
+  const language = getLanguage(config);
+  const copy = getCopy(language);
   const text = message.text.trim();
 
   if (!config.chatId) {
-    if (text.startsWith('/start')) {
-      writeConfig({ ...config, chatId: message.chat.id, conversation: undefined });
-      await sendMessage(
-        token,
-        message.chat.id,
-        'Afterlight подключён. Используйте кнопки меню или отправьте текст задачи.',
-        mainMenuKeyboard,
-      );
+    if (isStartIntent(text)) {
+      writeConfig({ ...config, chatId: message.chat.id, conversation: undefined, language });
+      await clearChatBeforeAction(token, message.chat.id, message.message_id);
+      await sendMainMenu(token, message.chat.id, copy.text.botConnected, language);
       return;
     }
 
-    await sendMessage(token, message.chat.id, 'Откройте настройки Afterlight и отправьте /start, чтобы подключить этот чат.');
+    await sendMessage(token, message.chat.id, copy.text.connectPrompt);
     return;
   }
 
   if (message.chat.id !== config.chatId) {
-    await sendMessage(token, message.chat.id, 'This bot is already connected to another Afterlight workspace.');
+    await sendMessage(token, message.chat.id, copy.text.connectedElsewhere);
     return;
   }
 
-  if (config.conversation) {
-    await handleConversationMessage(token, message.chat.id, text, config.conversation);
+  await clearChatBeforeAction(token, message.chat.id, message.message_id);
+  const freshConfig = readConfig();
+  const freshLanguage = getLanguage(freshConfig);
+  const freshCopy = getCopy(freshLanguage);
+
+  if (freshConfig.conversation) {
+    await handleConversationMessage(token, message.chat.id, text, freshConfig.conversation, freshLanguage);
     return;
   }
 
-  if (text.startsWith('/start')) {
-    writeConfig({ ...config, conversation: undefined });
-    await sendMessage(token, message.chat.id, 'Afterlight уже подключён. Главное меню открыто.', mainMenuKeyboard);
+  if (isStartIntent(text) || isMenuIntent(text)) {
+    writeConfig({ ...freshConfig, conversation: undefined });
+    await sendMainMenu(token, message.chat.id, freshCopy.text.alreadyConnected, freshLanguage);
+    return;
+  }
+
+  if (isLanguageIntent(text)) {
+    await sendLanguagePicker(token, message.chat.id, freshLanguage);
     return;
   }
 
   if (isHelpIntent(text)) {
-    await sendHelp(token, message.chat.id);
+    await sendHelp(token, message.chat.id, freshLanguage);
+    return;
+  }
+
+  if (isCategoryCreateIntent(text)) {
+    await startCategoryFlow(token, message.chat.id, freshLanguage);
     return;
   }
 
   if (isAddIntent(text) && !getAddCommandText(text)) {
-    await startAddFlow(token, message.chat.id, { scope: 'inbox' });
+    await startAddFlow(token, message.chat.id, { scope: 'inbox' }, freshLanguage);
     return;
   }
 
   if (isInboxIntent(text)) {
-    await sendTaskList(token, message.chat.id, { scope: 'inbox' });
+    await sendTaskList(token, message.chat.id, { scope: 'inbox' }, freshLanguage);
     return;
   }
 
   if (isTodayIntent(text)) {
-    await sendTaskList(token, message.chat.id, { scope: 'today' });
+    await sendTaskList(token, message.chat.id, { scope: 'today' }, freshLanguage);
     return;
   }
 
   if (isWeekIntent(text)) {
-    await sendTaskList(token, message.chat.id, { scope: 'week' });
+    await sendTaskList(token, message.chat.id, { scope: 'week' }, freshLanguage);
     return;
   }
 
   if (isCategoriesIntent(text)) {
-    await sendCategories(token, message.chat.id);
-    return;
-  }
-
-  if (isOpenAppIntent(text)) {
-    onQuickAction?.('open');
-    await sendMessage(token, message.chat.id, 'Открыл Afterlight.');
+    await sendCategories(token, message.chat.id, freshLanguage);
     return;
   }
 
   if (text.startsWith('/') && !isAddIntent(text)) {
-    await sendHelp(token, message.chat.id);
+    await sendHelp(token, message.chat.id, freshLanguage, freshCopy.text.invalidCommand);
     return;
   }
 
-  await createTaskFromTelegramText(token, message.chat.id, getAddCommandText(text) ?? text);
+  await createTaskFromTelegramText(token, message.chat.id, getAddCommandText(text) ?? text, freshLanguage);
 };
 
 const handleCallbackQuery = async (query: TelegramCallbackQuery, token: string) => {
   const chatId = query.message?.chat.id;
   const data = query.data ?? '';
   const config = readConfig();
+  const language = getLanguage(config);
+  const copy = getCopy(language);
 
   if (!chatId) {
     await answerCallbackQuery(token, query.id);
@@ -422,95 +604,93 @@ const handleCallbackQuery = async (query: TelegramCallbackQuery, token: string) 
   }
 
   if (!config.chatId || chatId !== config.chatId) {
-    await answerCallbackQuery(token, query.id, 'Этот бот подключён к другому рабочему пространству.');
+    await answerCallbackQuery(token, query.id, copy.text.connectedElsewhere);
     return;
   }
 
   await answerCallbackQuery(token, query.id);
+  await clearChatBeforeAction(token, chatId, query.message?.message_id);
+  const freshConfig = readConfig();
+  const freshLanguage = getLanguage(freshConfig);
+  const freshCopy = getCopy(freshLanguage);
 
   if (data === 'flow:cancel') {
-    writeConfig({ ...config, conversation: undefined });
-    await sendMessage(token, chatId, 'Добавление отменено.', mainMenuKeyboard);
+    writeConfig({ ...freshConfig, conversation: undefined });
+    await sendMainMenu(token, chatId, freshCopy.text.cancel, freshLanguage);
+    return;
+  }
+
+  if (data === 'lang:ru' || data === 'lang:en') {
+    const nextLanguage = data.slice('lang:'.length) as LanguageCode;
+    writeConfig({ ...freshConfig, conversation: undefined, language: nextLanguage });
+    await setupBotCommands(token, nextLanguage);
+    await sendMainMenu(token, chatId, getCopy(nextLanguage).text.languageSaved, nextLanguage);
     return;
   }
 
   if (data === 'view:inbox') {
-    await sendTaskList(token, chatId, { scope: 'inbox' });
+    await sendTaskList(token, chatId, { scope: 'inbox' }, freshLanguage);
     return;
   }
 
   if (data === 'view:today') {
-    await sendTaskList(token, chatId, { scope: 'today' });
+    await sendTaskList(token, chatId, { scope: 'today' }, freshLanguage);
     return;
   }
 
   if (data === 'view:week') {
-    await sendTaskList(token, chatId, { scope: 'week' });
+    await sendTaskList(token, chatId, { scope: 'week' }, freshLanguage);
     return;
   }
 
   if (data === 'view:categories') {
-    await sendCategories(token, chatId);
+    await sendCategories(token, chatId, freshLanguage);
+    return;
+  }
+
+  if (data === 'view:language') {
+    await sendLanguagePicker(token, chatId, freshLanguage);
+    return;
+  }
+
+  if (data === 'cat:create') {
+    await startCategoryFlow(token, chatId, freshLanguage);
     return;
   }
 
   if (data === 'add:inbox') {
-    await startAddFlow(token, chatId, { scope: 'inbox' });
+    await startAddFlow(token, chatId, { scope: 'inbox' }, freshLanguage);
     return;
   }
 
   if (data === 'add:today') {
-    await startAddFlow(token, chatId, { dueDate: getTodayDate(), scope: 'today' });
+    await startAddFlow(token, chatId, { dueDate: getTodayDate(), scope: 'today' }, freshLanguage);
     return;
   }
 
   if (data === 'add:week') {
-    await startAddFlow(token, chatId, { scope: 'week' });
+    await startAddFlow(token, chatId, { scope: 'week' }, freshLanguage);
     return;
   }
 
   if (data.startsWith('cat:view:')) {
-    await sendTaskList(token, chatId, { categoryId: data.slice('cat:view:'.length), scope: 'category' });
+    await sendTaskList(token, chatId, { categoryId: data.slice('cat:view:'.length), scope: 'category' }, freshLanguage);
     return;
   }
 
   if (data.startsWith('cat:add:')) {
     const categoryId = data.slice('cat:add:'.length);
-    await startAddFlow(token, chatId, { categoryId, scope: 'category' });
+    await startAddFlow(token, chatId, { categoryId, scope: 'category' }, freshLanguage);
     return;
   }
 
   if (data.startsWith('task:toggle:')) {
-    await toggleTaskFromTelegram(token, chatId, data.slice('task:toggle:'.length));
+    await toggleTaskFromTelegram(token, chatId, data.slice('task:toggle:'.length), freshLanguage);
     return;
   }
 
   if (data.startsWith('task:delete:')) {
-    await deleteTaskFromTelegram(token, chatId, data.slice('task:delete:'.length));
-    return;
-  }
-
-  if (data === 'app:open') {
-    onQuickAction?.('open');
-    await sendMessage(token, chatId, 'Открыл Afterlight.');
-    return;
-  }
-
-  if (data === 'app:add') {
-    onQuickAction?.('add-task');
-    await sendMessage(token, chatId, 'Открыл форму добавления задачи в Afterlight.');
-    return;
-  }
-
-  if (data === 'app:today') {
-    onQuickAction?.('today');
-    await sendMessage(token, chatId, 'Открыл раздел “Сегодня” в Afterlight.');
-    return;
-  }
-
-  if (data === 'app:week') {
-    onQuickAction?.('week');
-    await sendMessage(token, chatId, 'Открыл раздел “Неделя” в Afterlight.');
+    await deleteTaskFromTelegram(token, chatId, data.slice('task:delete:'.length), freshLanguage);
   }
 };
 
@@ -519,49 +699,101 @@ const handleConversationMessage = async (
   chatId: number,
   text: string,
   conversation: NonNullable<TelegramConversation>,
+  language: LanguageCode,
 ) => {
   const config = readConfig();
+  const copy = getCopy(language);
 
   if (isCancelIntent(text)) {
     writeConfig({ ...config, conversation: undefined });
-    await sendMessage(token, chatId, 'Добавление отменено.', mainMenuKeyboard);
+    await sendMainMenu(token, chatId, copy.text.cancel, language);
     return;
   }
 
-  const taskInput = mergeConversationTaskInput(parseTaskText(text), conversation);
+  if (conversation.mode === 'awaiting_category_title') {
+    await createCategoryFromTelegramText(token, chatId, text, language);
+    return;
+  }
+
+  const parsedTask = parseTaskText(text);
+
+  if (parsedTask.unknownCategoryName) {
+    await sendMessage(token, chatId, copy.text.unknownCategory(parsedTask.unknownCategoryName), buildCategoryCreateKeyboard(language));
+    return;
+  }
+
+  const taskInput = mergeConversationTaskInput(parsedTask.input, conversation);
 
   if (!taskInput.title) {
-    await sendMessage(token, chatId, 'Название задачи пустое. Отправьте текст задачи или нажмите “Отмена”.', buildCancelKeyboard());
+    await sendMessage(token, chatId, `${copy.text.emptyTask}\n\n${formatGuide(language)}`, buildCancelKeyboard(language));
     return;
   }
 
   const task = createTask(taskInput);
   writeConfig({ ...config, conversation: undefined });
   onDataChanged?.();
-  await sendMessage(token, chatId, formatCreatedTask(task), buildTaskKeyboard(task));
+  await sendMessage(token, chatId, formatCreatedTask(task, language), buildTaskKeyboard(task, language));
 };
 
-const createTaskFromTelegramText = async (token: string, chatId: number, text: string) => {
-  const taskInput = parseTaskText(text);
+const createTaskFromTelegramText = async (token: string, chatId: number, text: string, language: LanguageCode) => {
+  const copy = getCopy(language);
+  const parsedTask = parseTaskText(text);
 
-  if (!taskInput.title) {
-    await sendMessage(token, chatId, 'Название задачи пустое. Отправьте /add и текст задачи.');
+  if (parsedTask.unknownCategoryName) {
+    await sendMessage(token, chatId, copy.text.unknownCategory(parsedTask.unknownCategoryName), buildCategoryCreateKeyboard(language));
     return;
   }
 
-  const task = createTask(taskInput);
+  if (!parsedTask.input.title) {
+    await sendMessage(token, chatId, `${copy.text.emptyTask}\n\n${formatGuide(language)}`, buildHomeKeyboard(language));
+    return;
+  }
+
+  const task = createTask(parsedTask.input);
   onDataChanged?.();
-  await sendMessage(token, chatId, formatCreatedTask(task), buildTaskKeyboard(task));
+  await sendMessage(token, chatId, formatCreatedTask(task, language), buildTaskKeyboard(task, language));
+};
+
+const createCategoryFromTelegramText = async (token: string, chatId: number, text: string, language: LanguageCode) => {
+  const config = readConfig();
+  const copy = getCopy(language);
+  const title = cleanCategoryTitle(text);
+
+  if (!title) {
+    await sendMessage(token, chatId, copy.text.categoryEmpty, buildCancelKeyboard(language));
+    return;
+  }
+
+  const existingCategory = findCategoryByTitle(title);
+
+  if (existingCategory) {
+    writeConfig({ ...config, conversation: undefined });
+    await sendMessage(token, chatId, copy.text.categoryExists(existingCategory.title), buildCategoryKeyboard(existingCategory, language));
+    return;
+  }
+
+  const category = createCategory({
+    color: pickCategoryColor(),
+    iconMode: 'hash',
+    isFavorite: false,
+    title,
+  });
+
+  writeConfig({ ...config, conversation: undefined });
+  onDataChanged?.();
+  await sendMessage(token, chatId, copy.text.categoryCreated(category.title), buildCategoryKeyboard(category, language));
 };
 
 const startAddFlow = async (
   token: string,
   chatId: number,
   input: { categoryId?: string; dueDate?: string; scope: TaskScope },
+  language: LanguageCode,
 ) => {
   const config = readConfig();
   const category = input.categoryId ? listCategories().find((item) => item.id === input.categoryId) : undefined;
-  const target = formatTaskTarget(input.scope, input.dueDate, category);
+  const target = formatTaskTarget(input.scope, language, input.dueDate, category);
+  const copy = getCopy(language);
 
   writeConfig({
     ...config,
@@ -573,91 +805,109 @@ const startAddFlow = async (
     },
   });
 
-  await sendMessage(
-    token,
-    chatId,
-    `Напишите задачу для раздела: ${target}\n\nМожно сразу указать дату, время или категорию: “Купить молоко завтра 18:00 #Дом”.`,
-    buildCancelKeyboard(),
-  );
+  await sendMessage(token, chatId, `${copy.text.writeTask(target)}\n\n${formatGuide(language)}`, buildCancelKeyboard(language));
+};
+
+const startCategoryFlow = async (token: string, chatId: number, language: LanguageCode) => {
+  const config = readConfig();
+  const copy = getCopy(language);
+  writeConfig({ ...config, conversation: { mode: 'awaiting_category_title' } });
+  await sendMessage(token, chatId, copy.text.categoryPrompt, buildCancelKeyboard(language));
 };
 
 const sendTaskList = async (
   token: string,
   chatId: number,
   filter: { categoryId?: string; scope: TaskScope },
+  language: LanguageCode,
 ) => {
   const tasks = getVisibleTasks(filter).slice(0, TASK_LIST_LIMIT);
   const categories = listCategories();
-  const title = getTaskListTitle(filter, categories);
+  const copy = getCopy(language);
+  const title = getTaskListTitle(filter, categories, language);
   const text =
     tasks.length > 0
       ? `${title}\n\n${tasks.map((task, index) => formatTaskLine(task, index, categories)).join('\n')}`
-      : `${title}\n\nАктивных задач нет.`;
+      : `${title}\n\n${copy.text.emptyList}`;
 
-  await sendMessage(token, chatId, text, buildTaskListKeyboard(tasks, filter));
+  await sendMessage(token, chatId, text, buildTaskListKeyboard(tasks, filter, language));
 };
 
-const sendCategories = async (token: string, chatId: number) => {
+const sendCategories = async (token: string, chatId: number, language: LanguageCode) => {
   const categories = listCategories();
-
-  if (categories.length === 0) {
-    await sendMessage(token, chatId, 'Категорий пока нет.', buildNavigationKeyboard());
-    return;
-  }
-
+  const copy = getCopy(language);
   const rows = categories.flatMap((category) => [
-    [{ text: `${formatCategoryMarker(category)} ${category.title}`, callback_data: `cat:view:${category.id}` }],
-    [{ text: `➕ Добавить в “${truncate(category.title, 28)}”`, callback_data: `cat:add:${category.id}` }],
+    [{ callback_data: `cat:view:${category.id}`, text: `${formatCategoryMarker(category)} ${category.title}` }],
+    [{ callback_data: `cat:add:${category.id}`, text: `${copy.buttons.addTask} #${truncate(category.title, 24)}` }],
   ]);
 
-  await sendMessage(token, chatId, 'Категории:', {
-    inline_keyboard: [...rows, ...buildNavigationRows()],
+  await sendMessage(token, chatId, categories.length > 0 ? copy.title.categories : `${copy.title.categories}\n\n${copy.text.noCategories}`, {
+    inline_keyboard: [
+      [{ callback_data: 'cat:create', text: copy.buttons.createCategory }],
+      ...rows,
+      ...buildCancelRows(language),
+      ...buildNavigationRows(language),
+    ],
   });
 };
 
-const sendHelp = async (token: string, chatId: number) => {
+const sendHelp = async (token: string, chatId: number, language: LanguageCode, prefix?: string) => {
+  const copy = getCopy(language);
   await sendMessage(
     token,
     chatId,
-    [
-      'Afterlight bot умеет:',
-      '• добавлять задачи обычным сообщением или через кнопку',
-      '• понимать “сегодня”, “завтра”, дату 12.06, время 18:30 и #Категорию',
-      '• показывать входящие, сегодня, неделю и категории',
-      '• закрывать и удалять задачи кнопками',
-      '• открывать нужные разделы в приложении',
-      '',
-      'Примеры:',
-      '/add Купить молоко завтра 18:00',
-      'Сделать отчёт сегодня #Работа',
-    ].join('\n'),
-    buildHomeKeyboard(),
+    [prefix, copy.text.helpIntro, ...copy.help, '', formatGuide(language)].filter(Boolean).join('\n'),
+    buildHomeKeyboard(language),
   );
 };
 
-const toggleTaskFromTelegram = async (token: string, chatId: number, taskId: string) => {
+const sendLanguagePicker = async (token: string, chatId: number, language: LanguageCode) => {
+  const copy = getCopy(language);
+  await sendMessage(token, chatId, copy.text.chooseLanguage, {
+    inline_keyboard: [
+      [
+        { callback_data: 'lang:ru', text: 'Русский' },
+        { callback_data: 'lang:en', text: 'English' },
+      ],
+      ...buildCancelRows(language),
+    ],
+  });
+};
+
+const sendMainMenu = async (token: string, chatId: number, text: string, language: LanguageCode) => {
+  await sendMessage(token, chatId, text, buildMainMenuKeyboard(language));
+};
+
+const toggleTaskFromTelegram = async (token: string, chatId: number, taskId: string, language: LanguageCode) => {
+  const copy = getCopy(language);
   const task = toggleTask(taskId);
 
   if (!task) {
-    await sendMessage(token, chatId, 'Задача не найдена.');
+    await sendMessage(token, chatId, copy.text.taskNotFound);
     return;
   }
 
   onDataChanged?.();
-  await sendMessage(token, chatId, task.status === 'completed' ? `Готово: ${task.title}` : `Вернул в активные: ${task.title}`, buildTaskKeyboard(task));
+  await sendMessage(
+    token,
+    chatId,
+    task.status === 'completed' ? copy.text.taskCompleted(task.title) : copy.text.taskRestored(task.title),
+    buildTaskKeyboard(task, language),
+  );
 };
 
-const deleteTaskFromTelegram = async (token: string, chatId: number, taskId: string) => {
+const deleteTaskFromTelegram = async (token: string, chatId: number, taskId: string, language: LanguageCode) => {
+  const copy = getCopy(language);
   const task = listTasks().find((item) => item.id === taskId);
   const wasDeleted = deleteTask(taskId);
 
   if (!wasDeleted) {
-    await sendMessage(token, chatId, 'Задача уже удалена или не найдена.');
+    await sendMessage(token, chatId, copy.text.taskWasDeleted);
     return;
   }
 
   onDataChanged?.();
-  await sendMessage(token, chatId, `Удалено: ${task?.title ?? 'задача'}`, buildNavigationKeyboard());
+  await sendMessage(token, chatId, copy.text.deleted(task?.title), buildNavigationKeyboard(language));
 };
 
 const getVisibleTasks = (filter: { categoryId?: string; scope: TaskScope }) => {
@@ -685,7 +935,7 @@ const getVisibleTasks = (filter: { categoryId?: string; scope: TaskScope }) => {
 
 const mergeConversationTaskInput = (
   input: CreateTaskInput,
-  conversation: NonNullable<TelegramConversation>,
+  conversation: Extract<NonNullable<TelegramConversation>, { mode: 'awaiting_task_text' }>,
 ): CreateTaskInput => {
   const categoryId = input.categoryId ?? conversation.categoryId;
   const dueDate = input.dueDate ?? conversation.dueDate;
@@ -698,10 +948,27 @@ const mergeConversationTaskInput = (
   };
 };
 
+const buildMainMenuKeyboard = (language: LanguageCode): ReplyKeyboardMarkup => {
+  const copy = getCopy(language);
+
+  return {
+    is_persistent: true,
+    keyboard: [
+      [{ text: copy.buttons.addTask }, { text: copy.buttons.inbox }],
+      [{ text: copy.buttons.today }, { text: copy.buttons.week }],
+      [{ text: copy.buttons.categories }, { text: copy.buttons.createCategory }],
+      [{ text: copy.buttons.language }, { text: copy.buttons.help }],
+    ],
+    resize_keyboard: true,
+  };
+};
+
 const buildTaskListKeyboard = (
   tasks: Task[],
   filter: { categoryId?: string; scope: TaskScope },
+  language: LanguageCode,
 ): InlineKeyboardMarkup => {
+  const copy = getCopy(language);
   const addCallbackData =
     filter.scope === 'category' && filter.categoryId
       ? `cat:add:${filter.categoryId}`
@@ -720,56 +987,90 @@ const buildTaskListKeyboard = (
         },
         { callback_data: `task:delete:${task.id}`, text: '🗑' },
       ]),
-      [{ callback_data: addCallbackData, text: '➕ Добавить задачу' }],
-      ...buildNavigationRows(),
+      [{ callback_data: addCallbackData, text: copy.buttons.addTask }],
+      ...buildCancelRows(language),
+      ...buildNavigationRows(language),
     ],
   };
 };
 
-const buildTaskKeyboard = (task: Task): InlineKeyboardMarkup => ({
-  inline_keyboard: [
-    [
-      {
-        callback_data: `task:toggle:${task.id}`,
-        text: task.status === 'completed' ? '↩️ Вернуть' : '✅ Выполнить',
-      },
-      { callback_data: `task:delete:${task.id}`, text: '🗑 Удалить' },
+const buildTaskKeyboard = (task: Task, language: LanguageCode): InlineKeyboardMarkup => {
+  const copy = getCopy(language);
+
+  return {
+    inline_keyboard: [
+      [
+        {
+          callback_data: `task:toggle:${task.id}`,
+          text: task.status === 'completed' ? copy.buttons.restoreTask : copy.buttons.doneTask,
+        },
+        { callback_data: `task:delete:${task.id}`, text: copy.buttons.deleteTask },
+      ],
+      ...buildCancelRows(language),
+      ...buildNavigationRows(language),
     ],
-    ...buildNavigationRows(),
-  ],
+  };
+};
+
+const buildCategoryKeyboard = (category: Category, language: LanguageCode): InlineKeyboardMarkup => {
+  const copy = getCopy(language);
+
+  return {
+    inline_keyboard: [
+      [{ callback_data: `cat:add:${category.id}`, text: `${copy.buttons.addTask} #${category.title}` }],
+      [{ callback_data: `cat:view:${category.id}`, text: `${formatCategoryMarker(category)} ${category.title}` }],
+      ...buildCancelRows(language),
+      ...buildNavigationRows(language),
+    ],
+  };
+};
+
+const buildCategoryCreateKeyboard = (language: LanguageCode): InlineKeyboardMarkup => {
+  const copy = getCopy(language);
+
+  return {
+    inline_keyboard: [[{ callback_data: 'cat:create', text: copy.buttons.createCategory }], ...buildCancelRows(language)],
+  };
+};
+
+const buildCancelKeyboard = (language: LanguageCode): InlineKeyboardMarkup => ({
+  inline_keyboard: [...buildCancelRows(language), ...buildNavigationRows(language)],
 });
 
-const buildCancelKeyboard = (): InlineKeyboardMarkup => ({
-  inline_keyboard: [[{ callback_data: 'flow:cancel', text: 'Отмена' }], ...buildNavigationRows()],
+const buildHomeKeyboard = (language: LanguageCode): InlineKeyboardMarkup => {
+  const copy = getCopy(language);
+
+  return {
+    inline_keyboard: [[{ callback_data: 'add:inbox', text: copy.buttons.addTask }], ...buildCancelRows(language), ...buildNavigationRows(language)],
+  };
+};
+
+const buildNavigationKeyboard = (language: LanguageCode): InlineKeyboardMarkup => ({
+  inline_keyboard: [...buildCancelRows(language), ...buildNavigationRows(language)],
 });
 
-const buildHomeKeyboard = (): InlineKeyboardMarkup => ({
-  inline_keyboard: [
-    [{ callback_data: 'add:inbox', text: '➕ Добавить задачу' }],
-    ...buildNavigationRows(),
-  ],
-});
-
-const buildNavigationKeyboard = (): InlineKeyboardMarkup => ({
-  inline_keyboard: buildNavigationRows(),
-});
-
-const buildNavigationRows = (): InlineKeyboardButton[][] => [
-  [
-    { callback_data: 'view:inbox', text: '📥 Входящие' },
-    { callback_data: 'view:today', text: '📅 Сегодня' },
-  ],
-  [
-    { callback_data: 'view:week', text: '🗓 Неделя' },
-    { callback_data: 'view:categories', text: '📂 Категории' },
-  ],
-  [
-    { callback_data: 'app:add', text: 'Открыть добавление' },
-    { callback_data: 'app:open', text: 'Открыть приложение' },
-  ],
+const buildCancelRows = (language: LanguageCode): InlineKeyboardButton[][] => [
+  [{ callback_data: 'flow:cancel', text: getCopy(language).buttons.cancel }],
 ];
 
-const formatCreatedTask = (task: Task) => `Добавлено:\n${formatTaskLine(task, 0, listCategories()).replace('1. ', '')}`;
+const buildNavigationRows = (language: LanguageCode): InlineKeyboardButton[][] => {
+  const copy = getCopy(language);
+
+  return [
+    [
+      { callback_data: 'view:inbox', text: copy.buttons.inbox },
+      { callback_data: 'view:today', text: copy.buttons.today },
+    ],
+    [
+      { callback_data: 'view:week', text: copy.buttons.week },
+      { callback_data: 'view:categories', text: copy.buttons.categories },
+    ],
+    [{ callback_data: 'view:language', text: copy.buttons.language }],
+  ];
+};
+
+const formatCreatedTask = (task: Task, language: LanguageCode) =>
+  `${getCopy(language).text.createdPrefix}\n${formatTaskLine(task, 0, listCategories()).replace('1. ', '')}`;
 
 const formatTaskLine = (task: Task, index: number, categories: Category[]) => {
   const parts = [`${index + 1}.`, formatPriority(task), task.title];
@@ -788,37 +1089,41 @@ const formatTaskDue = (task: Task) => {
   return [date, task.dueLabel].filter(Boolean).join(' ');
 };
 
-const formatTaskTarget = (scope: TaskScope, dueDate?: string, category?: Category) => {
+const formatTaskTarget = (scope: TaskScope, language: LanguageCode, dueDate?: string, category?: Category) => {
+  const copy = getCopy(language);
+
   if (category) {
     return `#${category.title}`;
   }
 
   if (dueDate === getTodayDate()) {
-    return 'Сегодня';
+    return copy.title.today.replace(/^.\s/, '');
   }
 
   if (scope === 'week') {
-    return 'Неделя';
+    return copy.title.week.replace(/^.\s/, '');
   }
 
-  return 'Входящие';
+  return copy.title.inbox.replace(/^.\s/, '');
 };
 
-const getTaskListTitle = (filter: { categoryId?: string; scope: TaskScope }, categories: Category[]) => {
+const getTaskListTitle = (filter: { categoryId?: string; scope: TaskScope }, categories: Category[], language: LanguageCode) => {
+  const copy = getCopy(language);
+
   if (filter.scope === 'category') {
     const category = categories.find((item) => item.id === filter.categoryId);
-    return category ? `${formatCategoryMarker(category)} ${category.title}` : 'Категория';
+    return category ? `${formatCategoryMarker(category)} ${category.title}` : copy.title.category;
   }
 
   if (filter.scope === 'today') {
-    return '📅 Сегодня';
+    return copy.title.today;
   }
 
   if (filter.scope === 'week') {
-    return '🗓 Неделя';
+    return copy.title.week;
   }
 
-  return '📥 Входящие';
+  return copy.title.inbox;
 };
 
 const formatCategoryMarker = (category: Category) => {
@@ -840,30 +1145,30 @@ const formatPriority = (task: Task) => {
   return '🔵';
 };
 
-const setupBotCommands = (token: string) =>
-  telegramApi(token, 'setMyCommands', {
+const formatGuide = (language: LanguageCode) => getCopy(language).guide.join('\n');
+
+const setupBotCommands = (token: string, language: LanguageCode) => {
+  const commands = getCopy(language).commands;
+
+  return telegramApi(token, 'setMyCommands', {
     commands: [
-      { command: 'add', description: 'Добавить задачу' },
-      { command: 'inbox', description: 'Показать входящие' },
-      { command: 'today', description: 'Показать задачи на сегодня' },
-      { command: 'week', description: 'Показать неделю' },
-      { command: 'categories', description: 'Показать категории' },
-      { command: 'menu', description: 'Открыть меню' },
-      { command: 'help', description: 'Помощь' },
+      { command: 'start', description: commands.start },
+      { command: 'add', description: commands.add },
+      { command: 'inbox', description: commands.inbox },
+      { command: 'today', description: commands.today },
+      { command: 'week', description: commands.week },
+      { command: 'categories', description: commands.categories },
+      { command: 'language', description: commands.language },
+      { command: 'menu', description: commands.menu },
+      { command: 'help', description: commands.help },
     ],
   });
+};
 
-const parseTaskText = (value: string): CreateTaskInput => {
+const parseTaskText = (value: string): { input: CreateTaskInput; unknownCategoryName?: string } => {
   let text = value.replace(/^\/add(@\w+)?\s*/i, '').trim();
-  const categories = listCategories();
-  const categoryMatch = text.match(/(?:^|\s)#([^\s#]+)/);
-  const category = categoryMatch
-    ? categories.find((item) => item.title.toLocaleLowerCase('ru-RU') === categoryMatch[1].toLocaleLowerCase('ru-RU'))
-    : undefined;
-
-  if (categoryMatch) {
-    text = text.replace(categoryMatch[0], ' ').trim();
-  }
+  const categoryInfo = extractCategory(text);
+  text = categoryInfo.text;
 
   const dueLabel = text.match(/\b(?:[01]\d|2[0-3]):[0-5]\d\b/)?.[0];
 
@@ -875,24 +1180,52 @@ const parseTaskText = (value: string): CreateTaskInput => {
   text = dateInfo.text;
 
   return {
-    categoryId: category?.id,
-    dueDate: dateInfo.dueDate,
-    dueLabel,
-    priority: 4,
-    scope: category ? 'category' : dateInfo.dueDate === getTodayDate() ? 'today' : 'inbox',
-    title: text,
+    input: {
+      categoryId: categoryInfo.category?.id,
+      dueDate: dateInfo.dueDate,
+      dueLabel,
+      priority: 4,
+      scope: categoryInfo.category ? 'category' : dateInfo.dueDate === getTodayDate() ? 'today' : 'inbox',
+      title: text,
+    },
+    unknownCategoryName: categoryInfo.unknownCategoryName,
+  };
+};
+
+const extractCategory = (value: string): { category?: Category; text: string; unknownCategoryName?: string } => {
+  const categories = listCategories().sort((a, b) => b.title.length - a.title.length);
+
+  for (const category of categories) {
+    const escapedTitle = escapeRegExp(category.title);
+    const match = value.match(new RegExp(`(^|\\s)#${escapedTitle}(?=\\s|$)`, 'i'));
+
+    if (match) {
+      return { category, text: value.replace(match[0], ' ').trim() };
+    }
+  }
+
+  const categoryMatch = value.match(/(?:^|\s)#([^\s#]+)/);
+
+  if (!categoryMatch) {
+    return { text: value.trim() };
+  }
+
+  return {
+    text: value.replace(categoryMatch[0], ' ').trim(),
+    unknownCategoryName: categoryMatch[1],
   };
 };
 
 const extractDate = (value: string): { dueDate?: string; text: string } => {
-  const lowerValue = value.toLocaleLowerCase('ru-RU');
+  const todayPattern = /\b(today|сегодня)\b/i;
+  const tomorrowPattern = /\b(tomorrow|завтра)\b/i;
 
-  if (/\b(today|сегодня)\b/i.test(lowerValue)) {
-    return { dueDate: getTodayDate(), text: value.replace(/\b(today|сегодня)\b/gi, '').trim() };
+  if (todayPattern.test(value)) {
+    return { dueDate: getTodayDate(), text: value.replace(todayPattern, '').trim() };
   }
 
-  if (/\b(tomorrow|завтра)\b/i.test(lowerValue)) {
-    return { dueDate: getRelativeDate(1), text: value.replace(/\b(tomorrow|завтра)\b/gi, '').trim() };
+  if (tomorrowPattern.test(value)) {
+    return { dueDate: getRelativeDate(1), text: value.replace(tomorrowPattern, '').trim() };
   }
 
   const dateMatch = value.match(/\b(\d{2})\.(\d{2})(?:\.(\d{4}))?\b/);
@@ -911,22 +1244,20 @@ const getAddCommandText = (value: string) => {
   return match ? match[1]?.trim() ?? '' : undefined;
 };
 
-const isAddIntent = (value: string) => value === menuLabels.addTask || /^\/add(?:@\w+)?(?:\s|$)/i.test(value);
+const isAddIntent = (value: string) => isMenuButton(value, 'addTask') || /^\/add(?:@\w+)?(?:\s|$)/i.test(value);
+const isCancelIntent = (value: string) => isMenuButton(value, 'cancel') || /^\/cancel(?:@\w+)?$/i.test(value);
+const isCategoriesIntent = (value: string) => isMenuButton(value, 'categories') || /^\/categories(?:@\w+)?$/i.test(value);
+const isCategoryCreateIntent = (value: string) => isMenuButton(value, 'createCategory') || /^\/category(?:@\w+)?$/i.test(value);
+const isHelpIntent = (value: string) => isMenuButton(value, 'help') || /^\/help(?:@\w+)?$/i.test(value);
+const isInboxIntent = (value: string) => isMenuButton(value, 'inbox') || /^\/inbox(?:@\w+)?$/i.test(value);
+const isLanguageIntent = (value: string) => isMenuButton(value, 'language') || /^\/language(?:@\w+)?$/i.test(value);
+const isMenuIntent = (value: string) => /^\/menu(?:@\w+)?$/i.test(value);
+const isStartIntent = (value: string) => /^\/start(?:@\w+)?$/i.test(value);
+const isTodayIntent = (value: string) => isMenuButton(value, 'today') || /^\/today(?:@\w+)?$/i.test(value);
+const isWeekIntent = (value: string) => isMenuButton(value, 'week') || /^\/week(?:@\w+)?$/i.test(value);
 
-const isCancelIntent = (value: string) => /^\/cancel(?:@\w+)?$/i.test(value) || value.toLocaleLowerCase('ru-RU') === 'отмена';
-
-const isCategoriesIntent = (value: string) => value === menuLabels.categories || /^\/categories(?:@\w+)?$/i.test(value);
-
-const isHelpIntent = (value: string) =>
-  value === menuLabels.help || /^\/(?:help|menu|start)(?:@\w+)?$/i.test(value);
-
-const isInboxIntent = (value: string) => value === menuLabels.inbox || /^\/inbox(?:@\w+)?$/i.test(value);
-
-const isOpenAppIntent = (value: string) => value === menuLabels.openApp || /^\/open(?:@\w+)?$/i.test(value);
-
-const isTodayIntent = (value: string) => value === menuLabels.today || /^\/today(?:@\w+)?$/i.test(value);
-
-const isWeekIntent = (value: string) => value === menuLabels.week || /^\/week(?:@\w+)?$/i.test(value);
+const isMenuButton = (value: string, key: keyof BotCopy['buttons']) =>
+  Object.values(botCopy).some((copy) => value === copy.buttons[key]);
 
 const telegramApi = async <T>(
   token: string,
@@ -949,12 +1280,16 @@ const telegramApi = async <T>(
   return data.result;
 };
 
-const sendMessage = (token: string, chatId: number, text: string, replyMarkup?: TelegramReplyMarkup) =>
-  telegramApi(token, 'sendMessage', {
+const sendMessage = async (token: string, chatId: number, text: string, replyMarkup?: TelegramReplyMarkup) => {
+  const message = await telegramApi<TelegramMessage>(token, 'sendMessage', {
     chat_id: chatId,
     reply_markup: replyMarkup,
     text,
   });
+
+  rememberBotMessage(chatId, message.message_id);
+  return message;
+};
 
 const answerCallbackQuery = (token: string, callbackQueryId: string, text?: string) =>
   telegramApi(token, 'answerCallbackQuery', {
@@ -963,21 +1298,59 @@ const answerCallbackQuery = (token: string, callbackQueryId: string, text?: stri
     text,
   });
 
+const deleteMessage = async (token: string, chatId: number, messageId: number) => {
+  try {
+    await telegramApi(token, 'deleteMessage', {
+      chat_id: chatId,
+      message_id: messageId,
+    });
+  } catch {
+    // Telegram can reject deletes for older or already removed messages; chat cleanup is best effort.
+  }
+};
+
+const clearChatBeforeAction = async (token: string, chatId: number, incomingMessageId?: number) => {
+  const config = readConfig();
+  const ids = [...new Set([...(config.botMessageIds ?? []), incomingMessageId].filter(isNumber))];
+
+  if (ids.length === 0) {
+    return;
+  }
+
+  await Promise.all(ids.map((messageId) => deleteMessage(token, chatId, messageId)));
+  writeConfig({ ...readConfig(), botMessageIds: [] });
+};
+
+const rememberBotMessage = (chatId: number, messageId: number) => {
+  const config = readConfig();
+
+  if (config.chatId !== chatId) {
+    return;
+  }
+
+  writeConfig({
+    ...config,
+    botMessageIds: [...(config.botMessageIds ?? []), messageId].slice(-STORED_BOT_MESSAGE_LIMIT),
+  });
+};
+
 const readConfig = (): TelegramConfig => {
   try {
     const rawValue = fs.readFileSync(getConfigPath(), 'utf8');
     const parsed = JSON.parse(rawValue) as Partial<TelegramConfig>;
 
     return {
+      botMessageIds: Array.isArray(parsed.botMessageIds) ? parsed.botMessageIds.filter(isNumber) : [],
       botUsername: typeof parsed.botUsername === 'string' ? parsed.botUsername : undefined,
       chatId: typeof parsed.chatId === 'number' ? parsed.chatId : undefined,
       conversation: normalizeConversation(parsed.conversation),
       enabled: Boolean(parsed.enabled),
+      language: normalizeLanguage(parsed.language),
       lastUpdateId: typeof parsed.lastUpdateId === 'number' ? parsed.lastUpdateId : undefined,
       token: typeof parsed.token === 'string' ? parsed.token : undefined,
     };
   } catch {
-    return { enabled: false };
+    return { botMessageIds: [], enabled: false, language: 'ru' };
   }
 };
 
@@ -994,10 +1367,27 @@ const cleanToken = (value: string | undefined) => {
   return cleanValue ? cleanValue : undefined;
 };
 
+const cleanCategoryTitle = (value: string) =>
+  value
+    .replace(/^#/, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 64);
+
+const findCategoryByTitle = (title: string) =>
+  listCategories().find((category) => category.title.toLocaleLowerCase() === title.toLocaleLowerCase());
+
+const pickCategoryColor = () => CATEGORY_COLORS[listCategories().length % CATEGORY_COLORS.length];
+
+const getCopy = (language: LanguageCode) => botCopy[language];
+
+const getLanguage = (config: TelegramConfig): LanguageCode => normalizeLanguage(config.language);
+
+const normalizeLanguage = (value: unknown): LanguageCode => (value === 'en' ? 'en' : 'ru');
+
 const getErrorMessage = (error: unknown) => (error instanceof Error ? error.message : 'Telegram bot error.');
 
-const isTelegramPollingConflict = (message: string) =>
-  message.includes('Conflict: terminated by other getUpdates request');
+const isTelegramPollingConflict = (message: string) => message.includes('Conflict: terminated by other getUpdates request');
 
 const isNetworkFetchFailure = (message: string) => message === 'fetch failed';
 
@@ -1007,6 +1397,10 @@ const normalizeConversation = (value: unknown): TelegramConversation => {
   }
 
   const conversation = value as Partial<NonNullable<TelegramConversation>>;
+
+  if (conversation.mode === 'awaiting_category_title') {
+    return { mode: 'awaiting_category_title' };
+  }
 
   if (conversation.mode !== 'awaiting_task_text') {
     return undefined;
@@ -1065,3 +1459,7 @@ const formatDateForUser = (dateValue: string) => {
 
 const truncate = (value: string, maxLength: number) =>
   value.length > maxLength ? `${value.slice(0, Math.max(0, maxLength - 1))}…` : value;
+
+const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const isNumber = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
