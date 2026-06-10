@@ -295,10 +295,47 @@ body {
   padding: 0 20px;
 }
 
-.titlebar-sidebar-tools img {
+.titlebar-brand-mark {
+  position: relative;
   width: 22px;
   height: 22px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  transform-origin: center;
+  transition: transform var(--motion-medium) var(--motion-spring);
+}
+
+.titlebar-brand-mark:hover {
+  transform: rotate(-8deg) scale(1.08);
+}
+
+.titlebar-brand-icon {
+  grid-area: 1 / 1;
+  width: 22px;
+  height: 22px;
+  transition:
+    opacity var(--motion-medium) ease,
+    transform var(--motion-medium) var(--motion-spring);
+}
+
+.titlebar-brand-icon.default {
   opacity: 0.72;
+}
+
+.titlebar-brand-icon.colored {
+  opacity: 0;
+  transform: scale(0.82) rotate(12deg);
+}
+
+.titlebar-brand-mark:hover .titlebar-brand-icon.default {
+  opacity: 0;
+  transform: scale(0.9) rotate(-8deg);
+}
+
+.titlebar-brand-mark:hover .titlebar-brand-icon.colored {
+  opacity: 1;
+  transform: scale(1) rotate(0);
 }
 
 .titlebar-sidebar-toggle {
@@ -1844,10 +1881,10 @@ body {
 .settings-close-button {
   position: absolute;
   top: 18px;
-  right: 20px;
+  right: 15px;
   z-index: 8;
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   display: grid;
   place-items: center;
   border-radius: 6px;
@@ -1863,8 +1900,8 @@ body {
 }
 
 .settings-close-button img {
-  width: 24px;
-  height: 24px;
+  width: 16px;
+  height: 16px;
 }
 
 .settings-page {
@@ -1946,7 +1983,7 @@ body {
   background: #ffffff;
   color: #515151;
   padding: 0 10px;
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 800;
   transition:
     background var(--motion-fast) ease,

@@ -79,7 +79,7 @@ export const Sidebar = ({
       <div className="menu-top-container">
         <div className="user-row">
           <img className="user-avatar" src={profile.avatarDataUrl ?? defaultAvatar} alt="" />
-          <button className="user-name-button" type="button">
+          <button className="user-name-button" type="button" onClick={onOpenSettings}>
             <span className="user-name">{profile.name}</span>
             <span className="user-workspace">{workspace.title}</span>
           </button>
