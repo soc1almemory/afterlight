@@ -56,7 +56,7 @@ export const Sidebar = ({
             <span className="user-workspace">{workspace.title}</span>
           </button>
           <button className="create-category-button" type="button" aria-label={t('createCategory')} onClick={onAddCategory}>
-            <img src={assetUrl('create-icon.svg')} alt="" />
+            <img className="preserve-icon-color" src={assetUrl('create-icon.svg')} alt="" />
           </button>
         </div>
 
@@ -124,7 +124,7 @@ export const Sidebar = ({
             aria-label={t('changelog')}
             onClick={() => onOpenInfo('changelog')}
           >
-            <img src={assetUrl('changelog-icon.svg')} alt="" />
+            <img className="preserve-icon-color" src={assetUrl('changelog-icon.svg')} alt="" />
           </button>
           <button className="bottom-menu-button" type="button" aria-label={t('help')} onClick={() => onOpenInfo('help')}>
             <img src={assetUrl('help-icon.svg')} alt="" />

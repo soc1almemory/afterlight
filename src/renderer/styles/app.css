@@ -2231,13 +2231,52 @@ body {
 
 body.theme-dark {
   background: #171717;
-  color: #f2f2f2;
+  color: #ffffff;
 }
 
 body.theme-dark .afterlight-app,
 .afterlight-app.theme-dark {
   background: #171717;
-  color: #f2f2f2;
+  color: #ffffff;
+}
+
+body.theme-dark * {
+  scrollbar-color: #4a4a4a #1f1f1f;
+}
+
+body.theme-dark *::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+body.theme-dark *::-webkit-scrollbar-track {
+  background: #1f1f1f;
+}
+
+body.theme-dark *::-webkit-scrollbar-thumb {
+  border: 3px solid #1f1f1f;
+  border-radius: 999px;
+  background: #4a4a4a;
+}
+
+body.theme-dark *::-webkit-scrollbar-thumb:hover {
+  background: #666666;
+}
+
+body.theme-dark img[src$='.svg'],
+body.theme-dark img[src*='.svg?'] {
+  filter: brightness(0) invert(1);
+}
+
+body.theme-dark img[src*='add-task-icon.svg'],
+body.theme-dark img[src*='control-delete-icon.svg'],
+body.theme-dark img[src*='control-bar-star.svg'],
+body.theme-dark img[src*='afterlight-icon.svg'],
+body.theme-dark img[src*='create-icon.svg'],
+body.theme-dark img[src*='changelog-icon.svg'],
+body.theme-dark img[src*='checkbox-checked.svg'],
+body.theme-dark img.preserve-icon-color {
+  filter: none;
 }
 
 body.theme-dark .app-titlebar,
@@ -2278,7 +2317,7 @@ body.theme-dark .form-field select,
 body.theme-dark .form-field textarea {
   background: #252525;
   border-color: #373737;
-  color: #f2f2f2;
+  color: #ffffff;
 }
 
 body.theme-dark .app-tab:hover,
@@ -2302,7 +2341,7 @@ body.theme-dark .settings-reset-button,
 body.theme-dark .settings-action button {
   background: #252525;
   border-color: #393939;
-  color: #f2f2f2;
+  color: #ffffff;
 }
 
 body.theme-dark .bottom-menu-button:hover,
@@ -2339,10 +2378,39 @@ body.theme-dark .info-dialog-list p {
   border-color: #393939;
 }
 
+body.theme-dark .search-input-row,
+body.theme-dark .search-input-row input {
+  background: #1f1f1f;
+}
+
 body.theme-dark .user-workspace,
+body.theme-dark .setup-heading p,
+body.theme-dark .app-loading,
+body.theme-dark .app-tab,
+body.theme-dark .tab-navigation,
+body.theme-dark .tab-hash,
+body.theme-dark .control-strip,
+body.theme-dark .control-menu button,
+body.theme-dark .menu-section-title,
+body.theme-dark .category-nav-row,
+body.theme-dark .category-hash,
+body.theme-dark .category-count,
+body.theme-dark .task-category-label,
+body.theme-dark .task-category-hash,
+body.theme-dark .inline-add-task,
+body.theme-dark .notes-field textarea,
+body.theme-dark .search-input-row input,
+body.theme-dark .search-hash,
+body.theme-dark .search-empty,
+body.theme-dark .settings-nav-item,
+body.theme-dark .settings-reset-button,
+body.theme-dark .settings-toggle-row,
 body.theme-dark .settings-field span,
 body.theme-dark .settings-action p,
 body.theme-dark .settings-hint,
+body.theme-dark .settings-placeholder,
+body.theme-dark .workspace-settings-field,
+body.theme-dark .form-field span,
 body.theme-dark .task-meta,
 body.theme-dark .notes-field textarea,
 body.theme-dark .search-result-meta,
@@ -2350,11 +2418,19 @@ body.theme-dark .search-group-title,
 body.theme-dark .info-dialog .dialog-heading p,
 body.theme-dark .info-dialog-list p,
 body.theme-dark .empty-day {
-  color: #b7b7b7;
+  color: #ffffff;
+}
+
+body.theme-dark input::placeholder,
+body.theme-dark textarea::placeholder,
+body.theme-dark .search-input-row input::placeholder {
+  color: #ffffff;
+  opacity: 0.72;
 }
 
 body.theme-dark .task-title.completed {
-  color: #8c8c8c;
+  color: #ffffff;
+  opacity: 0.58;
 }
 
 body.theme-dark .search-result:hover,
@@ -2370,13 +2446,14 @@ body.theme-dark .category-icon-mode button:hover {
 body.theme-dark .settings-button-grid button,
 body.theme-dark .settings-save-button,
 body.theme-dark .dialog-actions button:last-child {
-  background: #f2f2f2;
-  color: #111111;
+  background: #111111;
+  border-color: #393939;
+  color: #ffffff;
 }
 
 body.theme-dark .settings-button-grid button:hover,
 body.theme-dark .settings-save-button:hover {
-  background: #dcdcdc;
+  background: #2b2b2b;
 }
 
 body.theme-dark .outline-accent-button {
@@ -2385,15 +2462,23 @@ body.theme-dark .outline-accent-button {
 }
 
 body.theme-dark .date-pill,
-body.theme-dark .primary-count.low,
 body.theme-dark .task-meta time.completed {
   background: #3a3a3a;
-  color: #eeeeee;
+  color: #ffffff;
+}
+
+body.theme-dark .primary-count {
+  color: #ffffff;
+}
+
+body.theme-dark .task-meta time {
+  background: #5a2d2d;
+  color: #ffffff;
 }
 
 body.theme-dark .settings-toast {
   background: rgba(37, 37, 37, 0.96);
-  color: #f2f2f2;
+  color: #ffffff;
   border-color: #393939;
 }
 

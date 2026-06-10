@@ -53,7 +53,7 @@ export const TitleBar = ({ isSidebarCollapsed, onAddCategory, onToggleSidebar }:
   return (
     <header className="app-titlebar">
       <div className="titlebar-sidebar-tools">
-        <img src={assetUrl('afterlight-icon.svg')} alt="" />
+        <img className="preserve-icon-color" src={assetUrl('afterlight-icon.svg')} alt="" />
         <button
           className={isSidebarCollapsed ? 'titlebar-sidebar-toggle collapsed' : 'titlebar-sidebar-toggle'}
           type="button"

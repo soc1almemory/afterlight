@@ -216,7 +216,11 @@ export const ContentView = ({ onAddTask, onEditTask, onMouseEnter }: ContentView
               onClick={() => void toggleCategoryFavorite(activeCategory.id)}
             >
               <img
-                className="control-bar-star-icon"
+                className={
+                  activeCategory.isFavorite
+                    ? 'control-bar-star-icon preserve-icon-color'
+                    : 'control-bar-star-icon'
+                }
                 src={assetUrl(activeCategory.isFavorite ? 'control-bar-star.svg' : 'control-bar-star-empty.svg')}
                 alt=""
               />
@@ -239,7 +243,7 @@ export const ContentView = ({ onAddTask, onEditTask, onMouseEnter }: ContentView
                 </button>
                 {activeScope === 'category' && activeCategory ? (
                   <button className="danger" type="button" role="menuitem" onClick={() => void handleDeleteCategory()}>
-                    <img src={assetUrl('control-delete-icon.svg')} alt="" />
+                    <img className="preserve-icon-color" src={assetUrl('control-delete-icon.svg')} alt="" />
                     <span>{t('delete')}</span>
                   </button>
                 ) : null}
@@ -272,7 +276,7 @@ export const ContentView = ({ onAddTask, onEditTask, onMouseEnter }: ContentView
             type="button"
             onClick={() => onAddTask(activeScope === 'today' ? getTodayDate(settings.todayRefreshTime) : undefined)}
           >
-            <img src={assetUrl('add-task-icon.svg')} alt="" />
+            <img className="preserve-icon-color" src={assetUrl('add-task-icon.svg')} alt="" />
             <span>{t('addTask')}</span>
           </button>
         ) : null}
@@ -349,7 +353,7 @@ const WeekTaskList = ({
               {group.date ? <time>{formatShortDate(group.date)}</time> : <span className="date-pill neutral">{translate(settings.language, 'noDate')}</span>}
               <h2>{group.label}</h2>
               <button className="week-day-add" type="button" onClick={() => onAddTask(group.date)} aria-label={translate(settings.language, 'addTask')}>
-                <img src={assetUrl('add-task-icon.svg')} alt="" />
+                <img className="preserve-icon-color" src={assetUrl('add-task-icon.svg')} alt="" />
               </button>
             </div>
             <div className="task-list compact">

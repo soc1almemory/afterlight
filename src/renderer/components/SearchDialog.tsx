@@ -33,6 +33,7 @@ export const SearchDialog = ({ isOpen, onClose, onEditTask }: SearchDialogProps)
   const profile = useTaskStore((state) => state.profile);
   const setActiveCategory = useTaskStore((state) => state.setActiveCategory);
   const setScope = useTaskStore((state) => state.setScope);
+  const settings = useTaskStore((state) => state.settings);
   const tasks = useTaskStore((state) => state.tasks);
   const t = useTranslator();
 
@@ -69,7 +70,7 @@ export const SearchDialog = ({ isOpen, onClose, onEditTask }: SearchDialogProps)
       })),
       ...tasks.map((task) => ({
         id: `task-${task.id}`,
-        icon: 'checkbox-icon.svg',
+        icon: settings.theme === 'dark' ? 'checkbox-icon-dt.svg' : 'checkbox-icon.svg',
         kind: 'task' as const,
         label: task.title,
         meta: formatUpdatedAt(task.updatedAt),
@@ -88,7 +89,7 @@ export const SearchDialog = ({ isOpen, onClose, onEditTask }: SearchDialogProps)
       const haystack = `${item.label} ${item.meta ?? ''}`.toLocaleLowerCase('ru-RU');
       return haystack.includes(normalizedQuery);
     });
-  }, [categories, onClose, onEditTask, query, setActiveCategory, setScope, t, tasks]);
+  }, [categories, onClose, onEditTask, query, setActiveCategory, setScope, settings.theme, t, tasks]);
 
   if (!isOpen) {
     return null;

@@ -41,7 +41,7 @@ export const TaskListItem = ({ task, withSeparator, onEditTask, showCategory = f
           aria-label={isCompleted ? t('taskRestore') : t('taskComplete')}
           onClick={() => void toggleTask(task.id)}
         >
-          {isCompleted ? <img src={assetUrl('checkbox-checked.svg')} alt="" /> : null}
+          {isCompleted ? <img className="preserve-icon-color" src={assetUrl('checkbox-checked.svg')} alt="" /> : null}
         </button>
         <span className={`priority priority-${isCompleted ? 'checked' : task.priority}`} />
         {isExpired ? <span className="expired-label">{t('expired')}</span> : null}

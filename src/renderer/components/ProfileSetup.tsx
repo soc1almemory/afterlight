@@ -96,7 +96,7 @@ export const ProfileSetup = () => {
     <div className="setup-shell">
       <header className="setup-titlebar">
         <div className="setup-brand">
-          <img src={assetUrl('afterlight-icon.svg')} alt="" />
+          <img className="preserve-icon-color" src={assetUrl('afterlight-icon.svg')} alt="" />
           <span>Afterlight</span>
         </div>
         <div className="drag-region" />
