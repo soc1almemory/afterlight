@@ -1,4 +1,4 @@
-# Changelog
+# Afterlight v0.2.0
 
 Current MVP state of Afterlight: a local Windows task manager with tasks, categories, notes, settings, Telegram integration, and backups.
 
