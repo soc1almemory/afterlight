@@ -158,7 +158,7 @@ const settingsCopy = {
     },
     telegram: {
       title: 'Интеграция Telegram',
-      description: 'Локальный бот работает только пока Afterlight запущен. Напишите боту /start, затем отправляйте текст задачи или /add текст.',
+      description: 'Локальный бот работает только пока Afterlight запущен. Напишите боту /start, чтобы начать.',
       token: 'Токен бота',
       tokenPlaceholder: 'Вставьте новый токен из BotFather',
       enabled: 'Включить локального Telegram-бота',
@@ -313,7 +313,7 @@ const settingsCopy = {
     },
     telegram: {
       title: 'Telegram integration',
-      description: 'The local bot works only while Afterlight is running. Send /start to the bot, then send task text or /add task text.',
+      description: 'The local bot only works while Afterlight is running. Write to the bot /start to get started.',
       token: 'Bot token',
       tokenPlaceholder: 'Paste a new token from BotFather',
       enabled: 'Enable local Telegram bot',
