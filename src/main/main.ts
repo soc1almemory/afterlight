@@ -108,10 +108,10 @@ const createWindow = async () => {
 
   attachWindowEvents();
   applyWindowState(settings);
+  openDevToolsInDevelopment();
 
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
     await mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
-    mainWindow.webContents.openDevTools({ mode: 'detach' });
   } else {
     await mainWindow.loadFile(path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`));
   }
@@ -128,6 +128,7 @@ app.whenReady().then(createWindow);
 
 app.on('second-instance', () => {
   showMainWindow();
+  openDevToolsInDevelopment();
 });
 
 app.on('before-quit', () => {
@@ -300,6 +301,23 @@ const showMainWindow = () => {
 
   mainWindow.show();
   mainWindow.focus();
+};
+
+const openDevToolsInDevelopment = () => {
+  if (!MAIN_WINDOW_VITE_DEV_SERVER_URL || !mainWindow) {
+    return;
+  }
+
+  const openDevTools = () => {
+    if (!mainWindow || mainWindow.webContents.isDevToolsOpened()) {
+      return;
+    }
+
+    mainWindow.webContents.openDevTools({ activate: true, mode: 'detach' });
+  };
+
+  mainWindow.webContents.once('did-finish-load', openDevTools);
+  setTimeout(openDevTools, 1000);
 };
 
 const sendQuickAction = (action: SystemQuickAction) => {

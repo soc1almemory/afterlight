@@ -78,7 +78,30 @@ body {
   place-items: center;
   background: #fafafa;
   color: #515151;
-  font-weight: 800;
+}
+
+.app-loading.theme-dark {
+  background: #242424;
+}
+
+.app-loading-spinner {
+  width: 64px;
+  height: 64px;
+  border: 6px solid #dddddd;
+  border-top-color: #5967ff;
+  border-radius: 50%;
+  animation: app-loading-spin 760ms linear infinite;
+}
+
+.app-loading.theme-dark .app-loading-spinner {
+  border-color: #3a3a3a;
+  border-top-color: #ffffff;
+}
+
+@keyframes app-loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .setup-shell {

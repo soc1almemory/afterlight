@@ -172,7 +172,7 @@ const settingsCopy = {
       tokenMissing: 'токен не сохранён',
       chat: 'chat_id',
       bot: 'бот',
-      noConnection: 'Подключение отсутствует',
+      noConnection: 'Подключение не проверено',
       saved: 'Настройки Telegram сохранены',
       tested: '✅ Подключение проверено',
       disconnected: 'Telegram отключён',

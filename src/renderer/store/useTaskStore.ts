@@ -18,6 +18,8 @@ import type {
   Workspace,
 } from '../../shared/types';
 
+const THEME_STORAGE_KEY = 'afterlight.theme';
+
 interface AppRoute {
   categoryId?: string;
   scope: TaskScope;
@@ -76,7 +78,7 @@ const defaultSettings: AppSettings = {
   showWeekNoDate: true,
   startSection: 'inbox',
   taskSortMode: 'created',
-  theme: 'light',
+  theme: getInitialTheme(),
   todayRefreshTime: '00:00',
   trayEnabled: true,
   weekOrderMode: 'monday',
@@ -327,6 +329,10 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   updateSettings: async (input) => {
     const settings = await requireApi().updateSettings(input);
 
+    if (input.theme) {
+      persistTheme(input.theme);
+    }
+
     set((state) => {
       const nextRouteState =
         input.showTabBar === false
@@ -398,17 +404,21 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   },
 }));
 
-const appDataToState = (data: AppData) => ({
-  categories: data.categories,
-  error: undefined,
-  hasHydrated: true,
-  isLoading: false,
-  notes: data.notes,
-  profile: data.profile,
-  settings: data.settings,
-  tasks: data.tasks,
-  workspace: data.workspace,
-});
+const appDataToState = (data: AppData) => {
+  persistTheme(data.settings.theme);
+
+  return {
+    categories: data.categories,
+    error: undefined,
+    hasHydrated: true,
+    isLoading: false,
+    notes: data.notes,
+    profile: data.profile,
+    settings: data.settings,
+    tasks: data.tasks,
+    workspace: data.workspace,
+  };
+};
 
 const getInitialRouteState = () => ({
   activeCategoryId: '',
@@ -480,6 +490,23 @@ const readNavigationState = (): TabStateUpdate | undefined => {
 };
 
 const sortCategories = (categories: Category[]) => categories;
+
+function getInitialTheme(): AppSettings['theme'] {
+  if (typeof window === 'undefined') {
+    return 'light';
+  }
+
+  const value = window.localStorage.getItem(THEME_STORAGE_KEY);
+  return value === 'dark' || value === 'light' ? value : 'light';
+}
+
+const persistTheme = (theme: AppSettings['theme']) => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.localStorage.setItem(THEME_STORAGE_KEY, theme);
+};
 
 const getCurrentRoute = (state: Pick<TaskState, 'activeCategoryId' | 'activeScope'>): AppRoute => ({
   categoryId: state.activeScope === 'category' ? state.activeCategoryId : undefined,

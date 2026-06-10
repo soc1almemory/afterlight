@@ -121,7 +121,11 @@ export const App = () => {
   }, [hasHydrated, profile.isSetupComplete, settings.openMode]);
 
   if (!hasHydrated) {
-    return <div className="app-loading">{t('loadingApp')}</div>;
+    return (
+      <div className={`app-loading theme-${settings.theme}`} role="status" aria-label={t('loadingApp')}>
+        <span className="app-loading-spinner" />
+      </div>
+    );
   }
 
   if (!profile.isSetupComplete) {
