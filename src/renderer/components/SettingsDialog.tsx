@@ -172,6 +172,7 @@ const settingsCopy = {
       tokenMissing: 'токен не сохранён',
       chat: 'chat_id',
       bot: 'бот',
+      noConnection: 'Подключение отсутствует',
       saved: 'Настройки Telegram сохранены',
       tested: '✅ Подключение проверено',
       disconnected: 'Telegram отключён',
@@ -326,6 +327,7 @@ const settingsCopy = {
       tokenMissing: 'token not saved',
       chat: 'chat_id',
       bot: 'bot',
+      noConnection: 'No connection',
       saved: 'Telegram settings saved',
       tested: '✅ Connection tested',
       disconnected: 'Telegram disconnected',
@@ -604,6 +606,7 @@ const TelegramSettings = () => {
   const [message, setMessage] = useState('');
   const [status, setStatus] = useState<TelegramBotStatus | undefined>();
   const [token, setToken] = useState('');
+  const [isStatusRefreshing, setStatusRefreshing] = useState(false);
   const isTelegramConnected = Boolean(status?.isRunning && status.chatId);
   const statusIcon = isTelegramConnected
     ? settings.theme === 'dark'
@@ -612,12 +615,17 @@ const TelegramSettings = () => {
     : settings.theme === 'dark'
       ? 'settings-telegram-status-notconnected-dt.svg'
       : 'settings-telegram-status-notconnected.svg';
+  const statusMessage = status?.lastError ?? (message || copy.telegram.noConnection);
 
   useEffect(() => {
     let isMounted = true;
 
     const loadStatus = async () => {
       try {
+        if (isMounted) {
+          setStatusRefreshing(true);
+        }
+
         const telegramStatus = await window.afterlightApi!.getTelegramStatus();
 
         if (isMounted) {
@@ -627,6 +635,10 @@ const TelegramSettings = () => {
       } catch (error) {
         if (isMounted) {
           setMessage(error instanceof Error ? error.message : copy.telegram.failed);
+        }
+      } finally {
+        if (isMounted) {
+          setStatusRefreshing(false);
         }
       }
     };
@@ -642,6 +654,7 @@ const TelegramSettings = () => {
 
   const runAction = async (action: () => Promise<TelegramBotStatus>, successMessage: string) => {
     try {
+      setStatusRefreshing(true);
       const nextStatus = await action();
       setStatus(nextStatus);
       setEnabled(nextStatus.enabled);
@@ -650,6 +663,8 @@ const TelegramSettings = () => {
     } catch (error) {
       setMessage(error instanceof Error ? error.message : copy.telegram.failed);
       return undefined;
+    } finally {
+      setStatusRefreshing(false);
     }
   };
 
@@ -710,7 +725,9 @@ const TelegramSettings = () => {
               {copy.telegram.disconnect}
             </button>
           </div>
-          {message || status?.lastError ? <p className="settings-hint">{status?.lastError ?? message}</p> : null}
+          <div className="telegram-status-message" aria-live="polite">
+            {isStatusRefreshing ? <span className="telegram-status-spinner" aria-label={copy.telegram.status} /> : <span>{statusMessage}</span>}
+          </div>
         </SettingsGroup>
       </form>
     </div>

@@ -1847,7 +1847,6 @@ body {
   min-height: 34px;
   border-radius: 7px;
   padding: 0 14px;
-  font-size: 14px;
 }
 
 .telegram-status {
@@ -1868,6 +1867,29 @@ body {
   border-radius: 6px;
   background: #f1f1f1;
   padding: 5px 8px;
+}
+
+.telegram-status-message {
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+  color: #515151;
+  font-weight: 700;
+}
+
+.telegram-status-spinner {
+  width: 18px;
+  height: 18px;
+  border: 3px solid #d7d7d7;
+  border-top-color: #5967ff;
+  border-radius: 50%;
+  animation: telegram-status-spin 720ms linear infinite;
+}
+
+@keyframes telegram-status-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .settings-threshold-grid .settings-field {
@@ -2686,6 +2708,15 @@ body.theme-dark .telegram-status strong {
 
 body.theme-dark .telegram-status span {
   background: #303030;
+}
+
+body.theme-dark .telegram-status-message {
+  color: #ffffff;
+}
+
+body.theme-dark .telegram-status-spinner {
+  border-color: #3f3f3f;
+  border-top-color: #ffffff;
 }
 
 body.theme-dark .task-meta time {

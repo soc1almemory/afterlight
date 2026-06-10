@@ -49,6 +49,7 @@ let isRunning = false;
 let lastError: string | undefined;
 let lastUpdateAt: string | undefined;
 let pollAbortController: AbortController | undefined;
+let pollSessionId = 0;
 let pollTimer: NodeJS.Timeout | undefined;
 let onDataChanged: (() => void) | undefined;
 
@@ -134,21 +135,25 @@ export const restartTelegramBot = async () => {
 
   isRunning = true;
   lastError = undefined;
+  const sessionId = startPollingSession();
 
   try {
     const bot = await telegramApi<{ id: number; username?: string }>(config.token, 'getMe');
     writeConfig({ ...config, botUsername: bot.username });
   } catch (error) {
-    lastError = getErrorMessage(error);
-    isRunning = false;
+    if (isCurrentPollingSession(sessionId)) {
+      lastError = getErrorMessage(error);
+      isRunning = false;
+    }
     return;
   }
 
-  void pollTelegram();
+  void pollTelegram(sessionId);
 };
 
 export const stopTelegramBot = () => {
   isRunning = false;
+  pollSessionId += 1;
   pollAbortController?.abort();
   pollAbortController = undefined;
 
@@ -158,15 +163,17 @@ export const stopTelegramBot = () => {
   }
 };
 
-const pollTelegram = async () => {
-  if (!isRunning) {
+const pollTelegram = async (sessionId: number) => {
+  if (!isRunning || !isCurrentPollingSession(sessionId)) {
     return;
   }
 
   const config = readConfig();
 
   if (!config.enabled || !config.token) {
-    stopTelegramBot();
+    if (isCurrentPollingSession(sessionId)) {
+      stopTelegramBot();
+    }
     return;
   }
 
@@ -190,24 +197,35 @@ const pollTelegram = async () => {
 
     lastError = undefined;
     lastUpdateAt = new Date().toISOString();
-    scheduleNextPoll(0);
+    scheduleNextPoll(0, sessionId);
   } catch (error) {
-    if (isRunning) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      return;
+    }
+
+    if (isRunning && isCurrentPollingSession(sessionId)) {
       lastError = getErrorMessage(error);
-      scheduleNextPoll(POLL_RETRY_DELAY_MS);
+      scheduleNextPoll(POLL_RETRY_DELAY_MS, sessionId);
     }
   }
 };
 
-const scheduleNextPoll = (delayMs: number) => {
-  if (!isRunning) {
+const scheduleNextPoll = (delayMs: number, sessionId: number) => {
+  if (!isRunning || !isCurrentPollingSession(sessionId)) {
     return;
   }
 
   pollTimer = setTimeout(() => {
-    void pollTelegram();
+    void pollTelegram(sessionId);
   }, delayMs);
 };
+
+const startPollingSession = () => {
+  pollSessionId += 1;
+  return pollSessionId;
+};
+
+const isCurrentPollingSession = (sessionId: number) => sessionId === pollSessionId;
 
 const handleUpdate = async (update: TelegramUpdate, token?: string) => {
   const message = update.message;
