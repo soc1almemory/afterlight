@@ -348,6 +348,21 @@ body {
   line-height: 1;
 }
 
+.tab-category-dot {
+  width: 13px;
+  height: 13px;
+  border-radius: 999px;
+  flex: 0 0 auto;
+}
+
+.tab-category-emoji {
+  width: 14px;
+  flex: 0 0 auto;
+  font-size: 15px;
+  line-height: 1;
+  text-align: center;
+}
+
 .tab-close-button {
   width: 22px;
   height: 22px;
@@ -1282,6 +1297,10 @@ body {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.task-panel-today .notes-field {
+  margin-top: 0;
 }
 
 .notes-field span {
@@ -2435,6 +2454,21 @@ body.theme-dark .nav-arrows button:hover:not(:disabled),
 body.theme-dark .add-tab-button:hover {
   background: #343434;
   color: #ffffff;
+}
+
+body.theme-dark .sidebar img[src*='drop-down-icon.svg'] {
+  filter: brightness(0) invert(1) !important;
+}
+
+body.theme-dark .sidebar .section-toggle span {
+  border-color: #ffffff;
+}
+
+body.theme-dark .sidebar .create-category-button:hover img[src*='create-icon.svg'],
+body.theme-dark .sidebar .menu-section-actions button:hover img[src*='add-icon.svg'],
+body.theme-dark .sidebar .category-icon-button:hover img[src*='edit-icon.svg'],
+body.theme-dark .workspace .task-edit-button:hover img[src*='edit-icon.svg'] {
+  filter: brightness(0) invert(9%) !important;
 }
 
 body.theme-dark .delete-avatar-button:hover:not(:disabled) {

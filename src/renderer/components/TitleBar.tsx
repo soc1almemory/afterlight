@@ -131,7 +131,8 @@ const TabItem = ({
   route: AppRoute;
   t: ReturnType<typeof useTranslator>;
 }) => {
-  const tab = getTabDisplay(route, categories, t);
+  const category = route.scope === 'category' ? categories.find((item) => item.id === route.categoryId) : undefined;
+  const tab = getTabDisplay(route, category, t);
   const routeKey = getRouteKey(route);
   const isActive =
     activeScope === route.scope && (route.scope !== 'category' || activeCategoryId === route.categoryId);
@@ -179,7 +180,7 @@ const TabItem = ({
       aria-selected={isActive}
     >
       <span className="tab-title">
-        {tab.icon ? <img src={assetUrl(tab.icon)} alt="" /> : <span className="tab-hash">#</span>}
+        {tab.icon ? <img src={assetUrl(tab.icon)} alt="" /> : <TabCategoryMarker category={category} />}
         <span>{tab.label}</span>
       </span>
       <button
@@ -197,13 +198,24 @@ const TabItem = ({
   );
 };
 
-const getTabDisplay = (route: AppRoute, categories: Category[], t: ReturnType<typeof useTranslator>) => {
+const TabCategoryMarker = ({ category }: { category?: Category }) => {
+  if (category?.iconMode === 'emoji' && category.emoji) {
+    return <span className="tab-category-emoji">{category.emoji}</span>;
+  }
+
+  if (category?.iconMode === 'color') {
+    return <span className="tab-category-dot" style={{ backgroundColor: category.color }} />;
+  }
+
+  return <span className="tab-hash">#</span>;
+};
+
+const getTabDisplay = (route: AppRoute, category: Category | undefined, t: ReturnType<typeof useTranslator>) => {
   if (route.scope !== 'category') {
     const meta = systemTabMeta[route.scope];
     return { icon: meta.icon, label: t(meta.labelKey) };
   }
 
-  const category = categories.find((item) => item.id === route.categoryId);
   return { icon: undefined, label: category?.title ?? t('categories') };
 };
 
