@@ -2360,11 +2360,14 @@ body {
 
 .info-dialog {
   width: min(560px, calc(100vw - 40px));
+  max-height: min(760px, calc(100vh - 48px));
   border: 1px solid #eeeeee;
   border-radius: 8px;
   background: #ffffff;
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.18);
   padding: 24px;
+  display: flex;
+  flex-direction: column;
   animation: surface-pop-in var(--motion-slow) var(--motion-spring);
 }
 
@@ -2383,21 +2386,60 @@ body {
   line-height: 1.4;
 }
 
-.info-dialog-list {
+.info-markdown {
+  min-height: 0;
+  overflow: auto;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-top: 20px;
+  gap: 12px;
+  margin-top: 22px;
+  padding-right: 6px;
 }
 
-.info-dialog-list p {
+.info-markdown h3,
+.info-markdown h4 {
+  margin: 12px 0 0;
+  font-size: 17px;
+  line-height: 1.2;
+}
+
+.info-markdown h4 {
+  font-size: 15px;
+}
+
+.info-markdown p,
+.info-markdown ul {
   margin: 0;
   border-top: 1px solid #eeeeee;
-  padding-top: 10px;
+  padding-top: 12px;
   color: #333333;
   font-weight: 700;
   line-height: 1.45;
   animation: item-rise-in var(--motion-medium) var(--motion-spring) both;
+}
+
+.info-markdown ul {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding-left: 20px;
+}
+
+.info-markdown li {
+  padding-left: 2px;
+}
+
+.info-markdown strong {
+  color: #111111;
+  font-weight: 900;
+}
+
+.info-markdown code {
+  border-radius: 5px;
+  background: #f1f1f1;
+  padding: 2px 5px;
+  color: #111111;
+  font-weight: 900;
 }
 
 .dialog-heading {
@@ -2963,7 +3005,8 @@ body.theme-dark .task-row.with-separator,
 body.theme-dark .search-group,
 body.theme-dark .search-input-row,
 body.theme-dark .settings-divider,
-body.theme-dark .info-dialog-list p {
+body.theme-dark .info-markdown p,
+body.theme-dark .info-markdown ul {
   border-color: #393939;
 }
 
@@ -3010,8 +3053,18 @@ body.theme-dark .notes-field textarea,
 body.theme-dark .search-result-meta,
 body.theme-dark .search-group-title,
 body.theme-dark .info-dialog .dialog-heading p,
-body.theme-dark .info-dialog-list p,
+body.theme-dark .info-markdown p,
+body.theme-dark .info-markdown ul,
 body.theme-dark .empty-day {
+  color: #ffffff;
+}
+
+body.theme-dark .info-markdown strong {
+  color: #ffffff;
+}
+
+body.theme-dark .info-markdown code {
+  background: #303030;
   color: #ffffff;
 }
 
