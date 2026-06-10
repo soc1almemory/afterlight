@@ -103,6 +103,7 @@ const createWindow = async () => {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
+      devTools: true,
     },
   });
 
@@ -303,8 +304,10 @@ const showMainWindow = () => {
   mainWindow.focus();
 };
 
+const isDevelopment = !app.isPackaged;
+
 const openDevToolsInDevelopment = () => {
-  if (!MAIN_WINDOW_VITE_DEV_SERVER_URL || !mainWindow) {
+  if (!isDevelopment || !mainWindow) {
     return;
   }
 
@@ -316,7 +319,12 @@ const openDevToolsInDevelopment = () => {
     mainWindow.webContents.openDevTools({ activate: true, mode: 'detach' });
   };
 
-  mainWindow.webContents.once('did-finish-load', openDevTools);
+  if (mainWindow.webContents.isLoading()) {
+    mainWindow.webContents.once('did-finish-load', openDevTools);
+  } else {
+    openDevTools();
+  }
+
   setTimeout(openDevTools, 1000);
 };
 
