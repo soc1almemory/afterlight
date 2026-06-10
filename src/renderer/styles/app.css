@@ -808,8 +808,6 @@ body {
 .workspace {
   grid-row: 2;
   position: relative;
-  --workspace-panel-top: 66px;
-  --workspace-panel-width: min(1102px, calc(100% - 96px));
   min-width: 0;
   min-height: 0;
   display: flex;
@@ -817,21 +815,6 @@ body {
   align-items: center;
   padding: 0 48px 48px;
   overflow: auto;
-}
-
-.workspace::before {
-  content: '';
-  position: absolute;
-  top: var(--workspace-panel-top);
-  bottom: 0;
-  left: 50%;
-  min-height: calc(100% - var(--workspace-panel-top));
-  width: var(--workspace-panel-width);
-  transform: translateX(-50%);
-  border-right: 1px solid #f1f1f1;
-  border-left: 1px solid #f1f1f1;
-  background: #ffffff;
-  pointer-events: none;
 }
 
 .workspace > * {
@@ -951,8 +934,8 @@ body {
 .task-panel {
   position: relative;
   width: min(1102px, 100%);
-  min-height: max(680px, calc(100vh - 106px));
-  background: #ffffff;
+  min-height: 680px;
+  background: transparent;
   border: 0;
   padding: 64px 88px 32px;
   display: flex;
@@ -963,10 +946,12 @@ body {
 .task-panel::before {
   content: '';
   position: absolute;
-  inset: 0;
+  inset: 0 0 -10000px;
   z-index: 0;
-  border-top: 1px solid #f1f1f1;
-  background: transparent;
+  border: 1px solid #f1f1f1;
+  border-bottom: 0;
+  border-radius: 5px 5px 0 0;
+  background: #ffffff;
   pointer-events: none;
 }
 
@@ -2343,7 +2328,8 @@ body.theme-dark .control-actions img:not(.preserve-icon-color),
 body.theme-dark .control-menu button img:not(.preserve-icon-color),
 body.theme-dark .task-edit-button img:not(.preserve-icon-color),
 body.theme-dark .search-input-row img:not(.preserve-icon-color),
-body.theme-dark .search-result-title img:not(.preserve-icon-color) {
+body.theme-dark .search-result-title img:not(.preserve-icon-color),
+body.theme-dark .info-dialog .dialog-heading button img:not(.preserve-icon-color) {
   filter: brightness(0) invert(1) !important;
 }
 
@@ -2352,6 +2338,31 @@ body.theme-dark .setup-titlebar,
 body.theme-dark .control-strip {
   background: #1f1f1f;
   border-color: #2d2d2d;
+}
+
+body.theme-dark .window-actions button:hover {
+  background: #343434;
+}
+
+body.theme-dark .window-actions button:last-child:hover {
+  background: #c42121;
+}
+
+body.theme-dark .window-actions button:hover img {
+  filter: brightness(0) invert(1) !important;
+}
+
+body.theme-dark .titlebar-sidebar-toggle:hover {
+  border-color: #ffffff;
+}
+
+body.theme-dark .titlebar-sidebar-toggle:hover span {
+  background: #ffffff;
+}
+
+body.theme-dark img[src*='collapse-icon.svg']:hover,
+body.theme-dark button:hover img[src*='collapse-icon.svg'] {
+  filter: brightness(0) invert(1) !important;
 }
 
 body.theme-dark .titlebar-sidebar-tools,
@@ -2366,11 +2377,6 @@ body.theme-dark .setup-workspace {
   background: #171717;
 }
 
-body.theme-dark .workspace::before {
-  background: #1f1f1f;
-  border-color: #303030;
-}
-
 body.theme-dark .task-panel::before,
 body.theme-dark .setup-panel,
 body.theme-dark .search-dialog,
@@ -2380,10 +2386,6 @@ body.theme-dark .category-dialog,
 body.theme-dark .info-dialog {
   background: #1f1f1f;
   border-color: #303030;
-}
-
-body.theme-dark .task-panel {
-  background: #1f1f1f;
 }
 
 body.theme-dark .app-tab,
@@ -2620,8 +2622,6 @@ body.theme-dark .settings-toast {
   }
 
   .workspace {
-    --workspace-panel-top: 58px;
-    --workspace-panel-width: min(1102px, calc(100% - 48px));
     padding: 0 24px 24px;
   }
 

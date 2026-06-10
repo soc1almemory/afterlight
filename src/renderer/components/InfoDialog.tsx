@@ -88,7 +88,7 @@ export const InfoDialog = ({ kind, onClose }: InfoDialogProps) => {
             <p>{content.intro}</p>
           </div>
           <button type="button" aria-label={dialogContent[language].close} onClick={onClose}>
-            <img src={assetUrl('settings-close-icon.svg')} alt="" />
+            <img src={assetUrl('popup-close-icon.svg')} alt="" />
           </button>
         </header>
         <div className="info-dialog-list">
