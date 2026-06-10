@@ -62,7 +62,7 @@ export const ContentView = ({ onAddTask, onEditTask, onMouseEnter }: ContentView
   }, [settings.language, settings.todayRefreshTime]);
 
   useEffect(() => {
-    const intervalId = window.setInterval(() => setTimeTick(Date.now()), 1000);
+    const intervalId = window.setInterval(() => setTimeTick(Date.now()), 30_000);
 
     return () => window.clearInterval(intervalId);
   }, []);
@@ -572,10 +572,14 @@ const getLastModifiedLabel = (
   const diffSeconds = Math.max(0, Math.floor((timeTick - latestTime) / 1000));
 
   if (diffSeconds < 60) {
-    return translate(language, 'updatedSecondsAgo', { value: diffSeconds });
+    return translate(language, 'updatedJustNow');
   }
 
   const diffMinutes = Math.floor(diffSeconds / 60);
+
+  if (diffMinutes === 1) {
+    return translate(language, 'updatedMinuteAgo');
+  }
 
   if (diffMinutes < 60) {
     return translate(language, 'updatedMinutesAgo', { value: diffMinutes });
@@ -600,6 +604,14 @@ const parseDateTime = (value: string | undefined) => {
     return undefined;
   }
 
-  const date = new Date(value.includes('T') ? value : value.replace(' ', 'T'));
+  const date = new Date(toDateTimeInput(value));
   return Number.isNaN(date.getTime()) ? undefined : date.getTime();
+};
+
+const toDateTimeInput = (value: string) => {
+  if (value.includes('T')) {
+    return value;
+  }
+
+  return `${value.replace(' ', 'T')}Z`;
 };

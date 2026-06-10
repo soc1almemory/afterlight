@@ -182,7 +182,7 @@ const formatUpdatedAt = (value: string | undefined) => {
     return undefined;
   }
 
-  const date = new Date(value.includes('T') ? value : value.replace(' ', 'T'));
+  const date = new Date(toDateTimeInput(value));
 
   if (Number.isNaN(date.getTime())) {
     return undefined;
@@ -195,6 +195,14 @@ const formatUpdatedAt = (value: string | undefined) => {
   const minutes = String(date.getMinutes()).padStart(2, '0');
 
   return `${day}.${month}.${year} ${hours}:${minutes}`;
+};
+
+const toDateTimeInput = (value: string) => {
+  if (value.includes('T')) {
+    return value;
+  }
+
+  return `${value.replace(' ', 'T')}Z`;
 };
 
 const getTodayDate = () => {

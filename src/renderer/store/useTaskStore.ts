@@ -173,7 +173,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       categoryId: input.categoryId || (state.activeScope === 'category' ? state.activeCategoryId : undefined),
     });
 
-    set((currentState) => ({ error: undefined, tasks: [task, ...currentState.tasks] }));
+    set((currentState) => ({ error: undefined, tasks: [{ ...task, updatedAt: task.updatedAt ?? new Date().toISOString() }, ...currentState.tasks] }));
   },
   closeTab: (route) => {
     set((state) => closeRoute(state, route));

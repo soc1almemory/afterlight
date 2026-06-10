@@ -304,7 +304,7 @@ export const createTask = (input: CreateTaskInput): Task => {
 
   refreshTaskExpiration();
 
-  return task;
+  return getTask(task.id) ?? task;
 };
 
 export const toggleTask = (taskId: string): Task | null => {

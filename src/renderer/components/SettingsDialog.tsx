@@ -53,6 +53,7 @@ const settingsCopy = {
       deleteAction: 'Удалить аккаунт',
       confirmTitle: 'Подтвердите удаление аккаунта',
       confirmDescription: 'Профиль, задачи, категории и заметки текущего рабочего пространства будут сброшены.',
+      saved: 'Изменения сохранены',
       cancel: 'Отмена',
       confirm: 'Подтвердить',
     },
@@ -189,6 +190,7 @@ const settingsCopy = {
       deleteAction: 'Delete account',
       confirmTitle: 'Confirm account deletion',
       confirmDescription: 'The profile, tasks, categories, and notes in the current workspace will be reset.',
+      saved: 'Changes saved',
       cancel: 'Cancel',
       confirm: 'Confirm',
     },
@@ -642,6 +644,7 @@ const AccountSettings = ({ onAfterReset }: { onAfterReset: () => void }) => {
   const [password, setPassword] = useState('');
   const [workspaceTitle, setWorkspaceTitle] = useState(workspace.title);
   const [isConfirmingReset, setConfirmingReset] = useState(false);
+  const [isSavedToastVisible, setSavedToastVisible] = useState(false);
   const canSave = Boolean(name.trim() && workspaceTitle.trim() && email.trim());
   const defaultAvatar = assetUrl(settings.theme === 'dark' ? 'default-avatar-dark.png' : 'default-avatar-light.png');
 
@@ -651,6 +654,7 @@ const AccountSettings = ({ onAfterReset }: { onAfterReset: () => void }) => {
     setName(profile.name);
     setPassword('');
     setConfirmingReset(false);
+    setSavedToastVisible(false);
   }, [profile]);
 
   useEffect(() => {
@@ -681,15 +685,20 @@ const AccountSettings = ({ onAfterReset }: { onAfterReset: () => void }) => {
       return;
     }
 
-    void updateProfile({
-      ...profile,
-      avatarDataUrl,
-      email,
-      isSetupComplete: true,
-      name,
-      password: password || undefined,
+    void Promise.all([
+      updateProfile({
+        ...profile,
+        avatarDataUrl,
+        email,
+        isSetupComplete: true,
+        name,
+        password: password || undefined,
+      }),
+      updateWorkspace({ ...workspace, title: workspaceTitle }),
+    ]).then(() => {
+      setSavedToastVisible(true);
+      window.setTimeout(() => setSavedToastVisible(false), 2200);
     });
-    void updateWorkspace({ ...workspace, title: workspaceTitle });
   };
 
   const handleReset = async () => {
@@ -699,6 +708,7 @@ const AccountSettings = ({ onAfterReset }: { onAfterReset: () => void }) => {
 
   return (
     <div className="settings-page">
+      {isSavedToastVisible ? <div className="settings-toast">{copy.account.saved}</div> : null}
       <form className="settings-form" onSubmit={handleSubmit}>
         <section className="settings-section">
           <h3>{copy.account.profile}</h3>
