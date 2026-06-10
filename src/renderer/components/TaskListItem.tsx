@@ -1,5 +1,6 @@
 import type { DragEvent } from 'react';
-import type { Category, Task } from '../../shared/types';
+import type { Category, LanguageCode, Task } from '../../shared/types';
+import { translate, useTranslator } from '../i18n';
 import { assetUrl } from '../lib/assets';
 import { useTaskStore } from '../store/useTaskStore';
 
@@ -12,11 +13,13 @@ interface TaskListItemProps {
 
 export const TaskListItem = ({ task, withSeparator, onEditTask, showCategory = false }: TaskListItemProps) => {
   const categories = useTaskStore((state) => state.categories);
+  const settings = useTaskStore((state) => state.settings);
   const toggleTask = useTaskStore((state) => state.toggleTask);
+  const t = useTranslator();
   const isCompleted = task.status === 'completed';
   const isExpired = task.isExpired || isActiveOverdueTask(task);
   const category = categories.find((item) => item.id === task.categoryId);
-  const dateLabel = formatDeadline(task);
+  const dateLabel = formatDeadline(task, settings.language);
 
   const handleDragStart = (event: DragEvent<HTMLElement>) => {
     event.dataTransfer.setData('text/plain', task.id);
@@ -35,17 +38,17 @@ export const TaskListItem = ({ task, withSeparator, onEditTask, showCategory = f
         <button
           className={isCompleted ? 'checkbox-button checked' : 'checkbox-button'}
           type="button"
-          aria-label={isCompleted ? 'Вернуть задачу' : 'Завершить задачу'}
+          aria-label={isCompleted ? t('taskRestore') : t('taskComplete')}
           onClick={() => void toggleTask(task.id)}
         >
           {isCompleted ? <img src={assetUrl('checkbox-checked.svg')} alt="" /> : null}
         </button>
         <span className={`priority priority-${isCompleted ? 'checked' : task.priority}`} />
-        {isExpired ? <span className="expired-label">Просрочено</span> : null}
+        {isExpired ? <span className="expired-label">{t('expired')}</span> : null}
         <button className="task-title-button" type="button" onClick={() => onEditTask(task)}>
           <strong className={isCompleted ? 'task-title completed' : 'task-title'}>{task.title}</strong>
         </button>
-        <button className="task-edit-button" type="button" aria-label="Редактировать задачу" onClick={() => onEditTask(task)}>
+        <button className="task-edit-button" type="button" aria-label={t('editTask')} onClick={() => onEditTask(task)}>
           <img src={assetUrl('edit-icon.svg')} alt="" />
         </button>
       </div>
@@ -83,7 +86,7 @@ const getTodayDate = () => {
   return `${year}-${month}-${day}`;
 };
 
-const formatDeadline = (task: Task) => {
+const formatDeadline = (task: Task, language: LanguageCode) => {
   const dueTime = normalizeDueTime(task.dueLabel);
 
   if (!task.dueDate) {
@@ -95,11 +98,11 @@ const formatDeadline = (task: Task) => {
   const tomorrow = getRelativeDate(1);
 
   if (task.dueDate === today) {
-    return ['Сегодня', dueTime, formattedDate].filter(Boolean).join(', ');
+    return [translate(language, 'today'), dueTime, formattedDate].filter(Boolean).join(', ');
   }
 
   if (task.dueDate === tomorrow) {
-    return ['Завтра', dueTime, formattedDate].filter(Boolean).join(', ');
+    return [translate(language, 'tomorrow'), dueTime, formattedDate].filter(Boolean).join(', ');
   }
 
   return [dueTime, formattedDate].filter(Boolean).join(', ');
