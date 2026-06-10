@@ -259,7 +259,11 @@ export const ContentView = ({ onAddTask, onEditTask, onMouseEnter }: ContentView
         </div>
       </div>
 
-      <section className={`task-panel task-panel-${activeScope}`} aria-labelledby="task-panel-title">
+      <section
+        className={`task-panel task-panel-${activeScope}`}
+        key={`${activeScope}-${activeCategoryId}`}
+        aria-labelledby="task-panel-title"
+      >
         <div className="task-panel-heading">
           <h1 id="task-panel-title">{title}</h1>
         </div>
