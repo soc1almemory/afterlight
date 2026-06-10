@@ -47,6 +47,7 @@ contextBridge.exposeInMainWorld('afterlightApi', {
   toggleTask: (taskId: string): Promise<Task> => ipcRenderer.invoke('tasks:toggle', taskId),
   updateTask: (input: UpdateTaskInput): Promise<Task> => ipcRenderer.invoke('tasks:update', input),
   deleteTask: (taskId: string): Promise<string> => ipcRenderer.invoke('tasks:delete', taskId),
+  deleteTasks: (taskIds: string[]): Promise<string[]> => ipcRenderer.invoke('tasks:delete-many', taskIds),
   updateNote: (scope: TaskScope, text: string, categoryId?: string): Promise<Note> =>
     ipcRenderer.invoke('notes:update', { scope, text, categoryId }),
   updateProfile: (input: UpdateProfileInput): Promise<UserProfile> => ipcRenderer.invoke('profile:update', input),

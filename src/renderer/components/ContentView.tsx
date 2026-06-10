@@ -41,7 +41,7 @@ export const ContentView = ({ onAddTask, onEditTask, onMouseEnter }: ContentView
   const notes = useTaskStore((state) => state.notes);
   const settings = useTaskStore((state) => state.settings);
   const deleteCategory = useTaskStore((state) => state.deleteCategory);
-  const deleteTask = useTaskStore((state) => state.deleteTask);
+  const deleteTasks = useTaskStore((state) => state.deleteTasks);
   const toggleCategoryFavorite = useTaskStore((state) => state.toggleCategoryFavorite);
   const updateNote = useTaskStore((state) => state.updateNote);
   const [isControlMenuOpen, setControlMenuOpen] = useState(false);
@@ -109,6 +109,7 @@ export const ContentView = ({ onAddTask, onEditTask, onMouseEnter }: ContentView
     timeTick,
   );
   const tasksToClear = activeScope === 'week' ? weekGroups.flatMap((group) => group.tasks) : visibleTasks;
+  const addTaskIcon = settings.theme === 'dark' ? 'add-task-icon-dt.svg' : 'add-task-icon.svg';
 
   const handleClearPage = async () => {
     if (tasksToClear.length === 0) {
@@ -121,7 +122,12 @@ export const ContentView = ({ onAddTask, onEditTask, onMouseEnter }: ContentView
     }
 
     setControlMenuOpen(false);
-    await Promise.all(tasksToClear.map((task) => deleteTask(task.id)));
+    await deleteTasks(tasksToClear.map((task) => task.id));
+    requestAnimationFrame(() => {
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
+    });
   };
 
   const handleDeleteCategory = async () => {
@@ -276,7 +282,7 @@ export const ContentView = ({ onAddTask, onEditTask, onMouseEnter }: ContentView
             type="button"
             onClick={() => onAddTask(activeScope === 'today' ? getTodayDate(settings.todayRefreshTime) : undefined)}
           >
-            <img className="preserve-icon-color" src={assetUrl('add-task-icon.svg')} alt="" />
+            <img className="preserve-icon-color" src={assetUrl(addTaskIcon)} alt="" />
             <span>{t('addTask')}</span>
           </button>
         ) : null}
@@ -311,6 +317,7 @@ const WeekTaskList = ({
 }) => {
   const updateTask = useTaskStore((state) => state.updateTask);
   const today = getTodayDate();
+  const addTaskIcon = settings.theme === 'dark' ? 'add-task-icon-dt.svg' : 'add-task-icon.svg';
 
   const moveTaskToDate = async (taskId: string, dueDate?: string) => {
     const task = useTaskStore.getState().tasks.find((item) => item.id === taskId);
@@ -353,7 +360,7 @@ const WeekTaskList = ({
               {group.date ? <time>{formatShortDate(group.date)}</time> : <span className="date-pill neutral">{translate(settings.language, 'noDate')}</span>}
               <h2>{group.label}</h2>
               <button className="week-day-add" type="button" onClick={() => onAddTask(group.date)} aria-label={translate(settings.language, 'addTask')}>
-                <img className="preserve-icon-color" src={assetUrl('add-task-icon.svg')} alt="" />
+                <img className="preserve-icon-color" src={assetUrl(addTaskIcon)} alt="" />
               </button>
             </div>
             <div className="task-list compact">

@@ -16,6 +16,7 @@ import {
   completeProfileSetup,
   deleteCategory,
   deleteTask,
+  deleteTasks,
   listAppData,
   resetProfile,
   listCategories,
@@ -145,6 +146,8 @@ export const registerTaskIpcHandlers = (options: RegisterTaskIpcHandlersOptions 
 
     return taskId;
   });
+
+  ipcMain.handle('tasks:delete-many', (_event, taskIds: string[]) => deleteTasks(taskIds));
 
   ipcMain.handle('notes:update', (_event, input: { scope: TaskScope; text: string; categoryId?: string }) =>
     updateNote(input.scope, input.text, input.categoryId),

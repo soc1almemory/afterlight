@@ -127,15 +127,27 @@ export const Sidebar = ({
             <img className="preserve-icon-color" src={assetUrl('changelog-icon.svg')} alt="" />
           </button>
           <button className="bottom-menu-button" type="button" aria-label={t('help')} onClick={() => onOpenInfo('help')}>
-            <img src={assetUrl('help-icon.svg')} alt="" />
+            <img
+              className="preserve-icon-color"
+              src={assetUrl(settings.theme === 'dark' ? 'help-icon-dt.svg' : 'help-icon.svg')}
+              alt=""
+            />
           </button>
         </div>
         <div className="bottom-menu-group">
           <button className="bottom-menu-button" type="button" aria-label="Telegram" onClick={() => onOpenInfo('telegram')}>
-            <img src={assetUrl('telegram-icon.svg')} alt="" />
+            <img
+              className="preserve-icon-color"
+              src={assetUrl(settings.theme === 'dark' ? 'telegram-icon-dt.svg' : 'telegram-icon.svg')}
+              alt=""
+            />
           </button>
           <button className="bottom-menu-button" type="button" aria-label={t('settings')} onClick={onOpenSettings}>
-            <img src={assetUrl('settings-icon.svg')} alt="" />
+            <img
+              className="preserve-icon-color"
+              src={assetUrl(settings.theme === 'dark' ? 'settings-icon-dt.svg' : 'settings-icon.svg')}
+              alt=""
+            />
           </button>
         </div>
       </div>

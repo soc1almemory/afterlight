@@ -375,6 +375,31 @@ export const deleteTask = (taskId: string): boolean => {
   return result.changes > 0;
 };
 
+export const deleteTasks = (taskIds: string[]): string[] => {
+  const cleanTaskIds = [...new Set(taskIds.filter(Boolean))];
+
+  if (cleanTaskIds.length === 0) {
+    return [];
+  }
+
+  const database = getDatabase();
+  const workspaceId = getActiveWorkspaceId();
+  const deletedTaskIds: string[] = [];
+  const deleteStatement = database.prepare('DELETE FROM tasks WHERE id = @taskId AND workspace_id = @workspaceId');
+  const runDelete = database.transaction((ids: string[]) => {
+    ids.forEach((taskId) => {
+      const result = deleteStatement.run({ taskId, workspaceId });
+
+      if (result.changes > 0) {
+        deletedTaskIds.push(taskId);
+      }
+    });
+  });
+
+  runDelete(cleanTaskIds);
+  return deletedTaskIds;
+};
+
 export const updateNote = (scope: TaskScope, text: string, categoryId?: string): Note => {
   const cleanCategoryId = cleanOptional(categoryId);
   const workspaceId = getActiveWorkspaceId();

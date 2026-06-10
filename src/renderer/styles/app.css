@@ -808,6 +808,7 @@ body {
 .workspace {
   grid-row: 2;
   position: relative;
+  --workspace-panel-top: 66px;
   min-width: 0;
   min-height: 0;
   display: flex;
@@ -815,6 +816,25 @@ body {
   align-items: center;
   padding: 0 48px 48px;
   overflow: auto;
+}
+
+.workspace::before {
+  content: '';
+  position: absolute;
+  top: var(--workspace-panel-top);
+  bottom: 0;
+  left: 50%;
+  width: min(1102px, calc(100% - 96px));
+  transform: translateX(-50%);
+  border-right: 1px solid #f1f1f1;
+  border-left: 1px solid #f1f1f1;
+  background: #ffffff;
+  pointer-events: none;
+}
+
+.workspace > * {
+  position: relative;
+  z-index: 1;
 }
 
 .control-strip {
@@ -927,7 +947,7 @@ body {
 .task-panel {
   position: relative;
   width: min(1102px, 100%);
-  min-height: 680px;
+  min-height: max(680px, calc(100vh - 106px));
   background: transparent;
   border: 0;
   padding: 64px 88px 32px;
@@ -939,7 +959,7 @@ body {
 .task-panel::before {
   content: '';
   position: absolute;
-  inset: 0 0 -10000px;
+  inset: 0;
   z-index: 0;
   border: 1px solid #f1f1f1;
   border-bottom: 0;
@@ -2298,6 +2318,11 @@ body.theme-dark .setup-workspace {
   background: #171717;
 }
 
+body.theme-dark .workspace::before {
+  background: #1f1f1f;
+  border-color: #303030;
+}
+
 body.theme-dark .task-panel::before,
 body.theme-dark .setup-panel,
 body.theme-dark .search-dialog,
@@ -2391,6 +2416,8 @@ body.theme-dark .tab-navigation,
 body.theme-dark .tab-hash,
 body.theme-dark .control-strip,
 body.theme-dark .control-menu button,
+body.theme-dark .search-menu-button,
+body.theme-dark .primary-nav-item,
 body.theme-dark .menu-section-title,
 body.theme-dark .category-nav-row,
 body.theme-dark .category-hash,
@@ -2406,6 +2433,9 @@ body.theme-dark .settings-nav-item,
 body.theme-dark .settings-reset-button,
 body.theme-dark .settings-toggle-row,
 body.theme-dark .settings-field span,
+body.theme-dark .color-field legend,
+body.theme-dark .priority-picker legend,
+body.theme-dark .emoji-picker-header,
 body.theme-dark .settings-action p,
 body.theme-dark .settings-hint,
 body.theme-dark .settings-placeholder,
@@ -2436,11 +2466,52 @@ body.theme-dark .task-title.completed {
 body.theme-dark .search-result:hover,
 body.theme-dark .search-result:focus-visible,
 body.theme-dark .emoji-option:hover,
-body.theme-dark .emoji-option.active,
-body.theme-dark .category-icon-mode button.active,
-body.theme-dark .category-icon-mode button:hover {
+body.theme-dark .emoji-option.active {
   background: #303030;
   color: #ffffff;
+}
+
+body.theme-dark .form-field input[type='date']::-webkit-calendar-picker-indicator,
+body.theme-dark .form-field input[type='time']::-webkit-calendar-picker-indicator,
+body.theme-dark .settings-field input[type='time']::-webkit-calendar-picker-indicator {
+  filter: brightness(0) invert(1);
+}
+
+body.theme-dark .priority-option {
+  background: #252525;
+  border-color: #373737;
+  color: #ffffff;
+}
+
+body.theme-dark .priority-option:hover,
+body.theme-dark .priority-option.active {
+  border-color: #ffffff;
+  color: #ffffff;
+}
+
+body.theme-dark .category-icon-mode {
+  background: #252525;
+}
+
+body.theme-dark .category-icon-mode button {
+  background: #ffffff;
+  color: #111111;
+}
+
+body.theme-dark .category-icon-mode button.active,
+body.theme-dark .category-icon-mode button:hover {
+  background: #ffffff;
+  color: #111111;
+}
+
+body.theme-dark .dialog-actions button {
+  background: #f3f3f3;
+  color: #111111;
+}
+
+body.theme-dark .dialog-actions .danger-button {
+  background: #fff1f1;
+  color: #c42121;
 }
 
 body.theme-dark .settings-button-grid button,
@@ -2488,7 +2559,12 @@ body.theme-dark .settings-toast {
   }
 
   .workspace {
+    --workspace-panel-top: 58px;
     padding: 0 24px 24px;
+  }
+
+  .workspace::before {
+    width: min(1102px, calc(100% - 48px));
   }
 
   .control-strip {

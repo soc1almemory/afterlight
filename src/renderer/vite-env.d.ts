@@ -46,6 +46,7 @@ interface AfterlightApi {
   toggleTask: (taskId: string) => Promise<Task>;
   updateTask: (input: UpdateTaskInput) => Promise<Task>;
   deleteTask: (taskId: string) => Promise<string>;
+  deleteTasks: (taskIds: string[]) => Promise<string[]>;
   updateNote: (scope: TaskScope, text: string, categoryId?: string) => Promise<Note>;
   updateProfile: (input: UpdateProfileInput) => Promise<UserProfile>;
   updateWorkspace: (input: UpdateWorkspaceInput) => Promise<Workspace>;

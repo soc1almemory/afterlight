@@ -102,6 +102,7 @@ interface TaskState {
   closeTab: (route: AppRoute) => void;
   deleteCategory: (categoryId: string) => Promise<void>;
   deleteTask: (taskId: string) => Promise<void>;
+  deleteTasks: (taskIds: string[]) => Promise<void>;
   goBack: () => void;
   goForward: () => void;
   hydrate: () => Promise<void>;
@@ -204,6 +205,21 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     set((state) => ({
       error: undefined,
       tasks: state.tasks.filter((task) => task.id !== taskId),
+    }));
+  },
+  deleteTasks: async (taskIds) => {
+    const cleanTaskIds = [...new Set(taskIds.filter(Boolean))];
+
+    if (cleanTaskIds.length === 0) {
+      return;
+    }
+
+    const deletedTaskIds = await requireApi().deleteTasks(cleanTaskIds);
+    const deletedTaskIdsSet = new Set(deletedTaskIds);
+
+    set((state) => ({
+      error: undefined,
+      tasks: state.tasks.filter((task) => !deletedTaskIdsSet.has(task.id)),
     }));
   },
   goBack: () => {
