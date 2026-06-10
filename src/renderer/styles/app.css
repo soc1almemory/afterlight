@@ -1472,6 +1472,7 @@ body {
 .settings-dialog {
   width: min(1240px, calc(100vw - 40px));
   height: min(790px, calc(100vh - 40px));
+  position: relative;
   border-radius: 8px;
   background: #ffffff;
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.22);
@@ -1528,10 +1529,10 @@ body {
 }
 
 .settings-close-button {
-  position: sticky;
-  top: 0;
-  z-index: 5;
-  margin: -42px 0 8px auto;
+  position: absolute;
+  top: 18px;
+  right: 20px;
+  z-index: 8;
   width: 34px;
   height: 34px;
   display: grid;
@@ -1569,6 +1570,14 @@ body {
   gap: 24px;
 }
 
+.settings-section-heading {
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
 .settings-section + .settings-section {
   margin-top: 24px;
 }
@@ -1577,6 +1586,22 @@ body {
   margin: 0;
   font-size: 18px;
   line-height: 1.2;
+}
+
+.settings-reset-button {
+  min-height: 30px;
+  border: 1px solid #d7d7d7;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #515151;
+  padding: 0 10px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.settings-reset-button:hover {
+  background: #f3f3f3;
+  color: #111111;
 }
 
 .settings-divider {
@@ -1608,11 +1633,44 @@ body {
   gap: 12px;
 }
 
+.profile-avatar-shell {
+  position: relative;
+}
+
 .profile-avatar {
   width: 100px;
   height: 100px;
   border-radius: 50%;
   object-fit: cover;
+}
+
+.delete-avatar-button {
+  position: absolute;
+  top: 2px;
+  right: -14px;
+  width: 28px;
+  height: 28px;
+  border: 1px solid #d7d7d7;
+  border-radius: 999px;
+  background: #ffffff;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+}
+
+.delete-avatar-button:hover:not(:disabled) {
+  background: #fff1f1;
+  border-color: #ffb3b7;
+}
+
+.delete-avatar-button:disabled {
+  cursor: default;
+  opacity: 0.38;
+}
+
+.delete-avatar-button img {
+  width: 15px;
+  height: 15px;
 }
 
 .outline-accent-button {
@@ -2137,6 +2195,168 @@ body {
 .dialog-actions .danger-button {
   background: #fff1f1;
   color: #c42121;
+}
+
+body.theme-dark {
+  background: #171717;
+  color: #f2f2f2;
+}
+
+body.theme-dark .afterlight-app,
+.afterlight-app.theme-dark {
+  background: #171717;
+  color: #f2f2f2;
+}
+
+body.theme-dark .app-titlebar,
+body.theme-dark .setup-titlebar,
+body.theme-dark .control-strip {
+  background: #1f1f1f;
+  border-color: #2d2d2d;
+}
+
+body.theme-dark .titlebar-sidebar-tools,
+body.theme-dark .sidebar,
+body.theme-dark .settings-nav {
+  background: #242424;
+  border-color: #303030;
+}
+
+body.theme-dark .workspace,
+body.theme-dark .setup-workspace {
+  background: #171717;
+}
+
+body.theme-dark .task-panel::before,
+body.theme-dark .setup-panel,
+body.theme-dark .search-dialog,
+body.theme-dark .settings-dialog,
+body.theme-dark .task-dialog,
+body.theme-dark .category-dialog,
+body.theme-dark .info-dialog {
+  background: #1f1f1f;
+  border-color: #303030;
+}
+
+body.theme-dark .app-tab,
+body.theme-dark .settings-field input,
+body.theme-dark .settings-field select,
+body.theme-dark .form-field input,
+body.theme-dark .form-field select,
+body.theme-dark .form-field textarea {
+  background: #252525;
+  border-color: #373737;
+  color: #f2f2f2;
+}
+
+body.theme-dark .app-tab:hover,
+body.theme-dark .app-tab.active,
+body.theme-dark .search-menu-button:hover,
+body.theme-dark .primary-nav-item:hover,
+body.theme-dark .primary-nav-item.active,
+body.theme-dark .category-nav-row:hover,
+body.theme-dark .category-nav-row.active,
+body.theme-dark .settings-nav-item.active,
+body.theme-dark .settings-nav-item:hover {
+  background: #303030;
+  color: #ffffff;
+}
+
+body.theme-dark .bottom-menu,
+body.theme-dark .control-menu,
+body.theme-dark .delete-avatar-button,
+body.theme-dark .settings-close-button,
+body.theme-dark .settings-reset-button,
+body.theme-dark .settings-action button {
+  background: #252525;
+  border-color: #393939;
+  color: #f2f2f2;
+}
+
+body.theme-dark .bottom-menu-button:hover,
+body.theme-dark .control-actions button:hover,
+body.theme-dark .task-panel-heading button:hover,
+body.theme-dark .control-menu button:hover,
+body.theme-dark .settings-close-button:hover,
+body.theme-dark .settings-reset-button:hover,
+body.theme-dark .category-icon-button:hover,
+body.theme-dark .tab-close-button:hover,
+body.theme-dark .nav-arrows button:hover:not(:disabled),
+body.theme-dark .add-tab-button:hover {
+  background: #343434;
+  color: #ffffff;
+}
+
+body.theme-dark .week-day {
+  background: #272727;
+}
+
+body.theme-dark .week-day:hover {
+  background: #303030;
+}
+
+body.theme-dark .week-day.today {
+  background: #222632;
+}
+
+body.theme-dark .task-row.with-separator,
+body.theme-dark .search-group,
+body.theme-dark .search-input-row,
+body.theme-dark .settings-divider,
+body.theme-dark .info-dialog-list p {
+  border-color: #393939;
+}
+
+body.theme-dark .user-workspace,
+body.theme-dark .settings-field span,
+body.theme-dark .settings-action p,
+body.theme-dark .settings-hint,
+body.theme-dark .task-meta,
+body.theme-dark .notes-field textarea,
+body.theme-dark .search-result-meta,
+body.theme-dark .search-group-title,
+body.theme-dark .info-dialog .dialog-heading p,
+body.theme-dark .info-dialog-list p,
+body.theme-dark .empty-day {
+  color: #b7b7b7;
+}
+
+body.theme-dark .task-title.completed {
+  color: #8c8c8c;
+}
+
+body.theme-dark .search-result:hover,
+body.theme-dark .search-result:focus-visible,
+body.theme-dark .emoji-option:hover,
+body.theme-dark .emoji-option.active,
+body.theme-dark .category-icon-mode button.active,
+body.theme-dark .category-icon-mode button:hover {
+  background: #303030;
+  color: #ffffff;
+}
+
+body.theme-dark .settings-button-grid button,
+body.theme-dark .settings-save-button,
+body.theme-dark .dialog-actions button:last-child {
+  background: #f2f2f2;
+  color: #111111;
+}
+
+body.theme-dark .settings-button-grid button:hover,
+body.theme-dark .settings-save-button:hover {
+  background: #dcdcdc;
+}
+
+body.theme-dark .outline-accent-button {
+  border-color: #8c95ff;
+  color: #a4abff;
+}
+
+body.theme-dark .date-pill,
+body.theme-dark .primary-count.low,
+body.theme-dark .task-meta time.completed {
+  background: #3a3a3a;
+  color: #eeeeee;
 }
 
 @media (max-width: 980px) {

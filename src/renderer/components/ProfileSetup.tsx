@@ -3,10 +3,46 @@ import type { ChangeEvent, FormEvent } from 'react';
 import { assetUrl } from '../lib/assets';
 import { useTaskStore } from '../store/useTaskStore';
 
+const setupCopy = {
+  ru: {
+    close: 'Закрыть',
+    email: 'Email',
+    heading: 'Настройте профиль',
+    loading: 'Сохранение...',
+    maximize: 'Развернуть',
+    minimize: 'Свернуть',
+    name: 'Имя пользователя',
+    password: 'Пароль',
+    passwordPlaceholder: 'Введите пароль',
+    start: 'Начать работу',
+    subheading: 'Создайте локальный профиль и рабочее пространство для задач.',
+    upload: 'Загрузить аватар',
+    workspace: 'Рабочее пространство',
+    workspacePlaceholder: 'Личное пространство',
+  },
+  en: {
+    close: 'Close',
+    email: 'Email',
+    heading: 'Set up your profile',
+    loading: 'Saving...',
+    maximize: 'Maximize',
+    minimize: 'Minimize',
+    name: 'Username',
+    password: 'Password',
+    passwordPlaceholder: 'Enter password',
+    start: 'Start working',
+    subheading: 'Create a local profile and workspace for your tasks.',
+    upload: 'Upload avatar',
+    workspace: 'Workspace',
+    workspacePlaceholder: 'Personal workspace',
+  },
+} as const;
+
 export const ProfileSetup = () => {
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const completeProfileSetup = useTaskStore((state) => state.completeProfileSetup);
   const error = useTaskStore((state) => state.error);
+  const settings = useTaskStore((state) => state.settings);
   const [avatarDataUrl, setAvatarDataUrl] = useState<string | undefined>();
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
@@ -15,6 +51,8 @@ export const ProfileSetup = () => {
   const [isSaving, setSaving] = useState(false);
   const controls = window.afterlightWindow;
   const canSubmit = Boolean(name.trim() && workspaceTitle.trim() && email.trim() && password.trim());
+  const copy = setupCopy[settings.language];
+  const defaultAvatar = assetUrl(settings.theme === 'dark' ? 'default-avatar-dark.png' : 'default-avatar-light.png');
 
   const handleAvatarChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -63,13 +101,13 @@ export const ProfileSetup = () => {
         </div>
         <div className="drag-region" />
         <div className="window-actions">
-          <button type="button" aria-label="Свернуть" onClick={() => void controls?.minimize()}>
+          <button type="button" aria-label={copy.minimize} onClick={() => void controls?.minimize()}>
             <img src={assetUrl('Minimize.svg')} alt="" />
           </button>
-          <button type="button" aria-label="Развернуть" onClick={() => void controls?.toggleMaximize()}>
+          <button type="button" aria-label={copy.maximize} onClick={() => void controls?.toggleMaximize()}>
             <img src={assetUrl('Maximize.svg')} alt="" />
           </button>
-          <button type="button" aria-label="Закрыть" onClick={() => void controls?.close()}>
+          <button type="button" aria-label={copy.close} onClick={() => void controls?.close()}>
             <img src={assetUrl('Close.svg')} alt="" />
           </button>
         </div>
@@ -78,14 +116,14 @@ export const ProfileSetup = () => {
       <main className="setup-workspace">
         <form className="setup-panel" onSubmit={handleSubmit}>
           <div className="setup-heading">
-            <h1>Настройте профиль</h1>
-            <p>Создайте локальный профиль и рабочее пространство для задач.</p>
+            <h1>{copy.heading}</h1>
+            <p>{copy.subheading}</p>
           </div>
 
           <div className="setup-avatar-block">
             <img
               className="setup-avatar"
-              src={avatarDataUrl ?? assetUrl('default-avatar-light.png')}
+              src={avatarDataUrl ?? defaultAvatar}
               alt=""
             />
             <input
@@ -96,34 +134,34 @@ export const ProfileSetup = () => {
               onChange={handleAvatarChange}
             />
             <button className="outline-accent-button" type="button" onClick={() => avatarInputRef.current?.click()}>
-              Загрузить аватар
+              {copy.upload}
             </button>
           </div>
 
           <div className="setup-fields">
             <label className="form-field">
-              <span>Имя пользователя</span>
+              <span>{copy.name}</span>
               <input value={name} onChange={(event) => setName(event.target.value)} placeholder="Username" />
             </label>
             <label className="form-field">
-              <span>Рабочее пространство</span>
+              <span>{copy.workspace}</span>
               <input
                 value={workspaceTitle}
                 onChange={(event) => setWorkspaceTitle(event.target.value)}
-                placeholder="Личное пространство"
+                placeholder={copy.workspacePlaceholder}
               />
             </label>
             <label className="form-field">
-              <span>Email</span>
+              <span>{copy.email}</span>
               <input value={email} onChange={(event) => setEmail(event.target.value)} placeholder="username@gmail.com" />
             </label>
             <label className="form-field">
-              <span>Пароль</span>
+              <span>{copy.password}</span>
               <input
                 value={password}
                 type="password"
                 onChange={(event) => setPassword(event.target.value)}
-                placeholder="Введите пароль"
+                placeholder={copy.passwordPlaceholder}
               />
             </label>
           </div>
@@ -131,7 +169,7 @@ export const ProfileSetup = () => {
           {error ? <div className="app-error">{error}</div> : null}
 
           <button className="setup-submit" type="submit" disabled={!canSubmit || isSaving}>
-            {isSaving ? 'Сохранение...' : 'Начать работу'}
+            {isSaving ? copy.loading : copy.start}
           </button>
         </form>
       </main>

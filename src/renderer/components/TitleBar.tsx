@@ -1,5 +1,7 @@
-import type { KeyboardEvent } from 'react';
+import type { KeyboardEvent, MouseEvent } from 'react';
 import type { Category, TaskScope } from '../../shared/types';
+import type { TranslationKey } from '../i18n';
+import { useTranslator } from '../i18n';
 import { assetUrl } from '../lib/assets';
 import { useTaskStore } from '../store/useTaskStore';
 
@@ -14,10 +16,10 @@ interface TitleBarProps {
   onToggleSidebar: () => void;
 }
 
-const systemTabMeta: Record<Exclude<TaskScope, 'category'>, { icon: string; label: string }> = {
-  inbox: { icon: 'incoming-icon.svg', label: 'Входящие' },
-  today: { icon: 'today-icon.svg', label: 'Сегодня' },
-  week: { icon: 'week-icon.svg', label: 'Неделя' },
+const systemTabMeta: Record<Exclude<TaskScope, 'category'>, { icon: string; labelKey: TranslationKey }> = {
+  inbox: { icon: 'incoming-icon.svg', labelKey: 'inbox' },
+  today: { icon: 'today-icon.svg', labelKey: 'today' },
+  week: { icon: 'week-icon.svg', labelKey: 'week' },
 };
 
 export const TitleBar = ({ isSidebarCollapsed, onAddCategory, onToggleSidebar }: TitleBarProps) => {
@@ -35,6 +37,7 @@ export const TitleBar = ({ isSidebarCollapsed, onAddCategory, onToggleSidebar }:
   const settings = useTaskStore((state) => state.settings);
   const setActiveCategory = useTaskStore((state) => state.setActiveCategory);
   const setScope = useTaskStore((state) => state.setScope);
+  const t = useTranslator();
 
   const activateTab = (route: AppRoute) => {
     if (route.scope === 'category' && route.categoryId) {
@@ -54,7 +57,7 @@ export const TitleBar = ({ isSidebarCollapsed, onAddCategory, onToggleSidebar }:
         <button
           className={isSidebarCollapsed ? 'titlebar-sidebar-toggle collapsed' : 'titlebar-sidebar-toggle'}
           type="button"
-          aria-label={isSidebarCollapsed ? 'Развернуть боковую панель' : 'Свернуть боковую панель'}
+          aria-label={isSidebarCollapsed ? t('expandSidebar') : t('collapseSidebar')}
           aria-pressed={isSidebarCollapsed}
           onClick={onToggleSidebar}
         >
@@ -64,15 +67,15 @@ export const TitleBar = ({ isSidebarCollapsed, onAddCategory, onToggleSidebar }:
 
       {settings.showTabBar ? <div className="tab-navigation">
         <div className="nav-arrows">
-          <button type="button" aria-label="Назад" disabled={!canGoBack} onClick={goBack}>
+          <button type="button" aria-label={t('back')} disabled={!canGoBack} onClick={goBack}>
             <img src={assetUrl('left-nav-arrow.svg')} alt="" />
           </button>
-          <button type="button" aria-label="Вперёд" disabled={!canGoForward} onClick={goForward}>
+          <button type="button" aria-label={t('forward')} disabled={!canGoForward} onClick={goForward}>
             <img src={assetUrl('right-nav-arrow.svg')} alt="" />
           </button>
         </div>
 
-        <div className="tabs-group" role="tablist" aria-label="Открытые вкладки">
+        <div className="tabs-group" role="tablist" aria-label={t('openTabs')}>
           {openTabs.map((route) => (
             <TabItem
               activeCategoryId={activeCategoryId}
@@ -83,24 +86,25 @@ export const TitleBar = ({ isSidebarCollapsed, onAddCategory, onToggleSidebar }:
               onClose={closeTab}
               onMove={moveTab}
               route={route}
+              t={t}
             />
           ))}
         </div>
 
-        <button className="add-tab-button" type="button" aria-label="Создать категорию" onClick={onAddCategory}>
+        <button className="add-tab-button" type="button" aria-label={t('createCategory')} onClick={onAddCategory}>
           <img src={assetUrl('add-icon.svg')} alt="" />
         </button>
       </div> : null}
 
       <div className="drag-region" />
       <div className="window-actions">
-        <button type="button" aria-label="Свернуть" onClick={() => void controls?.minimize()}>
+        <button type="button" aria-label={t('minimize')} onClick={() => void controls?.minimize()}>
           <img src={assetUrl('Minimize.svg')} alt="" />
         </button>
-        <button type="button" aria-label="Развернуть" onClick={() => void controls?.toggleMaximize()}>
+        <button type="button" aria-label={t('maximize')} onClick={() => void controls?.toggleMaximize()}>
           <img src={assetUrl('Maximize.svg')} alt="" />
         </button>
-        <button type="button" aria-label="Закрыть" onClick={() => void controls?.close()}>
+        <button type="button" aria-label={t('closeWindow')} onClick={() => void controls?.close()}>
           <img src={assetUrl('Close.svg')} alt="" />
         </button>
       </div>
@@ -116,6 +120,7 @@ const TabItem = ({
   onClose,
   onMove,
   route,
+  t,
 }: {
   activeCategoryId: string;
   activeScope: TaskScope;
@@ -124,8 +129,9 @@ const TabItem = ({
   onClose: (route: AppRoute) => void;
   onMove: (sourceKey: string, targetKey: string) => void;
   route: AppRoute;
+  t: ReturnType<typeof useTranslator>;
 }) => {
-  const tab = getTabDisplay(route, categories);
+  const tab = getTabDisplay(route, categories, t);
   const routeKey = getRouteKey(route);
   const isActive =
     activeScope === route.scope && (route.scope !== 'category' || activeCategoryId === route.categoryId);
@@ -137,10 +143,25 @@ const TabItem = ({
     }
   };
 
+  const handleMouseDown = (event: MouseEvent<HTMLDivElement>) => {
+    if (event.button === 1) {
+      event.preventDefault();
+    }
+  };
+
+  const handleAuxClick = (event: MouseEvent<HTMLDivElement>) => {
+    if (event.button === 1) {
+      event.preventDefault();
+      event.stopPropagation();
+      onClose(route);
+    }
+  };
+
   return (
     <div
       className={isActive ? 'app-tab active' : 'app-tab'}
       draggable
+      onAuxClick={handleAuxClick}
       onClick={() => onActivate(route)}
       onDragOver={(event) => event.preventDefault()}
       onDragStart={(event) => {
@@ -152,6 +173,7 @@ const TabItem = ({
         onMove(event.dataTransfer.getData('text/plain'), routeKey);
       }}
       onKeyDown={handleKeyDown}
+      onMouseDown={handleMouseDown}
       role="tab"
       tabIndex={0}
       aria-selected={isActive}
@@ -163,7 +185,7 @@ const TabItem = ({
       <button
         className="tab-close-button"
         type="button"
-        aria-label={`Закрыть вкладку ${tab.label}`}
+        aria-label={`${t('close')} ${tab.label}`}
         onClick={(event) => {
           event.stopPropagation();
           onClose(route);
@@ -175,13 +197,14 @@ const TabItem = ({
   );
 };
 
-const getTabDisplay = (route: AppRoute, categories: Category[]) => {
+const getTabDisplay = (route: AppRoute, categories: Category[], t: ReturnType<typeof useTranslator>) => {
   if (route.scope !== 'category') {
-    return systemTabMeta[route.scope];
+    const meta = systemTabMeta[route.scope];
+    return { icon: meta.icon, label: t(meta.labelKey) };
   }
 
   const category = categories.find((item) => item.id === route.categoryId);
-  return { icon: undefined, label: category?.title ?? 'Категория' };
+  return { icon: undefined, label: category?.title ?? t('categories') };
 };
 
 const getRouteKey = (route: AppRoute) => (route.scope === 'category' ? `category:${route.categoryId}` : route.scope);

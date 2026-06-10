@@ -9,6 +9,7 @@ import { SettingsDialog } from './components/SettingsDialog';
 import { Sidebar } from './components/Sidebar';
 import { TaskDialog } from './components/TaskDialog';
 import { TitleBar } from './components/TitleBar';
+import { useTranslator } from './i18n';
 import { useTaskStore } from './store/useTaskStore';
 
 export const App = () => {
@@ -27,6 +28,7 @@ export const App = () => {
   const profile = useTaskStore((state) => state.profile);
   const settings = useTaskStore((state) => state.settings);
   const setScope = useTaskStore((state) => state.setScope);
+  const t = useTranslator();
 
   const openCreateDialog = useCallback((dueDate?: string) => {
     setEditingTask(undefined);
@@ -70,8 +72,8 @@ export const App = () => {
   }, [activeScope, profile.isSetupComplete]);
 
   useEffect(() => {
-    document.body.className = pageClass;
-  }, [pageClass]);
+    document.body.className = `${pageClass} theme-${settings.theme}`;
+  }, [pageClass, settings.theme]);
 
   useEffect(() => {
     void hydrate();
@@ -112,7 +114,7 @@ export const App = () => {
   }, [hasHydrated, profile.isSetupComplete, settings.openMode]);
 
   if (!hasHydrated) {
-    return <div className="app-loading">Загрузка Afterlight...</div>;
+    return <div className="app-loading">{t('loadingApp')}</div>;
   }
 
   if (!profile.isSetupComplete) {
@@ -121,6 +123,7 @@ export const App = () => {
 
   const appClassName = [
     'afterlight-app',
+    `theme-${settings.theme}`,
     isSidebarCollapsed ? 'sidebar-collapsed' : '',
     settings.autoCollapseSidebar ? 'auto-sidebar' : '',
   ]

@@ -22,6 +22,35 @@ let notificationInterval: NodeJS.Timeout | undefined;
 let backupInterval: NodeJS.Timeout | undefined;
 const notifiedKeys = new Set<string>();
 
+const systemCopy = {
+  ru: {
+    addTask: 'Добавить задачу',
+    appName: 'Afterlight',
+    cancel: 'Отмена',
+    closeQuestion: 'Закрыть Afterlight?',
+    deadline: 'Скоро дедлайн: {title}',
+    exit: 'Выйти',
+    open: 'Открыть Afterlight',
+    openToday: 'Открыть Сегодня',
+    openWeek: 'Открыть Неделю',
+    overdue: 'Просроченных задач: {count}',
+    todayRefresh: 'Список “Сегодня” скоро обновится.',
+  },
+  en: {
+    addTask: 'Add task',
+    appName: 'Afterlight',
+    cancel: 'Cancel',
+    closeQuestion: 'Close Afterlight?',
+    deadline: 'Deadline soon: {title}',
+    exit: 'Exit',
+    open: 'Open Afterlight',
+    openToday: 'Open Today',
+    openWeek: 'Open Week',
+    overdue: 'Overdue tasks: {count}',
+    todayRefresh: 'The Today list will refresh soon.',
+  },
+} as const;
+
 const assetPath = (...segments: string[]) => path.join(__dirname, '../../assets', ...segments);
 
 const getIconPath = () => {
@@ -145,11 +174,12 @@ const attachWindowEvents = () => {
 
     if (settings.closeBehavior === 'ask' || settings.confirmExit) {
       event.preventDefault();
+      const copy = systemCopy[settings.language];
       const result = await dialog.showMessageBox(mainWindow!, {
-        buttons: ['Отмена', 'Выйти'],
+        buttons: [copy.cancel, copy.exit],
         cancelId: 0,
         defaultId: 0,
-        message: 'Закрыть Afterlight?',
+        message: copy.closeQuestion,
         type: 'question',
       });
 
@@ -212,15 +242,16 @@ const ensureTray = () => {
 const updateTrayMenu = () => {
   if (!tray) return;
 
+  const copy = systemCopy[getCurrentSettings().language];
   tray.setContextMenu(
     Menu.buildFromTemplate([
-      { label: 'Открыть Afterlight', click: () => sendQuickAction('open') },
-      { label: 'Добавить задачу', click: () => sendQuickAction('add-task') },
-      { label: 'Открыть Сегодня', click: () => sendQuickAction('today') },
-      { label: 'Открыть Неделю', click: () => sendQuickAction('week') },
+      { label: copy.open, click: () => sendQuickAction('open') },
+      { label: copy.addTask, click: () => sendQuickAction('add-task') },
+      { label: copy.openToday, click: () => sendQuickAction('today') },
+      { label: copy.openWeek, click: () => sendQuickAction('week') },
       { type: 'separator' },
       {
-        label: 'Выйти',
+        label: copy.exit,
         click: () => {
           isQuitting = true;
           app.quit();
@@ -266,6 +297,7 @@ const runNotificationSweep = (settings: AppSettings) => {
     return;
   }
 
+  const copy = systemCopy[settings.language];
   const tasks = listAppData().tasks;
   const now = new Date();
 
@@ -277,14 +309,14 @@ const runNotificationSweep = (settings: AppSettings) => {
       const minutesLeft = Math.round((deadline.getTime() - now.getTime()) / 60_000);
       if (minutesLeft < 0 || minutesLeft > 15) return;
 
-      notifyOnce(`deadline:${task.id}:${toDateKey(now)}`, 'Afterlight', `Скоро дедлайн: ${task.title}`);
+      notifyOnce(`deadline:${task.id}:${toDateKey(now)}`, copy.appName, copy.deadline.replace('{title}', task.title));
     });
   }
 
   if (settings.notifyOverdue) {
     const overdueTasks = tasks.filter((task) => task.status === 'active' && task.dueDate && task.dueDate < getTodayDate());
     if (overdueTasks.length > 0) {
-      notifyOnce(`overdue:${toDateKey(now)}:${now.getHours()}`, 'Afterlight', `Просроченных задач: ${overdueTasks.length}`);
+      notifyOnce(`overdue:${toDateKey(now)}:${now.getHours()}`, copy.appName, copy.overdue.replace('{count}', String(overdueTasks.length)));
     }
   }
 
@@ -292,7 +324,7 @@ const runNotificationSweep = (settings: AppSettings) => {
     const refresh = getNextRefresh(settings.todayRefreshTime);
     const minutesLeft = Math.round((refresh.getTime() - now.getTime()) / 60_000);
     if (minutesLeft >= 0 && minutesLeft <= 15) {
-      notifyOnce(`today-refresh:${toDateKey(refresh)}`, 'Afterlight', 'Список “Сегодня” скоро обновится.');
+      notifyOnce(`today-refresh:${toDateKey(refresh)}`, copy.appName, copy.todayRefresh);
     }
   }
 };

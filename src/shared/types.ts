@@ -11,6 +11,7 @@ export type WindowOpenMode = 'normal' | 'fullscreen';
 export type LanguageCode = 'ru' | 'en';
 export type WindowStateMode = 'normal' | 'maximized' | 'fullscreen';
 export type CloseBehaviorMode = 'ask' | 'exit' | 'tray';
+export type ThemeMode = 'light' | 'dark';
 export type TaskSortMode = 'date' | 'priority' | 'manual' | 'created';
 export type WeekOrderMode = 'monday' | 'today';
 export type CategorySortMode = 'created' | 'alphabetical' | 'manual' | 'favorites';
@@ -157,6 +158,7 @@ export interface AppSettings {
   showWeekNoDate: boolean;
   startSection: StartSectionMode;
   taskSortMode: TaskSortMode;
+  theme: ThemeMode;
   todayRefreshTime: string;
   trayEnabled: boolean;
   weekOrderMode: WeekOrderMode;

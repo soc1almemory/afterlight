@@ -10,12 +10,65 @@ interface TaskDialogProps {
   onClose: () => void;
 }
 
-const priorityOptions: Array<{ value: TaskPriority; label: string; color: string }> = [
-  { value: 1, label: 'Высокий', color: '#ff3f3f' },
-  { value: 2, label: 'Средний', color: '#ffc23f' },
-  { value: 3, label: 'Низкий', color: '#5eff71' },
-  { value: 4, label: 'Без приоритета', color: '#76b9ff' },
+const priorityOptions: Array<{ value: TaskPriority; color: string }> = [
+  { value: 1, color: '#ff3f3f' },
+  { value: 2, color: '#ffc23f' },
+  { value: 3, color: '#5eff71' },
+  { value: 4, color: '#76b9ff' },
 ];
+
+const taskDialogCopy = {
+  ru: {
+    addLabel: 'Добавить задачу',
+    cancel: 'Отмена',
+    category: 'Категория',
+    close: 'Закрыть',
+    confirmDelete: 'Подтвердить удаление',
+    delete: 'Удалить',
+    description: 'Описание',
+    descriptionPlaceholder: 'Добавьте детали задачи',
+    dueDate: 'Дата дедлайна',
+    dueTime: 'Время дедлайна',
+    editLabel: 'Редактировать задачу',
+    newTitle: 'Новая задача',
+    noCategory: 'Без категории',
+    priority: 'Приоритет',
+    priorityLabels: {
+      1: 'Высокий',
+      2: 'Средний',
+      3: 'Низкий',
+      4: 'Без приоритета',
+    },
+    save: 'Сохранить',
+    title: 'Название',
+    titlePlaceholder: 'Что нужно сделать?',
+  },
+  en: {
+    addLabel: 'Add task',
+    cancel: 'Cancel',
+    category: 'Category',
+    close: 'Close',
+    confirmDelete: 'Confirm deletion',
+    delete: 'Delete',
+    description: 'Description',
+    descriptionPlaceholder: 'Add task details',
+    dueDate: 'Deadline date',
+    dueTime: 'Deadline time',
+    editLabel: 'Edit task',
+    newTitle: 'New task',
+    noCategory: 'No category',
+    priority: 'Priority',
+    priorityLabels: {
+      1: 'High',
+      2: 'Medium',
+      3: 'Low',
+      4: 'No priority',
+    },
+    save: 'Save',
+    title: 'Title',
+    titlePlaceholder: 'What needs to be done?',
+  },
+} as const;
 
 export const TaskDialog = ({ initialDueDate, isOpen, task, onClose }: TaskDialogProps) => {
   const activeScope = useTaskStore((state) => state.activeScope);
@@ -25,6 +78,7 @@ export const TaskDialog = ({ initialDueDate, isOpen, task, onClose }: TaskDialog
   const deleteTask = useTaskStore((state) => state.deleteTask);
   const settings = useTaskStore((state) => state.settings);
   const updateTask = useTaskStore((state) => state.updateTask);
+  const copy = taskDialogCopy[settings.language];
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [dueDate, setDueDate] = useState('');
@@ -98,50 +152,50 @@ export const TaskDialog = ({ initialDueDate, isOpen, task, onClose }: TaskDialog
     <div className="dialog-overlay" role="presentation" onMouseDown={onClose}>
       <form
         className="task-dialog"
-        aria-label={task ? 'Редактировать задачу' : 'Добавить задачу'}
+        aria-label={task ? copy.editLabel : copy.addLabel}
         onSubmit={handleSubmit}
         onMouseDown={(event) => event.stopPropagation()}
       >
         <div className="dialog-heading">
-          <h2>{task ? 'Редактировать задачу' : 'Новая задача'}</h2>
-          <button type="button" aria-label="Закрыть" onClick={onClose}>
+          <h2>{task ? copy.editLabel : copy.newTitle}</h2>
+          <button type="button" aria-label={copy.close} onClick={onClose}>
             <img src={assetUrl('close-icon.svg')} alt="" />
           </button>
         </div>
 
         <label className="form-field">
-          <span>Название</span>
+          <span>{copy.title}</span>
           <input
             autoFocus
             value={title}
             onChange={(event) => setTitle(event.target.value)}
-            placeholder="Что нужно сделать?"
+            placeholder={copy.titlePlaceholder}
           />
         </label>
 
         <label className="form-field">
-          <span>Описание</span>
+          <span>{copy.description}</span>
           <textarea
             value={description}
             onChange={(event) => setDescription(event.target.value)}
-            placeholder="Добавьте детали задачи"
+            placeholder={copy.descriptionPlaceholder}
           />
         </label>
 
         <div className="form-grid">
           <label className="form-field">
-            <span>Дата дедлайна</span>
+            <span>{copy.dueDate}</span>
             <input type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} />
           </label>
 
           <label className="form-field">
-            <span>Время дедлайна</span>
+            <span>{copy.dueTime}</span>
             <input type="time" value={dueLabel} onChange={(event) => setDueLabel(event.target.value)} />
           </label>
         </div>
 
         <fieldset className="priority-picker">
-          <legend>Приоритет</legend>
+          <legend>{copy.priority}</legend>
           <div className="priority-options">
             {priorityOptions.map((option) => (
               <button
@@ -151,16 +205,16 @@ export const TaskDialog = ({ initialDueDate, isOpen, task, onClose }: TaskDialog
                 onClick={() => setPriority(option.value)}
               >
                 <span className="priority-option-dot" style={{ backgroundColor: option.color }} />
-                <span>{option.label}</span>
+                <span>{copy.priorityLabels[option.value]}</span>
               </button>
             ))}
           </div>
         </fieldset>
 
         <label className="form-field">
-          <span>Категория</span>
+          <span>{copy.category}</span>
           <select value={categoryId} onChange={(event) => setCategoryId(event.target.value)}>
-            <option value="">Без категории</option>
+            <option value="">{copy.noCategory}</option>
             {categories.map((category) => (
               <option key={category.id} value={category.id}>
                 {category.title}
@@ -172,13 +226,13 @@ export const TaskDialog = ({ initialDueDate, isOpen, task, onClose }: TaskDialog
         <div className={task ? 'dialog-actions split' : 'dialog-actions'}>
           {task ? (
             <button className="danger-button" type="button" onClick={() => void handleDelete()}>
-              {settings.confirmTaskDelete && isConfirmingDelete ? 'Подтвердить удаление' : 'Удалить'}
+              {settings.confirmTaskDelete && isConfirmingDelete ? copy.confirmDelete : copy.delete}
             </button>
           ) : null}
           <button type="button" onClick={isConfirmingDelete ? () => setConfirmingDelete(false) : onClose}>
-            Отмена
+            {copy.cancel}
           </button>
-          <button type="submit">Сохранить</button>
+          <button type="submit">{copy.save}</button>
         </div>
       </form>
     </div>

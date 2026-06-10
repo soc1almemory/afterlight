@@ -117,11 +117,51 @@ const emojiOptions = [
   '📍',
 ];
 
+const categoryDialogCopy = {
+  ru: {
+    cancel: 'Отмена',
+    close: 'Закрыть',
+    color: 'Цвет',
+    confirmDelete: 'Подтвердить удаление',
+    createLabel: 'Создать категорию',
+    delete: 'Удалить',
+    display: 'Отображение',
+    editLabel: 'Редактировать категорию',
+    emoji: 'Emoji',
+    emojiPicker: 'Выбор emoji',
+    name: 'Название',
+    newTitle: 'Новая категория',
+    placeholder: 'Например, Диплом',
+    remove: 'Убрать',
+    save: 'Сохранить',
+    selectColor: 'Выбрать цвет {color}',
+  },
+  en: {
+    cancel: 'Cancel',
+    close: 'Close',
+    color: 'Color',
+    confirmDelete: 'Confirm deletion',
+    createLabel: 'Create category',
+    delete: 'Delete',
+    display: 'Display',
+    editLabel: 'Edit category',
+    emoji: 'Emoji',
+    emojiPicker: 'Emoji picker',
+    name: 'Name',
+    newTitle: 'New category',
+    placeholder: 'For example, Diploma',
+    remove: 'Remove',
+    save: 'Save',
+    selectColor: 'Select color {color}',
+  },
+} as const;
+
 export const CategoryDialog = ({ category, isOpen, onClose }: CategoryDialogProps) => {
   const createCategory = useTaskStore((state) => state.createCategory);
   const deleteCategory = useTaskStore((state) => state.deleteCategory);
   const settings = useTaskStore((state) => state.settings);
   const updateCategory = useTaskStore((state) => state.updateCategory);
+  const copy = categoryDialogCopy[settings.language];
   const [title, setTitle] = useState('');
   const [color, setColor] = useState(colorOptions[0]);
   const [emoji, setEmoji] = useState('');
@@ -194,36 +234,36 @@ export const CategoryDialog = ({ category, isOpen, onClose }: CategoryDialogProp
     <div className="dialog-overlay" role="presentation" onMouseDown={onClose}>
       <form
         className="category-dialog"
-        aria-label={category ? 'Редактировать категорию' : 'Создать категорию'}
+        aria-label={category ? copy.editLabel : copy.createLabel}
         onSubmit={handleSubmit}
         onMouseDown={(event) => event.stopPropagation()}
       >
         <div className="dialog-heading">
-          <h2>{category ? 'Редактировать категорию' : 'Новая категория'}</h2>
-          <button type="button" aria-label="Закрыть" onClick={onClose}>
+          <h2>{category ? copy.editLabel : copy.newTitle}</h2>
+          <button type="button" aria-label={copy.close} onClick={onClose}>
             <img src={assetUrl('close-icon.svg')} alt="" />
           </button>
         </div>
 
         <label className="form-field">
-          <span>Название</span>
+          <span>{copy.name}</span>
           <input
             autoFocus
             value={title}
             onChange={(event) => setTitle(event.target.value)}
-            placeholder="Например, Диплом"
+            placeholder={copy.placeholder}
           />
         </label>
 
         <fieldset className="color-field">
-          <legend>Отображение</legend>
+          <legend>{copy.display}</legend>
           <div className="category-icon-mode">
             <button
               className={iconMode === 'color' ? 'active' : ''}
               type="button"
               onClick={() => setIconMode('color')}
             >
-              Цвет
+              {copy.color}
             </button>
             <button
               className={iconMode === 'emoji' ? 'active' : ''}
@@ -243,7 +283,7 @@ export const CategoryDialog = ({ category, isOpen, onClose }: CategoryDialogProp
                 key={option}
                 style={{ backgroundColor: option }}
                 type="button"
-                aria-label={`Выбрать цвет ${option}`}
+                aria-label={copy.selectColor.replace('{color}', option)}
                 onClick={() => setColor(option)}
               />
             ))}
@@ -253,12 +293,12 @@ export const CategoryDialog = ({ category, isOpen, onClose }: CategoryDialogProp
         {iconMode === 'emoji' ? (
           <div className="emoji-picker">
             <div className="emoji-picker-header">
-              <span>Emoji</span>
+              <span>{copy.emoji}</span>
               <button type="button" onClick={() => setEmoji('')}>
-                Убрать
+                {copy.remove}
               </button>
             </div>
-            <div className="emoji-picker-grid" aria-label="Выбор emoji">
+            <div className="emoji-picker-grid" aria-label={copy.emojiPicker}>
               {emojiOptions.map((option) => (
                 <button
                   className={emoji === option ? 'emoji-option active' : 'emoji-option'}
@@ -276,13 +316,13 @@ export const CategoryDialog = ({ category, isOpen, onClose }: CategoryDialogProp
         <div className={category ? 'dialog-actions split' : 'dialog-actions'}>
           {category ? (
             <button className="danger-button" type="button" onClick={() => void handleDelete()}>
-              {settings.confirmCategoryDelete && isConfirmingDelete ? 'Подтвердить удаление' : 'Удалить'}
+              {settings.confirmCategoryDelete && isConfirmingDelete ? copy.confirmDelete : copy.delete}
             </button>
           ) : null}
           <button type="button" onClick={isConfirmingDelete ? () => setConfirmingDelete(false) : onClose}>
-            Отмена
+            {copy.cancel}
           </button>
-          <button type="submit">Сохранить</button>
+          <button type="submit">{copy.save}</button>
         </div>
       </form>
     </div>

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ChangeEvent, FormEvent, ReactNode } from 'react';
+import type { UpdateSettingsInput } from '../../shared/types';
 import { assetUrl } from '../lib/assets';
 import { useTaskStore } from '../store/useTaskStore';
 
@@ -8,31 +9,302 @@ interface SettingsDialogProps {
   onClose: () => void;
 }
 
-type SettingsPage =
-  | 'account'
-  | 'main'
-  | 'language'
-  | 'theme'
-  | 'sidebar'
-  | 'reminders'
-  | 'notifications'
-  | 'telegram'
-  | 'backups';
+type SettingsPage = 'account' | 'main' | 'language' | 'theme' | 'sidebar' | 'notifications' | 'telegram' | 'backups';
 
-const settingsItems: Array<{ id: SettingsPage; icon: string; label: string }> = [
-  { id: 'account', icon: 'settings-account-icon.svg', label: 'Аккаунт' },
-  { id: 'main', icon: 'settings-main-icon.svg', label: 'Основное' },
-  { id: 'language', icon: 'settings-language-icon.svg', label: 'Язык' },
-  { id: 'theme', icon: 'settigns-theme-icon.svg', label: 'Тема' },
-  { id: 'sidebar', icon: 'settigns-sidebar-icon.svg', label: 'Боковая панель' },
-  { id: 'reminders', icon: 'settings-reminders-icon.svg', label: 'Напоминания' },
-  { id: 'notifications', icon: 'settings-notifications-icon.svg', label: 'Уведомления' },
-  { id: 'telegram', icon: 'settigns-telegram-icon.svg', label: 'Интеграция Telegram' },
-  { id: 'backups', icon: 'settigns-copies-icon.svg', label: 'Резервные копии' },
+const settingsItems: Array<{ id: SettingsPage; icon: string }> = [
+  { id: 'account', icon: 'settings-account-icon.svg' },
+  { id: 'main', icon: 'settings-main-icon.svg' },
+  { id: 'language', icon: 'settings-language-icon.svg' },
+  { id: 'theme', icon: 'settigns-theme-icon.svg' },
+  { id: 'sidebar', icon: 'settigns-sidebar-icon.svg' },
+  { id: 'notifications', icon: 'settings-notifications-icon.svg' },
+  { id: 'telegram', icon: 'settigns-telegram-icon.svg' },
+  { id: 'backups', icon: 'settigns-copies-icon.svg' },
 ];
+
+const settingsCopy = {
+  ru: {
+    title: 'Настройки',
+    reset: 'Сбросить',
+    resetConfirm: 'Сбросить раздел “{title}” до значений по умолчанию?',
+    close: 'Закрыть настройки',
+    nav: {
+      account: 'Аккаунт',
+      main: 'Основное',
+      language: 'Язык',
+      theme: 'Тема',
+      sidebar: 'Боковая панель',
+      notifications: 'Уведомления',
+      telegram: 'Интеграция Telegram',
+      backups: 'Резервные копии',
+    },
+    account: {
+      profile: 'Профиль',
+      upload: 'Загрузить фото',
+      deleteAvatar: 'Удалить аватар',
+      name: 'Введите имя',
+      workspace: 'Название пространства',
+      security: 'Безопасность',
+      email: 'Email',
+      password: 'Новый пароль',
+      save: 'Сохранить изменения',
+      deleteTitle: 'Удаление аккаунта',
+      deleteDescription: 'Сбросить профиль и все данные текущего рабочего пространства.',
+      deleteAction: 'Удалить аккаунт',
+      confirmTitle: 'Подтвердите удаление аккаунта',
+      confirmDescription: 'Профиль, задачи, категории и заметки текущего рабочего пространства будут сброшены.',
+      cancel: 'Отмена',
+      confirm: 'Подтвердить',
+    },
+    main: {
+      launch: 'Запуск и восстановление',
+      startSection: 'Стартовый раздел',
+      inbox: 'Входящие',
+      today: 'Сегодня',
+      week: 'Неделя',
+      last: 'Последний открытый',
+      restoreTabs: 'Восстанавливать открытые вкладки после запуска',
+      windowState: 'Открывать последнее состояние окна',
+      normal: 'Обычный',
+      maximized: 'Развернутый',
+      fullscreen: 'Полноэкранный',
+      launchWithWindows: 'Запускать Afterlight вместе с Windows',
+      launchMinimized: 'Запускать свернутым',
+      closeBehavior: 'Поведение при закрытии',
+      closeButton: 'Кнопка закрытия',
+      ask: 'Спрашивать перед выходом',
+      exit: 'Закрывать приложение полностью',
+      tray: 'Сворачивать в трей',
+      confirmExit: 'Дополнительно спрашивать перед выходом',
+      trayEnabled: 'Показывать иконку Afterlight в системном трее',
+      todayPage: 'Страница Сегодня',
+      refreshTime: 'Время ежедневного обновления списка',
+      overdueFirst: 'Показывать просроченные задачи сверху',
+      includeTodayDue: 'Автоматически добавлять задачи с сегодняшней датой в «Сегодня»',
+      tasks: 'Задачи',
+      taskSort: 'Сортировка задач',
+      byDate: 'По дате',
+      byPriority: 'По приоритету',
+      manual: 'Вручную',
+      byCreated: 'По созданию',
+      confirmTaskDelete: 'Подтверждать удаление задач',
+      weekPage: 'Неделя',
+      weekOrder: 'Порядок дней',
+      mondayFirst: 'Понедельник всегда сверху',
+      todayFirst: 'Сегодняшний день сверху',
+      showNoDate: 'Показывать распределитель «Без даты»',
+      highlightToday: 'Подсвечивать текущий день',
+      categories: 'Категории',
+      categorySort: 'Сортировка категорий',
+      alphabetically: 'По алфавиту',
+      categoryCounts: 'Показывать счётчики задач у категорий',
+      countCompleted: 'Считать выполненные задачи в счётчиках',
+      confirmCategoryDelete: 'Подтверждать удаление категории',
+      notes: 'Заметки',
+      notesLimit: 'Лимит строк заметок',
+      interface: 'Интерфейс',
+      sidebarCounts: 'Показывать счётчики в боковой панели',
+      mediumCounter: 'Жёлтый счётчик от',
+      highCounter: 'Тёмно-жёлтый от',
+      criticalCounter: 'Красный от',
+      tabBar: 'Включить панель вкладок',
+      lastModified: 'Показывать время последнего изменения',
+      autosave: 'Автосохранение',
+      notesAutosave: 'Интервал автосохранения заметок, сек.',
+    },
+    language: {
+      title: 'Язык интерфейса',
+      label: 'Язык',
+      hint: 'Выбранный язык применяется к основным экранам, настройкам и системным popup.',
+    },
+    theme: {
+      title: 'Оформление',
+      label: 'Тема',
+      light: 'Светлая',
+      dark: 'Тёмная',
+    },
+    sidebar: {
+      title: 'Боковая панель',
+      autoCollapse: 'Автоматически сворачивать боковую панель, когда курсор в рабочей области',
+      sidebarCounts: 'Показывать счётчики в боковой панели',
+      categoryCounts: 'Показывать счётчики задач у категорий',
+    },
+    notifications: {
+      title: 'Уведомления Windows',
+      deadlines: 'Уведомлять о задачах с дедлайном',
+      todayRefresh: 'Уведомлять перед обновлением страницы «Сегодня»',
+      overdue: 'Уведомлять о просроченных задачах',
+    },
+    backups: {
+      files: 'Файловая интеграция',
+      exportJson: 'Экспорт задач в JSON',
+      exportCsv: 'Экспорт задач в CSV',
+      importJson: 'Импорт задач из JSON',
+      openData: 'Открыть папку данных',
+      openDatabase: 'Открыть базу данных',
+      createBackup: 'Создать резервную копию',
+      auto: 'Автоматические резервные копии',
+      autoBackup: 'Автоматически создавать резервные копии SQLite',
+      interval: 'Интервал, часов',
+      jsonExported: 'JSON экспортирован',
+      csvExported: 'CSV экспортирован',
+      jsonImported: 'JSON импортирован',
+      dataOpened: 'Папка данных открыта',
+      databaseOpened: 'База данных открыта',
+      backupCreated: 'Резервная копия создана',
+      failed: 'Не удалось выполнить действие.',
+    },
+    telegram: {
+      title: 'Интеграция Telegram',
+      description: 'Раздел подготовлен. Подключение бота, токена и быстрых действий будет добавлено позже.',
+    },
+  },
+  en: {
+    title: 'Settings',
+    reset: 'Reset',
+    resetConfirm: 'Reset “{title}” to defaults?',
+    close: 'Close settings',
+    nav: {
+      account: 'Account',
+      main: 'General',
+      language: 'Language',
+      theme: 'Theme',
+      sidebar: 'Sidebar',
+      notifications: 'Notifications',
+      telegram: 'Telegram integration',
+      backups: 'Backups',
+    },
+    account: {
+      profile: 'Profile',
+      upload: 'Upload photo',
+      deleteAvatar: 'Remove avatar',
+      name: 'Display name',
+      workspace: 'Workspace name',
+      security: 'Security',
+      email: 'Email',
+      password: 'New password',
+      save: 'Save changes',
+      deleteTitle: 'Account deletion',
+      deleteDescription: 'Reset the profile and all data in the current workspace.',
+      deleteAction: 'Delete account',
+      confirmTitle: 'Confirm account deletion',
+      confirmDescription: 'The profile, tasks, categories, and notes in the current workspace will be reset.',
+      cancel: 'Cancel',
+      confirm: 'Confirm',
+    },
+    main: {
+      launch: 'Launch and restore',
+      startSection: 'Start section',
+      inbox: 'Inbox',
+      today: 'Today',
+      week: 'Week',
+      last: 'Last opened',
+      restoreTabs: 'Restore open tabs after launch',
+      windowState: 'Open last window state',
+      normal: 'Normal',
+      maximized: 'Maximized',
+      fullscreen: 'Fullscreen',
+      launchWithWindows: 'Launch Afterlight with Windows',
+      launchMinimized: 'Launch minimized',
+      closeBehavior: 'Close behavior',
+      closeButton: 'Close button',
+      ask: 'Ask before exit',
+      exit: 'Exit the app completely',
+      tray: 'Minimize to tray',
+      confirmExit: 'Also ask before exit',
+      trayEnabled: 'Show Afterlight icon in the system tray',
+      todayPage: 'Today page',
+      refreshTime: 'Daily list refresh time',
+      overdueFirst: 'Show overdue tasks first',
+      includeTodayDue: 'Automatically add tasks with today’s date to Today',
+      tasks: 'Tasks',
+      taskSort: 'Task sorting',
+      byDate: 'By date',
+      byPriority: 'By priority',
+      manual: 'Manual',
+      byCreated: 'By creation',
+      confirmTaskDelete: 'Confirm task deletion',
+      weekPage: 'Week',
+      weekOrder: 'Day order',
+      mondayFirst: 'Monday always first',
+      todayFirst: 'Today always first',
+      showNoDate: 'Show the No date distributor',
+      highlightToday: 'Highlight current day',
+      categories: 'Categories',
+      categorySort: 'Category sorting',
+      alphabetically: 'Alphabetically',
+      categoryCounts: 'Show task counters for categories',
+      countCompleted: 'Count completed tasks in counters',
+      confirmCategoryDelete: 'Confirm category deletion',
+      notes: 'Notes',
+      notesLimit: 'Note line limit',
+      interface: 'Interface',
+      sidebarCounts: 'Show counters in the sidebar',
+      mediumCounter: 'Yellow counter from',
+      highCounter: 'Dark yellow from',
+      criticalCounter: 'Red counter from',
+      tabBar: 'Enable tab bar',
+      lastModified: 'Show last modified time',
+      autosave: 'Autosave',
+      notesAutosave: 'Note autosave interval, sec.',
+    },
+    language: {
+      title: 'Interface language',
+      label: 'Language',
+      hint: 'The selected language is applied to core screens, settings, and system popups.',
+    },
+    theme: {
+      title: 'Appearance',
+      label: 'Theme',
+      light: 'Light',
+      dark: 'Dark',
+    },
+    sidebar: {
+      title: 'Sidebar',
+      autoCollapse: 'Automatically collapse the sidebar when the cursor is in the workspace',
+      sidebarCounts: 'Show counters in the sidebar',
+      categoryCounts: 'Show task counters for categories',
+    },
+    notifications: {
+      title: 'Windows notifications',
+      deadlines: 'Notify about tasks with deadlines',
+      todayRefresh: 'Notify before the Today page refreshes',
+      overdue: 'Notify about overdue tasks',
+    },
+    backups: {
+      files: 'File integration',
+      exportJson: 'Export tasks to JSON',
+      exportCsv: 'Export tasks to CSV',
+      importJson: 'Import tasks from JSON',
+      openData: 'Open data folder',
+      openDatabase: 'Open database',
+      createBackup: 'Create backup',
+      auto: 'Automatic backups',
+      autoBackup: 'Automatically create SQLite backups',
+      interval: 'Interval, hours',
+      jsonExported: 'JSON exported',
+      csvExported: 'CSV exported',
+      jsonImported: 'JSON imported',
+      dataOpened: 'Data folder opened',
+      databaseOpened: 'Database opened',
+      backupCreated: 'Backup created',
+      failed: 'Could not complete the action.',
+    },
+    telegram: {
+      title: 'Telegram integration',
+      description: 'This section is prepared. Bot connection, token setup, and quick actions will be added later.',
+    },
+  },
+} as const;
+
+const useSettingsCopy = () => {
+  const language = useTaskStore((state) => state.settings.language);
+  return settingsCopy[language];
+};
 
 export const SettingsDialog = ({ isOpen, onClose }: SettingsDialogProps) => {
   const [activePage, setActivePage] = useState<SettingsPage>('account');
+  const copy = useSettingsCopy();
 
   useEffect(() => {
     if (isOpen) {
@@ -44,14 +316,12 @@ export const SettingsDialog = ({ isOpen, onClose }: SettingsDialogProps) => {
     return null;
   }
 
-  const activeItem = settingsItems.find((item) => item.id === activePage);
-
   return (
     <div className="settings-overlay" role="presentation" onMouseDown={onClose}>
-      <section className="settings-dialog" aria-label="Настройки" onMouseDown={(event) => event.stopPropagation()}>
+      <section className="settings-dialog" aria-label={copy.title} onMouseDown={(event) => event.stopPropagation()}>
         <aside className="settings-nav">
-          <h2>Настройки</h2>
-          <nav aria-label="Разделы настроек">
+          <h2>{copy.title}</h2>
+          <nav aria-label={copy.title}>
             {settingsItems.map((item) => (
               <button
                 className={activePage === item.id ? 'settings-nav-item active' : 'settings-nav-item'}
@@ -60,25 +330,25 @@ export const SettingsDialog = ({ isOpen, onClose }: SettingsDialogProps) => {
                 onClick={() => setActivePage(item.id)}
               >
                 <img src={assetUrl(item.icon)} alt="" />
-                <span>{item.label}</span>
+                <span>{copy.nav[item.id]}</span>
               </button>
             ))}
           </nav>
         </aside>
 
+        <button className="settings-close-button" type="button" aria-label={copy.close} onClick={onClose}>
+          <img src={assetUrl('settings-close-icon.svg')} alt="" />
+        </button>
+
         <main className="settings-content">
-          <button className="settings-close-button" type="button" aria-label="Закрыть настройки" onClick={onClose}>
-            <img src={assetUrl('settings-close-icon.svg')} alt="" />
-          </button>
           {activePage === 'account' ? <AccountSettings onAfterReset={onClose} /> : null}
           {activePage === 'main' ? <MainSettings /> : null}
           {activePage === 'language' ? <LanguageSettings /> : null}
+          {activePage === 'theme' ? <ThemeSettings /> : null}
           {activePage === 'sidebar' ? <SidebarSettings /> : null}
           {activePage === 'notifications' ? <NotificationsSettings /> : null}
+          {activePage === 'telegram' ? <TelegramSettings /> : null}
           {activePage === 'backups' ? <BackupsSettings /> : null}
-          {!['account', 'main', 'language', 'sidebar', 'notifications', 'backups'].includes(activePage) ? (
-            <SettingsPlaceholder title={activeItem?.label ?? 'Раздел'} />
-          ) : null}
         </main>
       </section>
     </div>
@@ -86,35 +356,34 @@ export const SettingsDialog = ({ isOpen, onClose }: SettingsDialogProps) => {
 };
 
 const MainSettings = () => {
+  const copy = useSettingsCopy();
   const settings = useTaskStore((state) => state.settings);
   const updateSettings = useTaskStore((state) => state.updateSettings);
+  const categorySortValue = settings.categorySortMode === 'alphabetical' ? 'alphabetical' : 'created';
+  const reset = (input: UpdateSettingsInput) => void updateSettings(input);
 
   return (
     <div className="settings-page main-settings-page">
-      <SettingsGroup title="Запуск и восстановление">
+      <SettingsGroup title={copy.main.launch} onReset={() => reset(defaults.launch)}>
         <SettingsSelect
-          label="Стартовый раздел"
+          label={copy.main.startSection}
           value={settings.startSection}
           options={[
-            ['inbox', 'Входящие'],
-            ['today', 'Сегодня'],
-            ['week', 'Неделя'],
-            ['last', 'Последний открытый'],
+            ['inbox', copy.main.inbox],
+            ['today', copy.main.today],
+            ['week', copy.main.week],
+            ['last', copy.main.last],
           ]}
           onChange={(startSection) => void updateSettings({ startSection })}
         />
-        <SettingsToggle
-          checked={settings.restoreTabs}
-          label="Восстанавливать открытые вкладки после запуска"
-          onChange={(restoreTabs) => void updateSettings({ restoreTabs })}
-        />
+        <SettingsToggle checked={settings.restoreTabs} label={copy.main.restoreTabs} onChange={(restoreTabs) => void updateSettings({ restoreTabs })} />
         <SettingsSelect
-          label="Открывать последнее состояние окна"
+          label={copy.main.windowState}
           value={settings.restoreWindowState}
           options={[
-            ['normal', 'Обычный'],
-            ['maximized', 'Maximized'],
-            ['fullscreen', 'Полноэкранный'],
+            ['normal', copy.main.normal],
+            ['maximized', copy.main.maximized],
+            ['fullscreen', copy.main.fullscreen],
           ]}
           onChange={(restoreWindowState) =>
             void updateSettings({
@@ -123,214 +392,107 @@ const MainSettings = () => {
             })
           }
         />
-        <SettingsToggle
-          checked={settings.launchWithWindows}
-          label="Запускать Afterlight вместе с Windows"
-          onChange={(launchWithWindows) => void updateSettings({ launchWithWindows })}
-        />
-        <SettingsToggle
-          checked={settings.launchMinimized}
-          label="Запускать свернутым"
-          onChange={(launchMinimized) => void updateSettings({ launchMinimized })}
-        />
+        <SettingsToggle checked={settings.launchWithWindows} label={copy.main.launchWithWindows} onChange={(launchWithWindows) => void updateSettings({ launchWithWindows })} />
+        <SettingsToggle checked={settings.launchMinimized} label={copy.main.launchMinimized} onChange={(launchMinimized) => void updateSettings({ launchMinimized })} />
       </SettingsGroup>
 
-      <SettingsGroup title="Поведение при закрытии">
+      <SettingsGroup title={copy.main.closeBehavior} onReset={() => reset(defaults.close)}>
         <SettingsSelect
-          label="Кнопка закрытия"
+          label={copy.main.closeButton}
           value={settings.closeBehavior}
           options={[
-            ['ask', 'Спрашивать перед выходом'],
-            ['exit', 'Закрывать приложение полностью'],
-            ['tray', 'Сворачивать в трей'],
+            ['ask', copy.main.ask],
+            ['exit', copy.main.exit],
+            ['tray', copy.main.tray],
           ]}
           onChange={(closeBehavior) => void updateSettings({ closeBehavior, minimizeToTrayOnClose: closeBehavior === 'tray' })}
         />
-        <SettingsToggle
-          checked={settings.confirmExit}
-          label="Дополнительно спрашивать перед выходом"
-          onChange={(confirmExit) => void updateSettings({ confirmExit })}
-        />
-        <SettingsToggle
-          checked={settings.trayEnabled}
-          label="Показывать иконку Afterlight в системном трее"
-          onChange={(trayEnabled) => void updateSettings({ trayEnabled })}
-        />
+        <SettingsToggle checked={settings.confirmExit} label={copy.main.confirmExit} onChange={(confirmExit) => void updateSettings({ confirmExit })} />
+        <SettingsToggle checked={settings.trayEnabled} label={copy.main.trayEnabled} onChange={(trayEnabled) => void updateSettings({ trayEnabled })} />
       </SettingsGroup>
 
-      <SettingsGroup title="Страница Сегодня">
-        <SettingsTime
-          label="Время ежедневного обновления списка"
-          value={settings.todayRefreshTime}
-          onChange={(todayRefreshTime) => void updateSettings({ todayRefreshTime })}
-        />
-        <SettingsToggle
-          checked={settings.showTodayOverdueFirst}
-          label="Показывать просроченные задачи сверху"
-          onChange={(showTodayOverdueFirst) => void updateSettings({ showTodayOverdueFirst })}
-        />
-        <SettingsToggle
-          checked={settings.includeTodayDueTasks}
-          label="Автоматически добавлять задачи с сегодняшней датой в «Сегодня»"
-          onChange={(includeTodayDueTasks) => void updateSettings({ includeTodayDueTasks })}
-        />
+      <SettingsGroup title={copy.main.todayPage} onReset={() => reset(defaults.today)}>
+        <SettingsTime label={copy.main.refreshTime} value={settings.todayRefreshTime} onChange={(todayRefreshTime) => void updateSettings({ todayRefreshTime })} />
+        <SettingsToggle checked={settings.showTodayOverdueFirst} label={copy.main.overdueFirst} onChange={(showTodayOverdueFirst) => void updateSettings({ showTodayOverdueFirst })} />
+        <SettingsToggle checked={settings.includeTodayDueTasks} label={copy.main.includeTodayDue} onChange={(includeTodayDueTasks) => void updateSettings({ includeTodayDueTasks })} />
       </SettingsGroup>
 
-      <SettingsGroup title="Задачи">
+      <SettingsGroup title={copy.main.tasks} onReset={() => reset(defaults.tasks)}>
         <SettingsSelect
-          label="Сортировка задач"
+          label={copy.main.taskSort}
           value={settings.taskSortMode}
           options={[
-            ['date', 'По дате'],
-            ['priority', 'По приоритету'],
-            ['manual', 'Вручную'],
-            ['created', 'По созданию'],
+            ['date', copy.main.byDate],
+            ['priority', copy.main.byPriority],
+            ['manual', copy.main.manual],
+            ['created', copy.main.byCreated],
           ]}
           onChange={(taskSortMode) => void updateSettings({ taskSortMode })}
         />
-        <SettingsToggle
-          checked={settings.confirmTaskDelete}
-          label="Подтверждать удаление задач"
-          onChange={(confirmTaskDelete) => void updateSettings({ confirmTaskDelete })}
-        />
+        <SettingsToggle checked={settings.confirmTaskDelete} label={copy.main.confirmTaskDelete} onChange={(confirmTaskDelete) => void updateSettings({ confirmTaskDelete })} />
       </SettingsGroup>
 
-      <SettingsGroup title="Неделя">
+      <SettingsGroup title={copy.main.weekPage} onReset={() => reset(defaults.week)}>
         <SettingsSelect
-          label="Порядок дней"
+          label={copy.main.weekOrder}
           value={settings.weekOrderMode}
           options={[
-            ['monday', 'Понедельник всегда сверху'],
-            ['today', 'Сегодняшний день сверху'],
+            ['monday', copy.main.mondayFirst],
+            ['today', copy.main.todayFirst],
           ]}
           onChange={(weekOrderMode) => void updateSettings({ weekOrderMode })}
         />
-        <SettingsToggle
-          checked={settings.showWeekNoDate}
-          label="Показывать распределитель «Без даты»"
-          onChange={(showWeekNoDate) => void updateSettings({ showWeekNoDate })}
-        />
-        <SettingsToggle
-          checked={settings.highlightTodayInWeek}
-          label="Подсвечивать текущий день"
-          onChange={(highlightTodayInWeek) => void updateSettings({ highlightTodayInWeek })}
-        />
+        <SettingsToggle checked={settings.showWeekNoDate} label={copy.main.showNoDate} onChange={(showWeekNoDate) => void updateSettings({ showWeekNoDate })} />
+        <SettingsToggle checked={settings.highlightTodayInWeek} label={copy.main.highlightToday} onChange={(highlightTodayInWeek) => void updateSettings({ highlightTodayInWeek })} />
       </SettingsGroup>
 
-      <SettingsGroup title="Категории">
+      <SettingsGroup title={copy.main.categories} onReset={() => reset(defaults.categories)}>
         <SettingsSelect
-          label="Сортировка категорий"
-          value={settings.categorySortMode}
+          label={copy.main.categorySort}
+          value={categorySortValue}
           options={[
-            ['created', 'По созданию'],
-            ['alphabetical', 'По алфавиту'],
-            ['manual', 'Вручную'],
-            ['favorites', 'Избранные сверху'],
+            ['created', copy.main.byCreated],
+            ['alphabetical', copy.main.alphabetically],
           ]}
           onChange={(categorySortMode) => void updateSettings({ categorySortMode })}
         />
-        <SettingsToggle
-          checked={settings.showCategoryCounts}
-          label="Показывать счётчики задач у категорий"
-          onChange={(showCategoryCounts) => void updateSettings({ showCategoryCounts })}
-        />
-        <SettingsToggle
-          checked={settings.countCompletedTasks}
-          label="Считать выполненные задачи в счётчиках"
-          onChange={(countCompletedTasks) => void updateSettings({ countCompletedTasks })}
-        />
-        <SettingsToggle
-          checked={settings.confirmCategoryDelete}
-          label="Подтверждать удаление категории"
-          onChange={(confirmCategoryDelete) => void updateSettings({ confirmCategoryDelete })}
-        />
+        <SettingsToggle checked={settings.showCategoryCounts} label={copy.main.categoryCounts} onChange={(showCategoryCounts) => void updateSettings({ showCategoryCounts })} />
+        <SettingsToggle checked={settings.countCompletedTasks} label={copy.main.countCompleted} onChange={(countCompletedTasks) => void updateSettings({ countCompletedTasks })} />
+        <SettingsToggle checked={settings.confirmCategoryDelete} label={copy.main.confirmCategoryDelete} onChange={(confirmCategoryDelete) => void updateSettings({ confirmCategoryDelete })} />
       </SettingsGroup>
 
-      <SettingsGroup title="Заметки">
-        <SettingsNumber
-          label="Лимит строк заметок"
-          min={5}
-          max={200}
-          value={settings.notesLineLimit}
-          onChange={(notesLineLimit) => void updateSettings({ notesLineLimit })}
-        />
+      <SettingsGroup title={copy.main.notes} onReset={() => reset(defaults.notes)}>
+        <SettingsNumber label={copy.main.notesLimit} min={5} max={200} value={settings.notesLineLimit} onChange={(notesLineLimit) => void updateSettings({ notesLineLimit })} />
       </SettingsGroup>
 
-      <SettingsGroup title="Интерфейс">
-        <SettingsToggle
-          checked={settings.showSidebarCounts}
-          label="Показывать счётчики в боковой панели"
-          onChange={(showSidebarCounts) => void updateSettings({ showSidebarCounts })}
-        />
+      <SettingsGroup title={copy.main.interface} onReset={() => reset(defaults.interface)}>
+        <SettingsToggle checked={settings.showSidebarCounts} label={copy.main.sidebarCounts} onChange={(showSidebarCounts) => void updateSettings({ showSidebarCounts })} />
         <div className="settings-threshold-grid">
-          <SettingsNumber
-            label="Жёлтый счётчик от"
-            min={1}
-            max={999}
-            value={settings.counterMediumAt}
-            onChange={(counterMediumAt) => void updateSettings({ counterMediumAt })}
-          />
-          <SettingsNumber
-            label="Тёмно-жёлтый от"
-            min={1}
-            max={999}
-            value={settings.counterHighAt}
-            onChange={(counterHighAt) => void updateSettings({ counterHighAt })}
-          />
-          <SettingsNumber
-            label="Красный от"
-            min={1}
-            max={999}
-            value={settings.counterCriticalAt}
-            onChange={(counterCriticalAt) => void updateSettings({ counterCriticalAt })}
-          />
+          <SettingsNumber label={copy.main.mediumCounter} min={1} max={999} value={settings.counterMediumAt} onChange={(counterMediumAt) => void updateSettings({ counterMediumAt })} />
+          <SettingsNumber label={copy.main.highCounter} min={1} max={999} value={settings.counterHighAt} onChange={(counterHighAt) => void updateSettings({ counterHighAt })} />
+          <SettingsNumber label={copy.main.criticalCounter} min={1} max={999} value={settings.counterCriticalAt} onChange={(counterCriticalAt) => void updateSettings({ counterCriticalAt })} />
         </div>
-        <SettingsToggle
-          checked={settings.showTabBar}
-          label="Включить панель вкладок"
-          onChange={(showTabBar) => void updateSettings({ showTabBar })}
-        />
-        <SettingsToggle
-          checked={settings.showLastModified}
-          label="Показывать время последнего изменения"
-          onChange={(showLastModified) => void updateSettings({ showLastModified })}
-        />
+        <SettingsToggle checked={settings.showTabBar} label={copy.main.tabBar} onChange={(showTabBar) => void updateSettings({ showTabBar })} />
+        <SettingsToggle checked={settings.showLastModified} label={copy.main.lastModified} onChange={(showLastModified) => void updateSettings({ showLastModified })} />
       </SettingsGroup>
 
-      <SettingsGroup title="Автосохранение и данные">
-        <SettingsNumber
-          label="Интервал автосохранения заметок, сек."
-          min={1}
-          max={30}
-          value={settings.autosaveNotesIntervalSeconds}
-          onChange={(autosaveNotesIntervalSeconds) => void updateSettings({ autosaveNotesIntervalSeconds })}
-        />
-        <SettingsToggle
-          checked={settings.autoBackupEnabled}
-          label="Автоматически создавать резервные копии SQLite"
-          onChange={(autoBackupEnabled) => void updateSettings({ autoBackupEnabled })}
-        />
-        <SettingsNumber
-          label="Интервал резервного копирования, часов"
-          min={1}
-          max={168}
-          value={settings.autoBackupIntervalHours}
-          onChange={(autoBackupIntervalHours) => void updateSettings({ autoBackupIntervalHours })}
-        />
+      <SettingsGroup title={copy.main.autosave} onReset={() => reset(defaults.autosave)}>
+        <SettingsNumber label={copy.main.notesAutosave} min={1} max={30} value={settings.autosaveNotesIntervalSeconds} onChange={(autosaveNotesIntervalSeconds) => void updateSettings({ autosaveNotesIntervalSeconds })} />
       </SettingsGroup>
     </div>
   );
 };
 
 const LanguageSettings = () => {
+  const copy = useSettingsCopy();
   const settings = useTaskStore((state) => state.settings);
   const updateSettings = useTaskStore((state) => state.updateSettings);
 
   return (
     <div className="settings-page main-settings-page">
-      <SettingsGroup title="Язык интерфейса">
+      <SettingsGroup title={copy.language.title}>
         <SettingsSelect
-          label="Язык"
+          label={copy.language.label}
           value={settings.language}
           options={[
             ['ru', 'Русский'],
@@ -338,69 +500,84 @@ const LanguageSettings = () => {
           ]}
           onChange={(language) => void updateSettings({ language })}
         />
-        <p className="settings-hint">
-          Базовые разделы интерфейса будут перестраиваться под выбранный язык.
-        </p>
+        <p className="settings-hint">{copy.language.hint}</p>
+      </SettingsGroup>
+    </div>
+  );
+};
+
+const ThemeSettings = () => {
+  const copy = useSettingsCopy();
+  const settings = useTaskStore((state) => state.settings);
+  const updateSettings = useTaskStore((state) => state.updateSettings);
+
+  return (
+    <div className="settings-page main-settings-page">
+      <SettingsGroup title={copy.theme.title} onReset={() => void updateSettings(defaults.theme)}>
+        <SettingsSelect
+          label={copy.theme.label}
+          value={settings.theme}
+          options={[
+            ['light', copy.theme.light],
+            ['dark', copy.theme.dark],
+          ]}
+          onChange={(theme) => void updateSettings({ theme })}
+        />
       </SettingsGroup>
     </div>
   );
 };
 
 const SidebarSettings = () => {
+  const copy = useSettingsCopy();
   const settings = useTaskStore((state) => state.settings);
   const updateSettings = useTaskStore((state) => state.updateSettings);
 
   return (
     <div className="settings-page main-settings-page">
-      <SettingsGroup title="Боковая панель">
-        <SettingsToggle
-          checked={settings.autoCollapseSidebar}
-          label="Автоматически сворачивать боковую панель, когда курсор в рабочей области"
-          onChange={(autoCollapseSidebar) => void updateSettings({ autoCollapseSidebar })}
-        />
-        <SettingsToggle
-          checked={settings.showSidebarCounts}
-          label="Показывать счётчики в боковой панели"
-          onChange={(showSidebarCounts) => void updateSettings({ showSidebarCounts })}
-        />
-        <SettingsToggle
-          checked={settings.showCategoryCounts}
-          label="Показывать счётчики задач у категорий"
-          onChange={(showCategoryCounts) => void updateSettings({ showCategoryCounts })}
-        />
+      <SettingsGroup title={copy.sidebar.title} onReset={() => void updateSettings(defaults.sidebar)}>
+        <SettingsToggle checked={settings.autoCollapseSidebar} label={copy.sidebar.autoCollapse} onChange={(autoCollapseSidebar) => void updateSettings({ autoCollapseSidebar })} />
+        <SettingsToggle checked={settings.showSidebarCounts} label={copy.sidebar.sidebarCounts} onChange={(showSidebarCounts) => void updateSettings({ showSidebarCounts })} />
+        <SettingsToggle checked={settings.showCategoryCounts} label={copy.sidebar.categoryCounts} onChange={(showCategoryCounts) => void updateSettings({ showCategoryCounts })} />
       </SettingsGroup>
     </div>
   );
 };
 
 const NotificationsSettings = () => {
+  const copy = useSettingsCopy();
   const settings = useTaskStore((state) => state.settings);
   const updateSettings = useTaskStore((state) => state.updateSettings);
 
   return (
     <div className="settings-page main-settings-page">
-      <SettingsGroup title="Уведомления Windows">
-        <SettingsToggle
-          checked={settings.notifyDeadlines}
-          label="Уведомлять о задачах с дедлайном"
-          onChange={(notifyDeadlines) => void updateSettings({ notifyDeadlines })}
-        />
-        <SettingsToggle
-          checked={settings.notifyBeforeTodayRefresh}
-          label="Уведомлять перед обновлением страницы «Сегодня»"
-          onChange={(notifyBeforeTodayRefresh) => void updateSettings({ notifyBeforeTodayRefresh })}
-        />
-        <SettingsToggle
-          checked={settings.notifyOverdue}
-          label="Уведомлять о просроченных задачах"
-          onChange={(notifyOverdue) => void updateSettings({ notifyOverdue })}
-        />
+      <SettingsGroup title={copy.notifications.title} onReset={() => void updateSettings(defaults.notifications)}>
+        <SettingsToggle checked={settings.notifyDeadlines} label={copy.notifications.deadlines} onChange={(notifyDeadlines) => void updateSettings({ notifyDeadlines })} />
+        <SettingsToggle checked={settings.notifyBeforeTodayRefresh} label={copy.notifications.todayRefresh} onChange={(notifyBeforeTodayRefresh) => void updateSettings({ notifyBeforeTodayRefresh })} />
+        <SettingsToggle checked={settings.notifyOverdue} label={copy.notifications.overdue} onChange={(notifyOverdue) => void updateSettings({ notifyOverdue })} />
       </SettingsGroup>
     </div>
   );
 };
 
+const TelegramSettings = () => {
+  const copy = useSettingsCopy();
+
+  return (
+    <div className="settings-page">
+      <section className="settings-section">
+        <h3>{copy.telegram.title}</h3>
+        <div className="settings-divider" />
+        <div className="settings-placeholder">
+          <p>{copy.telegram.description}</p>
+        </div>
+      </section>
+    </div>
+  );
+};
+
 const BackupsSettings = () => {
+  const copy = useSettingsCopy();
   const settings = useTaskStore((state) => state.settings);
   const updateSettings = useTaskStore((state) => state.updateSettings);
   const hydrate = useTaskStore((state) => state.hydrate);
@@ -412,58 +589,50 @@ const BackupsSettings = () => {
       await hydrate();
       setMessage(typeof result === 'string' && result ? `${successMessage}: ${result}` : successMessage);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Не удалось выполнить действие.');
+      setMessage(error instanceof Error ? error.message : copy.backups.failed);
     }
   };
 
   return (
     <div className="settings-page main-settings-page">
-      <SettingsGroup title="Файловая интеграция">
+      <SettingsGroup title={copy.backups.files}>
         <div className="settings-button-grid">
-          <button type="button" onClick={() => void runAction(() => window.afterlightApi!.exportTasksJson(), 'JSON экспортирован')}>
-            Экспорт задач в JSON
+          <button type="button" onClick={() => void runAction(() => window.afterlightApi!.exportTasksJson(), copy.backups.jsonExported)}>
+            {copy.backups.exportJson}
           </button>
-          <button type="button" onClick={() => void runAction(() => window.afterlightApi!.exportTasksCsv(), 'CSV экспортирован')}>
-            Экспорт задач в CSV
+          <button type="button" onClick={() => void runAction(() => window.afterlightApi!.exportTasksCsv(), copy.backups.csvExported)}>
+            {copy.backups.exportCsv}
           </button>
-          <button type="button" onClick={() => void runAction(() => window.afterlightApi!.importTasksJson(), 'JSON импортирован')}>
-            Импорт задач из JSON
+          <button type="button" onClick={() => void runAction(() => window.afterlightApi!.importTasksJson(), copy.backups.jsonImported)}>
+            {copy.backups.importJson}
           </button>
-          <button type="button" onClick={() => void runAction(() => window.afterlightApi!.openDataFolder(), 'Папка данных открыта')}>
-            Открыть папку данных
+          <button type="button" onClick={() => void runAction(() => window.afterlightApi!.openDataFolder(), copy.backups.dataOpened)}>
+            {copy.backups.openData}
           </button>
-          <button type="button" onClick={() => void runAction(() => window.afterlightApi!.openDatabase(), 'База данных открыта')}>
-            Открыть базу данных
+          <button type="button" onClick={() => void runAction(() => window.afterlightApi!.openDatabase(), copy.backups.databaseOpened)}>
+            {copy.backups.openDatabase}
           </button>
-          <button type="button" onClick={() => void runAction(() => window.afterlightApi!.createBackup(), 'Резервная копия создана')}>
-            Создать резервную копию
+          <button type="button" onClick={() => void runAction(() => window.afterlightApi!.createBackup(), copy.backups.backupCreated)}>
+            {copy.backups.createBackup}
           </button>
         </div>
         {message ? <p className="settings-hint">{message}</p> : null}
       </SettingsGroup>
 
-      <SettingsGroup title="Автоматические резервные копии">
-        <SettingsToggle
-          checked={settings.autoBackupEnabled}
-          label="Автоматически создавать резервные копии SQLite"
-          onChange={(autoBackupEnabled) => void updateSettings({ autoBackupEnabled })}
-        />
-        <SettingsNumber
-          label="Интервал, часов"
-          min={1}
-          max={168}
-          value={settings.autoBackupIntervalHours}
-          onChange={(autoBackupIntervalHours) => void updateSettings({ autoBackupIntervalHours })}
-        />
+      <SettingsGroup title={copy.backups.auto} onReset={() => void updateSettings(defaults.backups)}>
+        <SettingsToggle checked={settings.autoBackupEnabled} label={copy.backups.autoBackup} onChange={(autoBackupEnabled) => void updateSettings({ autoBackupEnabled })} />
+        <SettingsNumber label={copy.backups.interval} min={1} max={168} value={settings.autoBackupIntervalHours} onChange={(autoBackupIntervalHours) => void updateSettings({ autoBackupIntervalHours })} />
       </SettingsGroup>
     </div>
   );
 };
 
 const AccountSettings = ({ onAfterReset }: { onAfterReset: () => void }) => {
+  const copy = useSettingsCopy();
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const profile = useTaskStore((state) => state.profile);
   const resetProfile = useTaskStore((state) => state.resetProfile);
+  const settings = useTaskStore((state) => state.settings);
   const updateProfile = useTaskStore((state) => state.updateProfile);
   const updateWorkspace = useTaskStore((state) => state.updateWorkspace);
   const workspace = useTaskStore((state) => state.workspace);
@@ -474,6 +643,7 @@ const AccountSettings = ({ onAfterReset }: { onAfterReset: () => void }) => {
   const [workspaceTitle, setWorkspaceTitle] = useState(workspace.title);
   const [isConfirmingReset, setConfirmingReset] = useState(false);
   const canSave = Boolean(name.trim() && workspaceTitle.trim() && email.trim());
+  const defaultAvatar = assetUrl(settings.theme === 'dark' ? 'default-avatar-dark.png' : 'default-avatar-light.png');
 
   useEffect(() => {
     setAvatarDataUrl(profile.avatarDataUrl);
@@ -531,11 +701,22 @@ const AccountSettings = ({ onAfterReset }: { onAfterReset: () => void }) => {
     <div className="settings-page">
       <form className="settings-form" onSubmit={handleSubmit}>
         <section className="settings-section">
-          <h3>Профиль</h3>
+          <h3>{copy.account.profile}</h3>
           <div className="settings-divider" />
           <div className="profile-settings">
             <div className="profile-avatar-block">
-              <img className="profile-avatar" src={avatarDataUrl ?? assetUrl('default-avatar-light.png')} alt="" />
+              <div className="profile-avatar-shell">
+                <img className="profile-avatar" src={avatarDataUrl ?? defaultAvatar} alt="" />
+                <button
+                  className="delete-avatar-button"
+                  type="button"
+                  aria-label={copy.account.deleteAvatar}
+                  disabled={!avatarDataUrl}
+                  onClick={() => setAvatarDataUrl(undefined)}
+                >
+                  <img src={assetUrl('settings-delete-avatar-icon.svg')} alt="" />
+                </button>
+              </div>
               <input
                 ref={avatarInputRef}
                 accept="image/png,image/jpeg,image/webp,image/gif"
@@ -544,16 +725,16 @@ const AccountSettings = ({ onAfterReset }: { onAfterReset: () => void }) => {
                 onChange={handleAvatarChange}
               />
               <button className="outline-accent-button" type="button" onClick={() => avatarInputRef.current?.click()}>
-                Загрузить фото
+                {copy.account.upload}
               </button>
             </div>
             <div className="settings-field-stack">
               <label className="settings-field">
-                <span>Введите имя</span>
+                <span>{copy.account.name}</span>
                 <input value={name} onChange={(event) => setName(event.target.value)} />
               </label>
               <label className="settings-field">
-                <span>Название пространства</span>
+                <span>{copy.account.workspace}</span>
                 <input value={workspaceTitle} onChange={(event) => setWorkspaceTitle(event.target.value)} />
               </label>
             </div>
@@ -561,50 +742,45 @@ const AccountSettings = ({ onAfterReset }: { onAfterReset: () => void }) => {
         </section>
 
         <section className="settings-section">
-          <h3>Безопасность</h3>
+          <h3>{copy.account.security}</h3>
           <div className="settings-divider" />
           <div className="settings-field-stack wide">
             <label className="settings-field">
-              <span>Email</span>
+              <span>{copy.account.email}</span>
               <input value={email} onChange={(event) => setEmail(event.target.value)} />
             </label>
             <label className="settings-field">
-              <span>Новый пароль</span>
-              <input
-                value={password}
-                type="password"
-                onChange={(event) => setPassword(event.target.value)}
-                placeholder="************"
-              />
+              <span>{copy.account.password}</span>
+              <input value={password} type="password" onChange={(event) => setPassword(event.target.value)} placeholder="************" />
             </label>
           </div>
           <div className="settings-save-row">
             <button className="settings-save-button" type="submit" disabled={!canSave}>
-              Сохранить изменения
+              {copy.account.save}
             </button>
           </div>
           <div className="settings-divider" />
           {isConfirmingReset ? (
             <div className="settings-action danger confirm">
               <div>
-                <h4>Подтвердите удаление аккаунта</h4>
-                <p>Профиль, задачи, категории и заметки текущего рабочего пространства будут сброшены.</p>
+                <h4>{copy.account.confirmTitle}</h4>
+                <p>{copy.account.confirmDescription}</p>
               </div>
               <div className="settings-confirm-actions">
                 <button type="button" onClick={() => setConfirmingReset(false)}>
-                  Отмена
+                  {copy.account.cancel}
                 </button>
                 <button type="button" onClick={() => void handleReset()}>
-                  Подтвердить
+                  {copy.account.confirm}
                 </button>
               </div>
             </div>
           ) : (
             <SettingsAction
               danger
-              title="Удаление аккаунта"
-              description="Сбросить профиль и все данные текущего рабочего пространства."
-              action="Удалить аккаунт"
+              title={copy.account.deleteTitle}
+              description={copy.account.deleteDescription}
+              action={copy.account.deleteAction}
               onAction={() => setConfirmingReset(true)}
             />
           )}
@@ -638,13 +814,32 @@ const SettingsAction = ({
   </div>
 );
 
-const SettingsGroup = ({ children, title }: { children: ReactNode; title: string }) => (
-  <section className="settings-section">
-    <h3>{title}</h3>
-    <div className="settings-divider" />
-    <div className="settings-options-list">{children}</div>
-  </section>
-);
+const SettingsGroup = ({ children, onReset, title }: { children: ReactNode; onReset?: () => void; title: string }) => {
+  const copy = useSettingsCopy();
+
+  return (
+    <section className="settings-section">
+      <div className="settings-section-heading">
+        <h3>{title}</h3>
+        {onReset ? (
+          <button
+            className="settings-reset-button"
+            type="button"
+            onClick={() => {
+              if (window.confirm(copy.resetConfirm.replace('{title}', title))) {
+                onReset();
+              }
+            }}
+          >
+            {copy.reset}
+          </button>
+        ) : null}
+      </div>
+      <div className="settings-divider" />
+      <div className="settings-options-list">{children}</div>
+    </section>
+  );
+};
 
 const SettingsToggle = ({
   checked,
@@ -714,24 +909,74 @@ const SettingsNumber = ({
 }) => (
   <label className="settings-field settings-option-field">
     <span>{label}</span>
-    <input
-      max={max}
-      min={min}
-      type="number"
-      value={value}
-      onChange={(event) => onChange(Number(event.target.value))}
-    />
+    <input max={max} min={min} type="number" value={value} onChange={(event) => onChange(Number(event.target.value))} />
   </label>
 );
 
-const SettingsPlaceholder = ({ title }: { title: string }) => (
-  <div className="settings-page">
-    <section className="settings-section">
-      <h3>{title}</h3>
-      <div className="settings-divider" />
-      <div className="settings-placeholder">
-        <p>Раздел подготовлен. Наполнение и поведение будут добавлены на следующем этапе.</p>
-      </div>
-    </section>
-  </div>
-);
+const defaults = {
+  autosave: {
+    autosaveNotesIntervalSeconds: 1,
+  },
+  backups: {
+    autoBackupEnabled: true,
+    autoBackupIntervalHours: 24,
+  },
+  categories: {
+    categorySortMode: 'created',
+    confirmCategoryDelete: true,
+    countCompletedTasks: true,
+    showCategoryCounts: true,
+  },
+  close: {
+    closeBehavior: 'exit',
+    confirmExit: false,
+    minimizeToTrayOnClose: false,
+    trayEnabled: true,
+  },
+  interface: {
+    counterCriticalAt: 31,
+    counterHighAt: 16,
+    counterMediumAt: 6,
+    showLastModified: true,
+    showSidebarCounts: true,
+    showTabBar: true,
+  },
+  launch: {
+    launchMinimized: false,
+    launchWithWindows: false,
+    openMode: 'normal',
+    restoreTabs: false,
+    restoreWindowState: 'normal',
+    startSection: 'inbox',
+  },
+  notes: {
+    notesLineLimit: 50,
+  },
+  notifications: {
+    notifyBeforeTodayRefresh: false,
+    notifyDeadlines: false,
+    notifyOverdue: false,
+  },
+  sidebar: {
+    autoCollapseSidebar: false,
+    showCategoryCounts: true,
+    showSidebarCounts: true,
+  },
+  tasks: {
+    confirmTaskDelete: true,
+    taskSortMode: 'created',
+  },
+  theme: {
+    theme: 'light',
+  },
+  today: {
+    includeTodayDueTasks: true,
+    showTodayOverdueFirst: true,
+    todayRefreshTime: '00:00',
+  },
+  week: {
+    highlightTodayInWeek: true,
+    showWeekNoDate: true,
+    weekOrderMode: 'monday',
+  },
+} satisfies Record<string, UpdateSettingsInput>;

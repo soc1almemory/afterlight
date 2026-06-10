@@ -27,7 +27,7 @@ const defaultSettings: AppSettings = {
   autoBackupIntervalHours: 24,
   autoCollapseSidebar: false,
   autosaveNotesIntervalSeconds: 1,
-  categorySortMode: 'favorites',
+  categorySortMode: 'created',
   closeBehavior: 'exit',
   confirmCategoryDelete: true,
   confirmExit: false,
@@ -57,6 +57,7 @@ const defaultSettings: AppSettings = {
   showWeekNoDate: true,
   startSection: 'inbox',
   taskSortMode: 'created',
+  theme: 'light',
   todayRefreshTime: '00:00',
   trayEnabled: true,
   weekOrderMode: 'monday',
@@ -694,6 +695,7 @@ const normalizeSettings = (settings: Partial<AppSettings>): AppSettings => ({
   language: normalizeOneOf(settings.language, ['ru', 'en'], defaultSettings.language),
   notesLineLimit: clampNumber(settings.notesLineLimit, 5, 200, defaultSettings.notesLineLimit),
   restoreWindowState: normalizeOneOf(settings.restoreWindowState, ['normal', 'maximized', 'fullscreen'], defaultSettings.restoreWindowState),
+  theme: normalizeOneOf(settings.theme, ['light', 'dark'], defaultSettings.theme),
   todayRefreshTime: normalizeTime(settings.todayRefreshTime),
 });
 

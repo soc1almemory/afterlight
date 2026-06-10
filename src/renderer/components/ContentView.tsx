@@ -49,6 +49,7 @@ export const ContentView = ({ onAddTask, onEditTask, onMouseEnter }: ContentView
   const [draftNoteText, setDraftNoteText] = useState('');
   const [timeTick, setTimeTick] = useState(Date.now());
   const t = useTranslator();
+  const controlMenuRef = useRef<HTMLDivElement>(null);
   const notesTextareaRef = useRef<HTMLTextAreaElement>(null);
   const saveNoteTimeoutRef = useRef<number | undefined>(undefined);
 
@@ -61,10 +62,25 @@ export const ContentView = ({ onAddTask, onEditTask, onMouseEnter }: ContentView
   }, [settings.language, settings.todayRefreshTime]);
 
   useEffect(() => {
-    const intervalId = window.setInterval(() => setTimeTick(Date.now()), 60_000);
+    const intervalId = window.setInterval(() => setTimeTick(Date.now()), 1000);
 
     return () => window.clearInterval(intervalId);
   }, []);
+
+  useEffect(() => {
+    if (!isControlMenuOpen) {
+      return;
+    }
+
+    const handleMouseDown = (event: MouseEvent) => {
+      if (!controlMenuRef.current?.contains(event.target as Node)) {
+        setControlMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleMouseDown);
+    return () => document.removeEventListener('mousedown', handleMouseDown);
+  }, [isControlMenuOpen]);
 
   const activeCategory = categories.find((category) => category.id === activeCategoryId);
   const title = activeScope === 'category' ? activeCategory?.title ?? t(titleKeys.category) : t(titleKeys[activeScope]);
@@ -100,7 +116,7 @@ export const ContentView = ({ onAddTask, onEditTask, onMouseEnter }: ContentView
       return;
     }
 
-    if (settings.confirmTaskDelete && !window.confirm('Очистить текущий раздел от задач?')) {
+    if (settings.confirmTaskDelete && !window.confirm(t('clearCurrentSectionConfirm'))) {
       return;
     }
 
@@ -113,7 +129,7 @@ export const ContentView = ({ onAddTask, onEditTask, onMouseEnter }: ContentView
       return;
     }
 
-    if (settings.confirmCategoryDelete && !window.confirm(`Удалить категорию “${activeCategory.title}”?`)) {
+    if (settings.confirmCategoryDelete && !window.confirm(t('deleteCategoryConfirm', { title: activeCategory.title }))) {
       return;
     }
 
@@ -196,7 +212,7 @@ export const ContentView = ({ onAddTask, onEditTask, onMouseEnter }: ContentView
             <button
               className="category-page-favorite-status"
               type="button"
-              aria-label={activeCategory.isFavorite ? 'Убрать из избранного' : 'Добавить в избранное'}
+              aria-label={activeCategory.isFavorite ? t('favoriteRemove') : t('favoriteAdd')}
               onClick={() => void toggleCategoryFavorite(activeCategory.id)}
             >
               <img
@@ -206,10 +222,10 @@ export const ContentView = ({ onAddTask, onEditTask, onMouseEnter }: ContentView
               />
             </button>
           ) : null}
-          <div className="control-menu-wrapper">
+          <div className="control-menu-wrapper" ref={controlMenuRef}>
             <button
               type="button"
-              aria-label="Действия страницы"
+              aria-label={t('pageActions')}
               aria-expanded={isControlMenuOpen}
               onClick={() => setControlMenuOpen((value) => !value)}
             >
@@ -330,9 +346,9 @@ const WeekTaskList = ({
             onDrop={(event) => handleDrop(event, group.date)}
           >
             <div className="week-day-heading">
-              {group.date ? <time>{formatShortDate(group.date)}</time> : <span className="date-pill neutral">Без даты</span>}
+              {group.date ? <time>{formatShortDate(group.date)}</time> : <span className="date-pill neutral">{translate(settings.language, 'noDate')}</span>}
               <h2>{group.label}</h2>
-              <button className="week-day-add" type="button" onClick={() => onAddTask(group.date)} aria-label="Добавить задачу">
+              <button className="week-day-add" type="button" onClick={() => onAddTask(group.date)} aria-label={translate(settings.language, 'addTask')}>
                 <img src={assetUrl('add-task-icon.svg')} alt="" />
               </button>
             </div>
@@ -348,7 +364,7 @@ const WeekTaskList = ({
                   />
                 ))
               ) : (
-                <div className="empty-day">Перетащите задачу сюда</div>
+                <div className="empty-day">{translate(settings.language, 'dragTaskHere')}</div>
               )}
             </div>
           </section>
@@ -542,9 +558,8 @@ const formatShortDate = (dateValue: string) => {
 const getLastModifiedLabel = (
   values: Array<string | undefined>,
   language: AppSettings['language'],
-  _timeTick: number,
+  timeTick: number,
 ) => {
-  void _timeTick;
   const latestTime = values
     .map((value) => parseDateTime(value))
     .filter((value): value is number => typeof value === 'number')
@@ -554,11 +569,13 @@ const getLastModifiedLabel = (
     return undefined;
   }
 
-  const diffMinutes = Math.max(0, Math.floor((Date.now() - latestTime) / 60_000));
+  const diffSeconds = Math.max(0, Math.floor((timeTick - latestTime) / 1000));
 
-  if (diffMinutes < 1) {
-    return translate(language, 'updatedJustNow');
+  if (diffSeconds < 60) {
+    return translate(language, 'updatedSecondsAgo', { value: diffSeconds });
   }
+
+  const diffMinutes = Math.floor(diffSeconds / 60);
 
   if (diffMinutes < 60) {
     return translate(language, 'updatedMinutesAgo', { value: diffMinutes });
@@ -571,7 +588,11 @@ const getLastModifiedLabel = (
   }
 
   const diffDays = Math.floor(diffHours / 24);
-  return translate(language, 'updatedDaysAgo', { value: diffDays });
+  if (diffDays < 30) {
+    return translate(language, 'updatedDaysAgo', { value: diffDays });
+  }
+
+  return translate(language, 'updatedMonthsAgo', { value: Math.floor(diffDays / 30) });
 };
 
 const parseDateTime = (value: string | undefined) => {

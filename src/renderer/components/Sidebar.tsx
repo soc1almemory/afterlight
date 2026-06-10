@@ -44,17 +44,18 @@ export const Sidebar = ({
   const sortedCategories = useMemo(() => sortCategories(categories, settings.categorySortMode), [categories, settings.categorySortMode]);
   const favoriteCategories = useMemo(() => sortedCategories.filter((category) => category.isFavorite), [sortedCategories]);
   const regularCategories = useMemo(() => sortedCategories.filter((category) => !category.isFavorite), [sortedCategories]);
+  const defaultAvatar = assetUrl(settings.theme === 'dark' ? 'default-avatar-dark.png' : 'default-avatar-light.png');
 
   return (
     <aside className="sidebar" onMouseEnter={onMouseEnter}>
       <div className="menu-top-container">
         <div className="user-row">
-          <img className="user-avatar" src={profile.avatarDataUrl ?? assetUrl('default-avatar-light.png')} alt="" />
+          <img className="user-avatar" src={profile.avatarDataUrl ?? defaultAvatar} alt="" />
           <button className="user-name-button" type="button">
             <span className="user-name">{profile.name}</span>
             <span className="user-workspace">{workspace.title}</span>
           </button>
-          <button className="create-category-button" type="button" aria-label="Создать категорию" onClick={onAddCategory}>
+          <button className="create-category-button" type="button" aria-label={t('createCategory')} onClick={onAddCategory}>
             <img src={assetUrl('create-icon.svg')} alt="" />
           </button>
         </div>
@@ -115,7 +116,7 @@ export const Sidebar = ({
         />
       </div>
 
-      <div className="bottom-menu" aria-label="Быстрые действия">
+      <div className="bottom-menu" aria-label={t('quickActions')}>
         <div className="bottom-menu-group">
           <button
             className="bottom-menu-button"
