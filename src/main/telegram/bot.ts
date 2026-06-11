@@ -144,6 +144,8 @@ const botCopy = {
       connectPrompt: 'Откройте настройки Afterlight, включите Telegram-интеграцию и отправьте /start, чтобы привязать этот чат.',
       createdPrefix: 'Добавлено:',
       deleted: (title?: string) => `Удалено: ${title ?? 'задача'}`,
+      deadlineReminder: (title: string, due: string, minutes: number) =>
+        `⏰ Скоро дедлайн\n${title}\n${due ? `Срок: ${due}\n` : ''}Напоминание за ${minutes} мин.`,
       emptyList: 'Активных задач нет.',
       emptyTask: 'Название задачи пустое. Напишите задачу по примеру ниже или нажмите “❌️ Отмена”.',
       helpIntro: 'Afterlight bot работает полностью внутри Telegram:',
@@ -232,6 +234,8 @@ const botCopy = {
       connectPrompt: 'Open Afterlight settings, enable Telegram integration, then send /start to connect this chat.',
       createdPrefix: 'Added:',
       deleted: (title?: string) => `Deleted: ${title ?? 'task'}`,
+      deadlineReminder: (title: string, due: string, minutes: number) =>
+        `⏰ Deadline soon\n${title}\n${due ? `Due: ${due}\n` : ''}Reminder ${minutes} min before.`,
       emptyList: 'No active tasks.',
       emptyTask: 'Task title is empty. Send a task using the examples below or tap “❌️ Cancel”.',
       helpIntro: 'Afterlight bot works fully inside Telegram:',
@@ -366,6 +370,32 @@ export const testTelegramBotConnection = async (token?: string): Promise<Telegra
   }
 
   return getTelegramBotStatus();
+};
+
+export const notifyTelegramDeadline = async (task: Task, leadMinutes: number) => {
+  const config = readConfig();
+
+  if (!config.enabled || !config.token || !config.chatId) {
+    return false;
+  }
+
+  const language = getLanguage(config);
+  const due = formatTaskDue(task) ?? '';
+
+  try {
+    await sendMessage(
+      config.token,
+      config.chatId,
+      getCopy(language).text.deadlineReminder(task.title, due, leadMinutes),
+      buildTaskKeyboard(task, language),
+    );
+    lastError = undefined;
+    lastUpdateAt = new Date().toISOString();
+    return true;
+  } catch (error) {
+    lastError = getErrorMessage(error);
+    return false;
+  }
 };
 
 export const restartTelegramBot = async () => {

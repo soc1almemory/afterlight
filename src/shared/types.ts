@@ -143,10 +143,12 @@ export interface AppSettings {
   launchMinimized: boolean;
   launchWithWindows: boolean;
   minimizeToTrayOnClose: boolean;
+  deadlineNotifyBeforeMinutes: number;
   notifyBeforeTodayRefresh: boolean;
   notifyDeadlines: boolean;
   notifyOverdue: boolean;
   notesLineLimit: number;
+  overdueNotifyEveryMinutes: number;
   openMode: WindowOpenMode;
   restoreTabs: boolean;
   restoreWindowState: WindowStateMode;
@@ -159,6 +161,7 @@ export interface AppSettings {
   startSection: StartSectionMode;
   taskSortMode: TaskSortMode;
   theme: ThemeMode;
+  todayRefreshNotifyBeforeMinutes: number;
   todayRefreshTime: string;
   trayEnabled: boolean;
   weekOrderMode: WeekOrderMode;

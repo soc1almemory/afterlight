@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ChangeEvent, FormEvent, ReactNode } from 'react';
+import appVersion from '../../shared/app-version.json';
 import type { TelegramBotStatus, UpdateSettingsInput } from '../../shared/types';
 import { assetUrl } from '../lib/assets';
 import { useTaskStore } from '../store/useTaskStore';
@@ -132,10 +133,13 @@ const settingsCopy = {
       categoryCounts: 'Показывать счётчики задач у категорий',
     },
     notifications: {
-      title: 'Уведомления Windows',
+      title: 'Уведомления',
       deadlines: 'Уведомлять о задачах с дедлайном',
+      deadlineLead: 'За сколько минут до дедлайна уведомлять Windows и Telegram',
       todayRefresh: 'Уведомлять перед обновлением страницы «Сегодня»',
+      todayRefreshLead: 'За сколько минут до обновления «Сегодня» уведомлять Windows',
       overdue: 'Уведомлять о просроченных задачах',
+      overdueInterval: 'Интервал повторных уведомлений о просроченных задачах, мин.',
     },
     backups: {
       files: 'Файловая интеграция',
@@ -164,7 +168,6 @@ const settingsCopy = {
       tokenPlaceholder: 'Вставьте новый токен из BotFather',
       enabled: 'Включить локального Telegram-бота',
       save: 'Сохранить и запустить',
-      test: 'Проверить подключение',
       disconnect: 'Отключить',
       status: 'Статус',
       running: 'бот запущен',
@@ -173,7 +176,7 @@ const settingsCopy = {
       tokenMissing: 'токен не сохранён',
       chat: 'chat_id',
       bot: 'бот',
-      noConnection: 'Подключение не проверено',
+      noConnection: 'Подключение отсутствует',
       saved: 'Настройки Telegram сохранены',
       tested: '✅ Подключено',
       disconnected: 'Telegram отключён',
@@ -288,10 +291,13 @@ const settingsCopy = {
       categoryCounts: 'Show task counters for categories',
     },
     notifications: {
-      title: 'Windows notifications',
+      title: 'Notifications',
       deadlines: 'Notify about tasks with deadlines',
+      deadlineLead: 'Minutes before deadline for Windows and Telegram notifications',
       todayRefresh: 'Notify before the Today page refreshes',
+      todayRefreshLead: 'Minutes before Today refresh for Windows notifications',
       overdue: 'Notify about overdue tasks',
+      overdueInterval: 'Repeat overdue notifications every, min.',
     },
     backups: {
       files: 'File integration',
@@ -320,7 +326,6 @@ const settingsCopy = {
       tokenPlaceholder: 'Paste a new token from BotFather',
       enabled: 'Enable local Telegram bot',
       save: 'Save and start',
-      test: 'Test connection',
       disconnect: 'Disconnect',
       status: 'Status',
       running: 'bot is running',
@@ -375,6 +380,7 @@ export const SettingsDialog = ({ initialPage = 'account', isOpen, onClose }: Set
               </button>
             ))}
           </nav>
+          <p className="settings-version-label">Afterlight v{appVersion.version} © soc1almemory 2026</p>
         </aside>
 
         <button className="settings-close-button" type="button" aria-label={copy.close} onClick={onClose}>
@@ -594,8 +600,29 @@ const NotificationsSettings = () => {
     <div className="settings-page main-settings-page">
       <SettingsGroup title={copy.notifications.title} onReset={() => void updateSettings(defaults.notifications)}>
         <SettingsToggle checked={settings.notifyDeadlines} label={copy.notifications.deadlines} onChange={(notifyDeadlines) => void updateSettings({ notifyDeadlines })} />
+        <SettingsNumber
+          label={copy.notifications.deadlineLead}
+          min={1}
+          max={10080}
+          value={settings.deadlineNotifyBeforeMinutes}
+          onChange={(deadlineNotifyBeforeMinutes) => void updateSettings({ deadlineNotifyBeforeMinutes })}
+        />
         <SettingsToggle checked={settings.notifyBeforeTodayRefresh} label={copy.notifications.todayRefresh} onChange={(notifyBeforeTodayRefresh) => void updateSettings({ notifyBeforeTodayRefresh })} />
+        <SettingsNumber
+          label={copy.notifications.todayRefreshLead}
+          min={1}
+          max={1440}
+          value={settings.todayRefreshNotifyBeforeMinutes}
+          onChange={(todayRefreshNotifyBeforeMinutes) => void updateSettings({ todayRefreshNotifyBeforeMinutes })}
+        />
         <SettingsToggle checked={settings.notifyOverdue} label={copy.notifications.overdue} onChange={(notifyOverdue) => void updateSettings({ notifyOverdue })} />
+        <SettingsNumber
+          label={copy.notifications.overdueInterval}
+          min={5}
+          max={10080}
+          value={settings.overdueNotifyEveryMinutes}
+          onChange={(overdueNotifyEveryMinutes) => void updateSettings({ overdueNotifyEveryMinutes })}
+        />
       </SettingsGroup>
     </div>
   );
@@ -628,11 +655,16 @@ const TelegramSettings = () => {
           setStatusRefreshing(true);
         }
 
-        const telegramStatus = await window.afterlightApi!.getTelegramStatus();
+        const savedStatus = await window.afterlightApi!.getTelegramStatus();
+        const shouldTest = savedStatus.enabled || savedStatus.hasToken || Boolean(token.trim());
+        const telegramStatus = shouldTest
+          ? await window.afterlightApi!.testTelegram(token.trim() || undefined)
+          : savedStatus;
 
         if (isMounted) {
           setEnabled(telegramStatus.enabled);
           setStatus(telegramStatus);
+          setMessage(telegramStatus.lastError ?? (shouldTest ? copy.telegram.tested : ''));
         }
       } catch (error) {
         if (isMounted) {
@@ -646,13 +678,13 @@ const TelegramSettings = () => {
     };
 
     void loadStatus();
-    const intervalId = window.setInterval(loadStatus, 3000);
+    const intervalId = window.setInterval(loadStatus, 5000);
 
     return () => {
       isMounted = false;
       window.clearInterval(intervalId);
     };
-  }, [copy.telegram.failed]);
+  }, [copy.telegram.failed, copy.telegram.tested, token]);
 
   const runAction = async (action: () => Promise<TelegramBotStatus>, successMessage: string) => {
     try {
@@ -673,17 +705,13 @@ const TelegramSettings = () => {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const nextStatus = await runAction(
-      () => window.afterlightApi!.configureTelegram({ enabled: true, token: token.trim() || undefined }),
+      () => window.afterlightApi!.configureTelegram({ enabled, token: token.trim() || undefined }),
       copy.telegram.saved,
     );
 
     if (nextStatus && !nextStatus.lastError) {
       setToken('');
     }
-  };
-
-  const handleTest = async () => {
-    await runAction(() => window.afterlightApi!.testTelegram(token.trim() || undefined), copy.telegram.tested);
   };
 
   const handleDisconnect = async () => {
@@ -721,9 +749,6 @@ const TelegramSettings = () => {
           <SettingsToggle checked={enabled} label={copy.telegram.enabled} onChange={setEnabled} />
           <div className="settings-button-grid telegram-actions">
             <button type="submit">{copy.telegram.save}</button>
-            <button type="button" onClick={() => void handleTest()}>
-              {copy.telegram.test}
-            </button>
             <button type="button" onClick={() => void handleDisconnect()}>
               {copy.telegram.disconnect}
             </button>
@@ -1122,9 +1147,12 @@ const defaults = {
     notesLineLimit: 50,
   },
   notifications: {
+    deadlineNotifyBeforeMinutes: 60,
     notifyBeforeTodayRefresh: false,
     notifyDeadlines: false,
     notifyOverdue: false,
+    overdueNotifyEveryMinutes: 240,
+    todayRefreshNotifyBeforeMinutes: 10,
   },
   sidebar: {
     autoCollapseSidebar: false,

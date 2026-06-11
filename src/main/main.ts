@@ -11,6 +11,7 @@ import {
   configureTelegramBotRuntime,
   disconnectTelegramBot,
   getTelegramBotStatus,
+  notifyTelegramDeadline,
   restartTelegramBot,
   stopTelegramBot,
   testTelegramBotConnection,
@@ -350,38 +351,53 @@ const scheduleNotifications = (settings: AppSettings) => {
 };
 
 const runNotificationSweep = (settings: AppSettings) => {
-  if (!Notification.isSupported()) {
-    return;
-  }
-
   const copy = systemCopy[settings.language];
   const tasks = listAppData().tasks;
   const now = new Date();
+  const supportsNotifications = Notification.isSupported();
 
   if (settings.notifyDeadlines) {
-    tasks.filter(isActiveTaskWithTodayTime).forEach((task) => {
+    const leadMinutes = Math.max(1, settings.deadlineNotifyBeforeMinutes);
+    const leadMs = leadMinutes * 60_000;
+
+    tasks.filter(isActiveTaskWithDeadlineTime).forEach((task) => {
       const deadline = getTaskDeadline(task);
       if (!deadline) return;
 
-      const minutesLeft = Math.round((deadline.getTime() - now.getTime()) / 60_000);
-      if (minutesLeft < 0 || minutesLeft > 15) return;
+      const msLeft = deadline.getTime() - now.getTime();
+      if (msLeft < 0 || msLeft > leadMs) return;
 
-      notifyOnce(`deadline:${task.id}:${toDateKey(now)}`, copy.appName, copy.deadline.replace('{title}', task.title));
+      const reminderKey = `deadline:${task.id}:${task.dueDate}:${task.dueLabel}:${leadMinutes}`;
+      if (supportsNotifications) {
+        notifyOnce(`windows:${reminderKey}`, copy.appName, copy.deadline.replace('{title}', task.title));
+      }
+
+      const telegramStatus = getTelegramBotStatus();
+      const telegramKey = `telegram:${reminderKey}`;
+      if (telegramStatus.enabled && telegramStatus.hasToken && telegramStatus.chatId && rememberOnce(telegramKey)) {
+        void notifyTelegramDeadline(task, leadMinutes).then((wasSent) => {
+          if (!wasSent) {
+            notifiedKeys.delete(telegramKey);
+          }
+        });
+      }
     });
   }
 
-  if (settings.notifyOverdue) {
-    const overdueTasks = tasks.filter((task) => task.status === 'active' && task.dueDate && task.dueDate < getTodayDate());
+  if (settings.notifyOverdue && supportsNotifications) {
+    const intervalMinutes = Math.max(5, settings.overdueNotifyEveryMinutes);
+    const intervalBucket = Math.floor(now.getTime() / (intervalMinutes * 60_000));
+    const overdueTasks = tasks.filter((task) => isOverdueTask(task, now));
     if (overdueTasks.length > 0) {
-      notifyOnce(`overdue:${toDateKey(now)}:${now.getHours()}`, copy.appName, copy.overdue.replace('{count}', String(overdueTasks.length)));
+      notifyOnce(`overdue:${intervalBucket}`, copy.appName, copy.overdue.replace('{count}', String(overdueTasks.length)));
     }
   }
 
-  if (settings.notifyBeforeTodayRefresh) {
+  if (settings.notifyBeforeTodayRefresh && supportsNotifications) {
     const refresh = getNextRefresh(settings.todayRefreshTime);
     const minutesLeft = Math.round((refresh.getTime() - now.getTime()) / 60_000);
-    if (minutesLeft >= 0 && minutesLeft <= 15) {
-      notifyOnce(`today-refresh:${toDateKey(refresh)}`, copy.appName, copy.todayRefresh);
+    if (minutesLeft >= 0 && minutesLeft <= settings.todayRefreshNotifyBeforeMinutes) {
+      notifyOnce(`today-refresh:${toDateKey(refresh)}:${settings.todayRefreshTime}:${settings.todayRefreshNotifyBeforeMinutes}`, copy.appName, copy.todayRefresh);
     }
   }
 };
@@ -402,12 +418,20 @@ const scheduleBackups = (settings: AppSettings) => {
 };
 
 const notifyOnce = (key: string, title: string, body: string) => {
-  if (notifiedKeys.has(key)) {
+  if (!rememberOnce(key)) {
     return;
   }
 
-  notifiedKeys.add(key);
   new Notification({ title, body, icon: getIconPath() }).show();
+};
+
+const rememberOnce = (key: string) => {
+  if (notifiedKeys.has(key)) {
+    return false;
+  }
+
+  notifiedKeys.add(key);
+  return true;
 };
 
 const exportTasksJson = async () => {
@@ -505,15 +529,28 @@ const tasksToCsv = (tasks: Task[]) => {
 
 const csvCell = (value: string) => `"${value.replace(/"/g, '""')}"`;
 
-const isActiveTaskWithTodayTime = (task: Task) =>
-  task.status === 'active' && task.dueDate === getTodayDate() && Boolean(task.dueLabel);
+const isActiveTaskWithDeadlineTime = (task: Task) => task.status === 'active' && Boolean(task.dueDate && task.dueLabel);
+
+const isOverdueTask = (task: Task, now: Date) => {
+  if (task.status !== 'active' || !task.dueDate) {
+    return false;
+  }
+
+  if (task.dueDate < getTodayDate()) {
+    return true;
+  }
+
+  const deadline = getTaskDeadline(task);
+  return Boolean(deadline && deadline.getTime() < now.getTime());
+};
 
 const getTaskDeadline = (task: Task) => {
   if (!task.dueDate || !task.dueLabel) {
     return undefined;
   }
 
-  return new Date(`${task.dueDate}T${task.dueLabel}:00`);
+  const deadline = new Date(`${task.dueDate}T${task.dueLabel}:00`);
+  return Number.isNaN(deadline.getTime()) ? undefined : deadline;
 };
 
 const getNextRefresh = (refreshTime: string) => {

@@ -704,11 +704,18 @@ body {
   width: 32px;
   height: 32px;
   border-radius: 6px;
-  display: grid;
   place-items: center;
   transition:
     background var(--motion-fast) ease,
     transform var(--motion-fast) var(--motion-ease);
+}
+
+.menu-section-actions button {
+  display: grid;
+}
+
+.create-category-button {
+  display: flex;
 }
 
 .create-category-button:hover,
@@ -716,6 +723,12 @@ body {
   background: #e3e3e3;
   transform: translateY(-1px);
 }
+
+body.theme-dark .create-category-button:hover,
+body.theme-dark .menu-section-actions button:hover {
+  background: #171717;
+}
+
 
 .create-category-button img {
   width: 22px;
@@ -1509,6 +1522,12 @@ body {
   transform: translateX(0) scale(1.04);
 }
 
+body.theme-dark .task-edit-button:hover {
+  background: #171717;
+  transform: translateX(0) scale(1.04);
+}
+
+
 .task-edit-button img {
   width: 18px;
   height: 18px;
@@ -1826,6 +1845,8 @@ body {
 .settings-nav {
   background: #eeeeee;
   padding: 24px 18px;
+  display: flex;
+  flex-direction: column;
 }
 
 .settings-nav h2 {
@@ -1838,6 +1859,14 @@ body {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.settings-version-label {
+  margin: auto 0 0;
+  color: #6d6d6d;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
 }
 
 .settings-nav-item {
@@ -1881,7 +1910,7 @@ body {
 .settings-close-button {
   position: absolute;
   top: 18px;
-  right: 30px;
+  right: 25px;
   z-index: 8;
   width: 32px;
   height: 32px;
@@ -2209,14 +2238,14 @@ body {
   width: 128px;
   height: 128px;
   align-self: left;
-  margin-left: 10px;
-  margin-bottom: 10px;
-  margin-top: 10px;
+  margin-left: 25px;
+  margin-bottom: 25px;
+  margin-top: 25px;
 }
 
 .telegram-actions {
   width: min(520px, 100%);
-  grid-template-columns: repeat(3, max-content);
+  grid-template-columns: repeat(2, max-content);
   justify-content: flex-start;
 }
 
@@ -2509,6 +2538,7 @@ body {
   display: grid;
   place-items: center;
   border-radius: 6px;
+  background: #ffffff;
   transition:
     background var(--motion-fast) ease,
     transform var(--motion-fast) var(--motion-ease);
@@ -2921,7 +2951,7 @@ body.theme-dark .control-strip {
 }
 
 body.theme-dark .window-actions button:hover {
-  background: #343434;
+  background: #171717;
 }
 
 body.theme-dark .window-actions button:last-child:hover {
@@ -3017,8 +3047,16 @@ body.theme-dark .category-icon-button:hover,
 body.theme-dark .tab-close-button:hover,
 body.theme-dark .nav-arrows button:hover:not(:disabled),
 body.theme-dark .add-tab-button:hover {
-  background: #343434;
+  background: #171717;
   color: #ffffff;
+}
+
+body.theme-dark .settings-toggle-row input[type='checkbox']:not(:checked),
+body.theme-dark .checkbox-field input[type='checkbox']:not(:checked) {
+  appearance: none;
+  border: 2px solid #4a4a4a;
+  border-radius: 4px;
+  background: #1f1f1f;
 }
 
 body.theme-dark .sidebar img[src*='drop-down-icon.svg'] {
@@ -3111,6 +3149,10 @@ body.theme-dark .empty-day {
   color: #ffffff;
 }
 
+body.theme-dark .settings-version-label {
+  color: #444444;
+}
+
 body.theme-dark .info-markdown strong {
   color: #ffffff;
 }
@@ -3118,6 +3160,15 @@ body.theme-dark .info-markdown strong {
 body.theme-dark .info-markdown code {
   background: #303030;
   color: #ffffff;
+}
+
+body.theme-dark .info-dialog .dialog-heading button {
+  background: #1f1f1f;
+  color: #ffffff;
+}
+
+body.theme-dark .info-dialog .dialog-heading button:hover {
+  background: #171717;
 }
 
 body.theme-dark input::placeholder,
