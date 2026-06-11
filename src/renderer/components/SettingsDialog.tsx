@@ -168,6 +168,7 @@ const settingsCopy = {
       tokenPlaceholder: 'Вставьте новый токен из BotFather',
       enabled: 'Включить локального Telegram-бота',
       save: 'Сохранить и запустить',
+      check: 'Проверить подключение',
       disconnect: 'Отключить',
       status: 'Статус',
       running: 'бот запущен',
@@ -326,6 +327,7 @@ const settingsCopy = {
       tokenPlaceholder: 'Paste a new token from BotFather',
       enabled: 'Enable local Telegram bot',
       save: 'Save and start',
+      check: 'Check connection',
       disconnect: 'Disconnect',
       status: 'Status',
       running: 'bot is running',
@@ -636,7 +638,7 @@ const TelegramSettings = () => {
   const [status, setStatus] = useState<TelegramBotStatus | undefined>();
   const [token, setToken] = useState('');
   const [isStatusRefreshing, setStatusRefreshing] = useState(false);
-  const isTelegramConnected = Boolean(status?.isRunning && status.chatId);
+  const isTelegramConnected = Boolean(status?.enabled && status.isRunning && status.chatId);
   const statusIcon = isTelegramConnected
     ? settings.theme === 'dark'
       ? 'settings-telegram-status-connected-dt.svg'
@@ -646,52 +648,66 @@ const TelegramSettings = () => {
       : 'settings-telegram-status-notconnected.svg';
   const statusMessage = status?.lastError ?? (message || copy.telegram.noConnection);
 
+  const hasLoadedTelegramSettingsRef = useRef(false);
+
   useEffect(() => {
     let isMounted = true;
 
-    const loadStatus = async () => {
+    const loadStatus = async (showSpinner = false) => {
       try {
-        if (isMounted) {
+        if (showSpinner && isMounted) {
           setStatusRefreshing(true);
         }
 
         const savedStatus = await window.afterlightApi!.getTelegramStatus();
-        const shouldTest = savedStatus.enabled || savedStatus.hasToken || Boolean(token.trim());
-        const telegramStatus = shouldTest
-          ? await window.afterlightApi!.testTelegram(token.trim() || undefined)
-          : savedStatus;
 
-        if (isMounted) {
-          setEnabled(telegramStatus.enabled);
-          setStatus(telegramStatus);
-          setMessage(telegramStatus.lastError ?? (shouldTest ? copy.telegram.tested : ''));
+        if (!isMounted) {
+          return;
+        }
+
+        setStatus(savedStatus);
+
+        if (!hasLoadedTelegramSettingsRef.current) {
+          setEnabled(savedStatus.enabled);
+          setMessage(savedStatus.lastError ?? '');
+          hasLoadedTelegramSettingsRef.current = true;
         }
       } catch (error) {
         if (isMounted) {
           setMessage(error instanceof Error ? error.message : copy.telegram.failed);
         }
       } finally {
-        if (isMounted) {
+        if (showSpinner && isMounted) {
           setStatusRefreshing(false);
         }
       }
     };
 
-    void loadStatus();
-    const intervalId = window.setInterval(loadStatus, 5000);
+    void loadStatus(true);
+    const intervalId = window.setInterval(() => void loadStatus(false), 10000);
 
     return () => {
       isMounted = false;
       window.clearInterval(intervalId);
     };
-  }, [copy.telegram.failed, copy.telegram.tested, token]);
+  }, [copy.telegram.failed]);
 
-  const runAction = async (action: () => Promise<TelegramBotStatus>, successMessage: string) => {
+  const runAction = async (
+    action: () => Promise<TelegramBotStatus>,
+    successMessage: string,
+    syncEnabled = true,
+  ) => {
     try {
       setStatusRefreshing(true);
+
       const nextStatus = await action();
+
       setStatus(nextStatus);
-      setEnabled(nextStatus.enabled);
+
+      if (syncEnabled) {
+        setEnabled(nextStatus.enabled);
+      }
+
       setMessage(nextStatus.lastError ?? successMessage);
       return nextStatus;
     } catch (error) {
@@ -722,6 +738,14 @@ const TelegramSettings = () => {
     }
   };
 
+  const handleCheckConnection = async () => {
+  await runAction(
+    () => window.afterlightApi!.testTelegram(token.trim() || undefined),
+    copy.telegram.tested,
+    false,
+  );
+};
+
   return (
     <div className="settings-page main-settings-page">
       <form className="settings-form" onSubmit={handleSubmit}>
@@ -747,12 +771,21 @@ const TelegramSettings = () => {
             />
           </label>
           <SettingsToggle checked={enabled} label={copy.telegram.enabled} onChange={setEnabled} />
+
           <div className="settings-button-grid telegram-actions">
-            <button type="submit">{copy.telegram.save}</button>
-            <button type="button" onClick={() => void handleDisconnect()}>
+            <button type="submit" disabled={isStatusRefreshing}>
+              {copy.telegram.save}
+            </button>
+
+            <button type="button" disabled={isStatusRefreshing} onClick={() => void handleCheckConnection()}>
+              {copy.telegram.check}
+            </button>
+
+            <button type="button" disabled={isStatusRefreshing} onClick={() => void handleDisconnect()}>
               {copy.telegram.disconnect}
             </button>
           </div>
+
           <div className="telegram-status-message" aria-live="polite">
             {isStatusRefreshing ? <span className="telegram-status-spinner" aria-label={copy.telegram.status} /> : <span>{statusMessage}</span>}
           </div>

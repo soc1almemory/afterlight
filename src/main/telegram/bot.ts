@@ -91,9 +91,38 @@ type TelegramReplyMarkup = InlineKeyboardMarkup | ReplyKeyboardMarkup;
 
 interface TelegramApiResponse<T> {
   description?: string;
+  error_code?: number;
   ok: boolean;
-  result: T;
+  parameters?: {
+    migrate_to_chat_id?: number;
+    retry_after?: number;
+  };
+  result?: T;
 }
+
+class TelegramRateLimitError extends Error {
+  retryAfterMs: number;
+
+  constructor(message: string, retryAfterSeconds: number) {
+    super(message);
+    this.name = 'TelegramRateLimitError';
+    this.retryAfterMs = Math.max(1, retryAfterSeconds) * 1000;
+  }
+}
+
+const extractRetryAfterSeconds = (message: string) => {
+  const match = message.match(/retry after (\d+)/i);
+  return match ? Number(match[1]) : undefined;
+};
+
+const isTelegramRateLimitError = (error: unknown): error is TelegramRateLimitError =>
+  error instanceof TelegramRateLimitError;
+
+const getTelegramRetryDelayMs = (error: unknown) =>
+  isTelegramRateLimitError(error) ? error.retryAfterMs + 1000 : POLL_RETRY_DELAY_MS;
+
+const formatTelegramRateLimitError = (error: TelegramRateLimitError) =>
+  `Telegram rate limit. Retrying after ${Math.ceil(error.retryAfterMs / 1000)}s...`;
 
 type BotCopy = typeof botCopy.ru;
 
@@ -361,12 +390,17 @@ export const testTelegramBotConnection = async (token?: string): Promise<Telegra
 
   try {
     const bot = await telegramApi<{ id: number; username?: string }>(tokenToTest, 'getMe');
-    writeConfig({ ...config, botUsername: bot.username });
-    await setupBotCommands(tokenToTest, getLanguage(config));
+
+    if (!token || tokenToTest === config.token) {
+      writeConfig({ ...config, botUsername: bot.username });
+    }
+
     lastError = undefined;
     lastUpdateAt = new Date().toISOString();
   } catch (error) {
-    lastError = getErrorMessage(error);
+    lastError = isTelegramRateLimitError(error)
+      ? formatTelegramRateLimitError(error)
+      : getErrorMessage(error);
   }
 
   return getTelegramBotStatus();
@@ -417,6 +451,12 @@ export const restartTelegramBot = async () => {
   } catch (error) {
     if (isCurrentPollingSession(sessionId)) {
       const message = getErrorMessage(error);
+
+      if (isTelegramRateLimitError(error)) {
+        lastError = formatTelegramRateLimitError(error);
+        scheduleNextPoll(getTelegramRetryDelayMs(error), sessionId);
+        return;
+      }
 
       if (isNetworkFetchFailure(message)) {
         lastError = 'Telegram connection failed. Retrying...';
@@ -473,14 +513,33 @@ const pollTelegram = async (sessionId: number) => {
     );
 
     let nextConfig = readConfig();
+
     for (const update of updates) {
-      nextConfig = {
-        ...nextConfig,
-        lastUpdateId: Math.max(nextConfig.lastUpdateId ?? 0, update.update_id),
-      };
-      writeConfig(nextConfig);
-      await handleUpdate(update, nextConfig.token);
-      nextConfig = readConfig();
+      try {
+        await handleUpdate(update, nextConfig.token);
+
+        const freshConfig = readConfig();
+        nextConfig = {
+          ...freshConfig,
+          lastUpdateId: Math.max(freshConfig.lastUpdateId ?? 0, update.update_id),
+        };
+
+        writeConfig(nextConfig);
+      } catch (error) {
+        if (isTelegramRateLimitError(error)) {
+          throw error;
+        }
+
+        lastError = getErrorMessage(error);
+
+        const freshConfig = readConfig();
+        nextConfig = {
+          ...freshConfig,
+          lastUpdateId: Math.max(freshConfig.lastUpdateId ?? 0, update.update_id),
+        };
+
+        writeConfig(nextConfig);
+      }
     }
 
     lastError = undefined;
@@ -497,6 +556,12 @@ const pollTelegram = async (sessionId: number) => {
       if (isTelegramPollingConflict(message)) {
         stopTelegramBot();
         lastError = 'Telegram bot is already running in another Afterlight window. Close the duplicate app instance and start again.';
+        return;
+      }
+
+      if (isTelegramRateLimitError(error)) {
+        lastError = formatTelegramRateLimitError(error);
+        scheduleNextPoll(getTelegramRetryDelayMs(error), sessionId);
         return;
       }
 
@@ -1301,13 +1366,21 @@ const telegramApi = async <T>(
     method: 'POST',
     signal,
   });
+
   const data = (await response.json()) as TelegramApiResponse<T>;
 
   if (!response.ok || !data.ok) {
-    throw new Error(data.description ?? `Telegram API request failed: ${method}`);
+    const message = data.description ?? `Telegram API request failed: ${method}`;
+    const retryAfterSeconds = data.parameters?.retry_after ?? extractRetryAfterSeconds(message);
+
+    if (response.status === 429 || data.error_code === 429 || retryAfterSeconds) {
+      throw new TelegramRateLimitError(message, retryAfterSeconds ?? 60);
+    }
+
+    throw new Error(message);
   }
 
-  return data.result;
+  return data.result as T;
 };
 
 const sendMessage = async (token: string, chatId: number, text: string, replyMarkup?: TelegramReplyMarkup) => {
@@ -1338,7 +1411,7 @@ const deleteMessage = async (token: string, chatId: number, messageId: number) =
     // Telegram can reject deletes for older or already removed messages; chat cleanup is best effort.
   }
 };
-
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const clearChatBeforeAction = async (token: string, chatId: number, incomingMessageId?: number) => {
   const config = readConfig();
   const ids = [...new Set([...(config.botMessageIds ?? []), incomingMessageId].filter(isNumber))];
@@ -1347,7 +1420,11 @@ const clearChatBeforeAction = async (token: string, chatId: number, incomingMess
     return;
   }
 
-  await Promise.all(ids.map((messageId) => deleteMessage(token, chatId, messageId)));
+  for (const messageId of ids) {
+    await deleteMessage(token, chatId, messageId);
+    await delay(250);
+  }
+
   writeConfig({ ...readConfig(), botMessageIds: [] });
 };
 
