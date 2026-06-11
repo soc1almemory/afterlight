@@ -1,11 +1,11 @@
 # Afterlight
 ### Local Windows task manager for tasks, notes, categories, and Telegram reminders.
 
-![Version](https://img.shields.io/badge/version-0.2.0-111111)
-![Platform](https://img.shields.io/badge/platform-Windows-0078D4)
-![Runtime](https://img.shields.io/badge/runtime-Electron-47848F)
-![UI](https://img.shields.io/badge/UI-React%20%2B%20TypeScript-61DAFB)
-![Storage](https://img.shields.io/badge/storage-SQLite-003B57)
+![Version](https://img.shields.io/badge/version-0.2.0-FF5B5B)
+![Platform](https://img.shields.io/badge/platform-Windows-5B6EFF)
+![Runtime](https://img.shields.io/badge/runtime-Electron-5BFFD0)
+![UI](https://img.shields.io/badge/UI-React%20%2B%20TypeScript-FCFFA4)
+![Storage](https://img.shields.io/badge/storage-SQLite-FFA4FD)
 
 # About
 
