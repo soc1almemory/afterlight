@@ -109,7 +109,7 @@ const botCopy = {
       addTask: '➕ Добавить задачу',
       cancel: '❌️ Отмена',
       categories: '📂 Категории',
-      createCategory: '➕ Категория',
+      createCategory: '✍ Создать категорию',
       deleteTask: '🗑 Удалить',
       doneTask: '✅ Выполнить',
       help: '❓ Помощь',
@@ -117,7 +117,7 @@ const botCopy = {
       language: '🌐 Язык / Language',
       restoreTask: '↩️ Вернуть',
       today: '📅 Сегодня',
-      week: '🗓 Неделя',
+      week: '7⃣ Неделя',
     },
     commands: {
       add: 'Добавить задачу',
@@ -164,7 +164,7 @@ const botCopy = {
       category: 'Категория',
       inbox: '📥 Входящие',
       today: '📅 Сегодня',
-      week: '🗓 Неделя',
+      week: '7⃣ Неделя',
     },
     guide: [
       'Как писать задачи:',
@@ -199,7 +199,7 @@ const botCopy = {
       addTask: '➕ Add task',
       cancel: '❌️ Cancel',
       categories: '📂 Categories',
-      createCategory: '➕ Category',
+      createCategory: '✍ Create category',
       deleteTask: '🗑 Delete',
       doneTask: '✅ Done',
       help: '❓ Help',
@@ -207,7 +207,7 @@ const botCopy = {
       language: '🌐 Language / Язык',
       restoreTask: '↩️ Restore',
       today: '📅 Today',
-      week: '🗓 Week',
+      week: '7⃣ Week',
     },
     commands: {
       add: 'Add a task',
@@ -254,7 +254,7 @@ const botCopy = {
       category: 'Category',
       inbox: '📥 Inbox',
       today: '📅 Today',
-      week: '🗓 Week',
+      week: '7⃣ Week',
     },
     guide: [
       'How to write tasks:',
