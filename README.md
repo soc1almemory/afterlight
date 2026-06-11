@@ -7,6 +7,8 @@
 ![UI](https://img.shields.io/badge/UI-React%20%2B%20TypeScript-FCFFA4)
 ![Storage](https://img.shields.io/badge/storage-SQLite-FFA4FD)
 
+![Afterlight banner](https://files.catbox.moe/xi3av6.png)
+
 # About
 
 **Afterlight** is a lightweight local desktop app for Windows, built as a personal task manager for everyday workflow. It helps organize tasks, notes, categories, deadlines, and weekly planning without requiring a server or cloud account.
