@@ -195,7 +195,7 @@ const TabItem = ({
           onClose(route);
         }}
       >
-        <img src={assetUrl('close-icon.svg')} alt="" />
+        <img src={assetUrl('popup-close-icon.svg')} alt="" />
       </button>
     </div>
   );

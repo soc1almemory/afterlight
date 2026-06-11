@@ -384,7 +384,7 @@ export const SettingsDialog = ({ initialPage = 'account', isOpen, onClose }: Set
         </aside>
 
         <button className="settings-close-button" type="button" aria-label={copy.close} onClick={onClose}>
-          <img src={assetUrl('settings-close-icon.svg')} alt="" />
+          <img src={assetUrl('popup-close-icon.svg')} alt="" />
         </button>
 
         <main className="settings-content">

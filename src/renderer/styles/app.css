@@ -278,7 +278,7 @@ body {
   display: grid;
   grid-template-columns: 316px minmax(0, auto) minmax(40px, 1fr) auto;
   align-items: center;
-  background: #ffffff;
+  background: #f0f0f0;
   border-bottom: 1px solid #f1f1f1;
 }
 
@@ -288,11 +288,12 @@ body {
 
 .titlebar-sidebar-tools {
   height: 40px;
-  border-right: 1px solid #eeeeee;
+  border-right: 1px solid #E2E2E2;
   display: flex;
   align-items: center;
   gap: 14px;
   padding: 0 20px;
+  background-color: #EEEEEE;
 }
 
 .titlebar-brand-mark {
@@ -433,7 +434,7 @@ body {
   border-top: 1px solid #e2e2e2;
   border-right: 1px solid #e2e2e2;
   border-left: 1px solid #e2e2e2;
-  background: #f7f7f7;
+  background: #F0F0F0;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -452,8 +453,12 @@ body {
     transform var(--motion-fast) var(--motion-ease);
 }
 
-.app-tab:hover,
 .app-tab.active {
+  background: #ffffff;
+  color: #111111;
+}
+
+.app-tab:hover{
   background: #ffffff;
   color: #111111;
 }
@@ -581,7 +586,7 @@ body {
 }
 
 .window-actions button:last-child:hover {
-  background: #ffeded;
+  background: #C42121;
 }
 
 .window-actions img {
@@ -594,7 +599,7 @@ body {
   position: relative;
   height: calc(100vh - 40px);
   background: #eeeeee;
-  border-right: 1px solid #eeeeee;
+  border-right: 1px solid #E2E2E2;
   padding: 20px 8px 76px;
   display: flex;
   flex-direction: column;
@@ -1066,6 +1071,7 @@ body.theme-dark .menu-section-actions button:hover {
   align-items: center;
   padding: 0 48px 48px;
   overflow: auto;
+  background-color: #FFFFFF;
 }
 
 .workspace > * {
@@ -1081,7 +1087,7 @@ body.theme-dark .menu-section-actions button:hover {
   min-height: 40px;
   margin: 0 -48px 26px;
   padding: 0 18px;
-  background: #fafafa;
+  background: #FFFFFF;
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -1097,6 +1103,7 @@ body.theme-dark .menu-section-actions button:hover {
   align-items: center;
   justify-content: flex-end;
   gap: 30px;
+  color: #7f7f7f;
 }
 
 .refresh-status {
@@ -1211,7 +1218,7 @@ body.theme-dark .menu-section-actions button:hover {
   position: absolute;
   inset: 0 0 -10000px;
   z-index: 0;
-  border: 1px solid #f1f1f1;
+  border: 1px solid #d7d7d7;
   border-bottom: 0;
   border-radius: 5px 5px 0 0;
   background: #ffffff;
@@ -1863,7 +1870,7 @@ body.theme-dark .task-edit-button:hover {
 
 .settings-version-label {
   margin: auto 0 0;
-  color: #6d6d6d;
+  color: #bebebe;
   font-size: 12px;
   font-weight: 800;
   line-height: 1.35;
@@ -2945,8 +2952,7 @@ body.theme-dark .info-dialog .dialog-heading button img:not(.preserve-icon-color
 }
 
 body.theme-dark .app-titlebar,
-body.theme-dark .setup-titlebar,
-body.theme-dark .control-strip {
+body.theme-dark .setup-titlebar{
   background: #1f1f1f;
   border-color: #2d2d2d;
 }
@@ -2999,7 +3005,6 @@ body.theme-dark .info-dialog {
   border-color: #303030;
 }
 
-body.theme-dark .app-tab,
 body.theme-dark .settings-field input,
 body.theme-dark .settings-field select,
 body.theme-dark .form-field input,
@@ -3010,8 +3015,14 @@ body.theme-dark .form-field textarea {
   color: #ffffff;
 }
 
+body.theme-dark .app-tab{
+  background: #1F1F1F;
+  border-color: #373737;
+  color: #b6b6b6;
+}
+
+
 body.theme-dark .app-tab:hover,
-body.theme-dark .app-tab.active,
 body.theme-dark .search-menu-button:hover,
 body.theme-dark .primary-nav-item:hover,
 body.theme-dark .primary-nav-item.active,
@@ -3019,6 +3030,16 @@ body.theme-dark .category-nav-row:hover,
 body.theme-dark .category-nav-row.active,
 body.theme-dark .settings-nav-item.active,
 body.theme-dark .settings-nav-item:hover {
+  background: #303030;
+  color: #ffffff;
+}
+
+body.theme-dark .app-tab.active{
+  background: #171717;
+  color: #ffffff;
+}
+
+body.theme-dark .app-tab.active:hover {
   background: #303030;
   color: #ffffff;
 }
@@ -3033,7 +3054,7 @@ body.theme-dark .control-menu,
 body.theme-dark .delete-avatar-button,
 body.theme-dark .settings-reset-button,
 body.theme-dark .settings-action button {
-  background: #252525;
+  background: #212121;
   border-color: #393939;
   color: #ffffff;
 }
@@ -3109,7 +3130,7 @@ body.theme-dark .search-input-row input {
 body.theme-dark .user-workspace,
 body.theme-dark .setup-heading p,
 body.theme-dark .app-loading,
-body.theme-dark .app-tab,
+/*body.theme-dark .app-tab,*/
 body.theme-dark .tab-navigation,
 body.theme-dark .tab-hash,
 body.theme-dark .control-strip,
@@ -3150,6 +3171,15 @@ body.theme-dark .empty-day {
   color: #ffffff;
 }
 
+body.theme-dark .control-strip{
+  background: #171717;
+  border-color: #2d2d2d;
+}
+
+body.theme-dark .control-status{
+  color: #9e9e9e;
+}
+
 body.theme-dark .settings-version-label {
   color: #444444;
 }
@@ -3170,6 +3200,17 @@ body.theme-dark .info-dialog .dialog-heading button {
 
 body.theme-dark .info-dialog .dialog-heading button:hover {
   background: #171717;
+  color: #ffffff;
+}
+
+body.theme-dark .dialog-heading button {
+  background: #1f1f1f;
+  color: #ffffff;
+}
+
+body.theme-dark .dialog-heading button:hover {
+  background: #171717;
+  color: #ffffff;
 }
 
 body.theme-dark input::placeholder,
@@ -3206,27 +3247,32 @@ body.theme-dark .priority-option {
 
 body.theme-dark .priority-option:hover,
 body.theme-dark .priority-option.active {
-  border-color: #ffffff;
+  border-color: #7b7b7b;
   color: #ffffff;
 }
 
 body.theme-dark .category-icon-mode {
-  background: #252525;
+  background: #171717;
 }
 
 body.theme-dark .category-icon-mode button {
-  background: #ffffff;
-  color: #111111;
+  background: #171717;
+  color: #ffffff;
 }
 
-body.theme-dark .category-icon-mode button.active,
-body.theme-dark .category-icon-mode button:hover {
-  background: #ffffff;
-  color: #111111;
+body.theme-dark .category-icon-mode button.active {
+  background: #1F1F1F;
+  color: #ffffff;
 }
+
+body.theme-dark .category-icon-mode button:hover {
+  background: #262626;
+  color: #ffffff;
+}
+
 
 body.theme-dark .dialog-actions button {
-  background: #252525;
+  background: #2E2E2E;
   color: #ffffff;
 }
 
@@ -3239,7 +3285,7 @@ body.theme-dark .dialog-actions .danger-button {
 body.theme-dark .settings-button-grid button,
 body.theme-dark .settings-save-button,
 body.theme-dark .dialog-actions button:last-child {
-  background: #111111;
+  background: #171717;
   border-color: #393939;
   color: #ffffff;
 }

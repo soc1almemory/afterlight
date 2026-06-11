@@ -241,7 +241,7 @@ export const CategoryDialog = ({ category, isOpen, onClose }: CategoryDialogProp
         <div className="dialog-heading">
           <h2>{category ? copy.editLabel : copy.newTitle}</h2>
           <button type="button" aria-label={copy.close} onClick={onClose}>
-            <img src={assetUrl('close-icon.svg')} alt="" />
+            <img src={assetUrl('popup-close-icon.svg')} alt="" />
           </button>
         </div>
 
