@@ -927,7 +927,7 @@ body.theme-dark .menu-section-actions button:hover {
 
 .category-nav-row:hover,
 .category-nav-row.active {
-  background: #f3f3f3;
+  background: #E2E2E2;
   color: #000000;
 }
 
@@ -1052,7 +1052,7 @@ body.theme-dark .menu-section-actions button:hover {
 }
 
 .bottom-menu-button:hover {
-  background: #f3f3f3;
+  background: #E2E2E2;
   transform: translateY(-1px) scale(1.03);
 }
 
