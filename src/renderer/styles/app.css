@@ -517,10 +517,12 @@ body {
   width: 22px;
   height: 22px;
   border-radius: 4px;
-  display: grid;
-  place-items: center;
   flex: 0 0 auto;
   opacity: 0.54;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
   transition:
     background var(--motion-fast) ease,
     opacity var(--motion-fast) ease,
@@ -696,20 +698,16 @@ body {
   font-weight: 700;
 }
 
-.section-toggle span {
-  width: 10px;
-  height: 10px;
-  border-right: 2px solid #8d8d8d;
-  border-bottom: 2px solid #8d8d8d;
-  transform: rotate(45deg);
-}
 
 .create-category-button,
 .menu-section-actions button {
   width: 32px;
   height: 32px;
   border-radius: 6px;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
   transition:
     background var(--motion-fast) ease,
     transform var(--motion-fast) var(--motion-ease);
@@ -717,10 +715,6 @@ body {
 
 .menu-section-actions button {
   display: grid;
-}
-
-.create-category-button {
-  display: flex;
 }
 
 .create-category-button:hover,
@@ -893,10 +887,16 @@ body.theme-dark .menu-section-actions button:hover {
 .section-toggle span {
   display: block;
   transform: rotate(-135deg);
+  width: 10px;
+  height: 10px;
+  border-right: 2px solid #8d8d8d;
+  border-bottom: 2px solid #8d8d8d;
+  /*margin-bottom: 5px;*/
   transition:
     border-color var(--motion-fast) ease,
     transform var(--motion-medium) var(--motion-spring);
 }
+
 
 .section-toggle.open span {
   transform: rotate(45deg);
