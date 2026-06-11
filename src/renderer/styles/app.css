@@ -405,7 +405,7 @@ body {
 }
 
 .nav-arrows button:hover:not(:disabled) {
-  background: #f2f2f2;
+  background: #ffffff;
 }
 
 .nav-arrows button:disabled {
@@ -553,7 +553,7 @@ body {
 }
 
 .add-tab-button:hover {
-  background: #f2f2f2;
+  background: #ffffff;
   transform: translateY(-1px);
 }
 
@@ -584,11 +584,11 @@ body {
 }
 
 .window-actions button:hover {
-  background: #f2f2f2;
+  background: #e4e4e4;
 }
 
 .window-actions button:last-child:hover {
-  background: #C42121;
+  background: #e84f4f;
 }
 
 .window-actions img {
@@ -1139,6 +1139,8 @@ body.theme-dark .menu-section-actions button:hover {
   transform: translateY(-1px);
 }
 
+
+
 .control-actions img,
 .task-panel-heading img {
   width: 18px;
@@ -1146,7 +1148,10 @@ body.theme-dark .menu-section-actions button:hover {
 }
 
 .control-actions .category-page-favorite-status {
-  padding: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
 }
 
 .control-actions .category-page-favorite-status img {
@@ -1871,7 +1876,7 @@ body.theme-dark .task-edit-button:hover {
 .settings-version-label {
   margin: auto 0 0;
   color: #b2b2b2;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 800;
   line-height: 1.35;
 }
@@ -1894,7 +1899,7 @@ body.theme-dark .task-edit-button:hover {
 
 .settings-nav-item.active,
 .settings-nav-item:hover {
-  background: #dddff0;
+  background: #DDDFF0;
   color: #000000;
 }
 
@@ -2419,6 +2424,10 @@ body.theme-dark .settings-field select:focus {
   color: #ff5a5f;
 }
 
+.settings-confirm-actions button:last-child:hover {
+  color: #ff777b;
+}
+
 .settings-action.danger h4,
 .settings-action.danger > button {
   color: #ff5a5f;
@@ -2426,6 +2435,10 @@ body.theme-dark .settings-field select:focus {
 
 .settings-action.danger > button {
   border-color: #ff5a5f;
+}
+
+.settings-action.danger > button:hover {
+  color: #ff777b;
 }
 
 .settings-placeholder {
@@ -2869,6 +2882,10 @@ body.theme-dark .settings-field select:focus {
   border: 1px solid #ff5a5f;
 }
 
+.dialog-actions .danger-button:hover {
+  color: #ff777b;
+}
+
 body.theme-dark {
   background: #171717;
   color: #ffffff;
@@ -3095,6 +3112,11 @@ body.theme-dark .add-tab-button:hover {
   color: #ffffff;
 }
 
+body.theme-dark .control-actions button:hover {
+  background: #1F1F1F;
+  color: #ffffff;
+}
+
 body.theme-dark .settings-toggle-row input[type='checkbox']:not(:checked),
 body.theme-dark .checkbox-field input[type='checkbox']:not(:checked) {
   appearance: none;
@@ -3302,6 +3324,11 @@ body.theme-dark .dialog-actions .danger-button {
   background: #1F1F1F;
   color: #ff5a5f;
   border: 1px solid #ff5a5f;
+}
+
+body.theme-dark .dialog-actions .danger-button:hover {
+  background: #3A2424;
+  color:#ff777b;
 }
 
 body.theme-dark .settings-button-grid button,
