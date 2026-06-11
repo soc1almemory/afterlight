@@ -2086,7 +2086,7 @@ body {
 }
 
 .outline-accent-button:hover {
-  background: #eef0ff;
+  
   transform: translateY(-1px);
 }
 
@@ -2992,10 +2992,14 @@ body.theme-dark .settings-nav-item:hover {
   color: #ffffff;
 }
 
+body.theme-dark .settings-close-button {
+  background: #1F1F1F;
+  color: #ffffff;
+}
+
 body.theme-dark .bottom-menu,
 body.theme-dark .control-menu,
 body.theme-dark .delete-avatar-button,
-body.theme-dark .settings-close-button,
 body.theme-dark .settings-reset-button,
 body.theme-dark .settings-action button {
   background: #252525;
