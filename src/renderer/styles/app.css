@@ -307,7 +307,7 @@ body {
 }
 
 .titlebar-brand-mark:hover {
-  transform: rotate(-8deg) scale(1.08);
+  transform: scale(1.08);
 }
 
 .titlebar-brand-icon {
