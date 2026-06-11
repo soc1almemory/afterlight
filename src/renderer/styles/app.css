@@ -2642,6 +2642,7 @@ body.theme-dark .settings-field select:focus {
 .form-field input,
 .form-field select {
   height: 44px;
+  font-weight: 500;
 }
 
 .form-field.compact input {
@@ -3001,7 +3002,8 @@ body.theme-dark .control-menu button img:not(.preserve-icon-color),
 body.theme-dark .task-edit-button img:not(.preserve-icon-color),
 body.theme-dark .search-input-row img:not(.preserve-icon-color),
 body.theme-dark .search-result-title img:not(.preserve-icon-color),
-body.theme-dark .info-dialog .dialog-heading button img:not(.preserve-icon-color) {
+body.theme-dark .info-dialog .dialog-heading button img:not(.preserve-icon-color),
+body.theme-dark .dialog-heading button img:not(.preserve-icon-color) {
   filter: brightness(0) invert(1) !important;
 }
 
