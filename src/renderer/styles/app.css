@@ -183,7 +183,7 @@ body {
   grid-template-columns: auto minmax(40px, 1fr) auto;
   align-items: center;
   background: #ffffff;
-  border-bottom: 1px solid #f1f1f1;
+  border-bottom: 1px solid #AEAEAE;
 }
 
 .setup-brand {
@@ -193,7 +193,8 @@ body {
   gap: 10px;
   padding: 0 20px;
   font-size: 15px;
-  font-weight: 900;
+  font-weight: 800;
+  color: #AEAEAE;
 }
 
 .setup-brand img {
@@ -208,28 +209,37 @@ body {
   place-items: center;
   overflow: auto;
   padding: 48px 24px;
+  background: #ffffff;
+
+  background-image: url('/assets/startup-background-noise.png');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
 }
 
 .setup-panel {
   width: min(560px, 100%);
-  border: 1px solid #f1f1f1;
-  border-radius: 8px;
+  border: 1px solid #AEAEAE;
+  border-radius: 15px;
   background: #ffffff;
   display: flex;
   flex-direction: column;
-  gap: 26px;
+  gap: 30px;
   padding: 44px 54px;
 }
 
 .setup-heading {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  text-align: center;
 }
 
 .setup-heading h1 {
   margin: 0;
-  font-size: 34px;
+  font-size: 30px;
   line-height: 1.1;
 }
 
@@ -242,13 +252,14 @@ body {
 
 .setup-avatar-block {
   display: flex;
+  flex-direction: column;
   align-items: center;
   gap: 18px;
 }
 
 .setup-avatar {
-  width: 84px;
-  height: 84px;
+  width: 150px;
+  height: 150px;
   border-radius: 50%;
   object-fit: cover;
 }
@@ -264,12 +275,20 @@ body {
   border-radius: 7px;
   background: #111111;
   color: #ffffff;
-  font-weight: 900;
+  font-weight: 800;
+  align-self: center;
+  width: fit-content;
+  padding: 0 24px;
 }
 
 .setup-submit:disabled {
   cursor: default;
   opacity: 0.45;
+}
+
+.setup-submit:hover:enabled {
+  transform: translateY(-1px);
+  background: #2B2B2B;
 }
 
 .app-titlebar {
@@ -801,7 +820,7 @@ body.theme-dark .menu-section-actions button:hover {
   padding: 0 5px;
   color: #111111;
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 800;
   transition:
     background var(--motion-medium) ease,
     transform var(--motion-fast) var(--motion-ease);
@@ -851,7 +870,7 @@ body.theme-dark .menu-section-actions button:hover {
   align-items: center;
   gap: 8px;
   color: #111111;
-  font-weight: 900;
+  font-weight: 800;
   text-align: left;
   transition:
     color var(--motion-fast) ease,
@@ -961,7 +980,7 @@ body.theme-dark .menu-section-actions button:hover {
   place-items: center;
   color: #5f5f5f;
   font-size: 18px;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .category-emoji {
@@ -1879,6 +1898,9 @@ body.theme-dark .task-edit-button:hover {
   font-size: 14px;
   font-weight: 800;
   line-height: 1.35;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .settings-nav-item {
@@ -2543,7 +2565,7 @@ body.theme-dark .settings-field select:focus {
 
 .info-markdown strong {
   color: #111111;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .info-markdown code {
@@ -2551,7 +2573,7 @@ body.theme-dark .settings-field select:focus {
   background: #f1f1f1;
   padding: 2px 5px;
   color: #111111;
-  font-weight: 900;
+  font-weight: 800;
 }
 
 .dialog-heading {
@@ -2597,8 +2619,8 @@ body.theme-dark .settings-field select:focus {
 
 .form-field span {
   color: #515151;
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 16px;
+  font-weight: 800;
 }
 
 .form-field input,
