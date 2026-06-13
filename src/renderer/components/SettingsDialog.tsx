@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ChangeEvent, FormEvent, ReactNode } from 'react';
 import appVersion from '../../shared/app-version.json';
-import type { TelegramBotStatus, UpdateSettingsInput } from '../../shared/types';
+import type { TelegramBotMode, TelegramBotStatus, UpdateSettingsInput } from '../../shared/types';
 import { assetUrl } from '../lib/assets';
 import { useTaskStore } from '../store/useTaskStore';
 
@@ -162,13 +162,20 @@ const settingsCopy = {
     telegram: {
       title: 'Интеграция Telegram',
       description: 'Локальный бот работает только пока Afterlight запущен. Получите токен из BotFather. Затем отправьте боту команду с кодом ниже для привязки.',
+      serverDescription: 'Серверный бот работает независимо от окна Afterlight. Бот: @afterlight_task_bot.',
+      mode: 'Режим бота',
+      customMode: 'Свой токен',
+      afterlightMode: 'Afterlight Bot',
       token: 'Токен бота',
       tokenPlaceholder: 'Вставьте новый токен из BotFather',
       enabled: 'Включить локального Telegram-бота',
+      serverEnabled: 'Включить серверного Afterlight Bot',
       save: 'Сохранить и запустить',
+      saveServer: 'Сохранить режим',
       check: 'Проверить подключение',
       disconnect: 'Отключить',
       status: 'Статус',
+      serverMode: 'серверный режим',
       running: 'бот запущен',
       stopped: 'бот остановлен',
       tokenSaved: 'токен сохранён',
@@ -321,13 +328,20 @@ const settingsCopy = {
     telegram: {
       title: 'Telegram integration',
       description: 'The local bot only works while Afterlight is running. Get a token from BotFather. Then send the bot the command with the code below to link it.',
+      serverDescription: 'The server bot works independently from the Afterlight window. Bot: @afterlight_task_bot.',
+      mode: 'Bot mode',
+      customMode: 'Own token',
+      afterlightMode: 'Afterlight Bot',
       token: 'Bot token',
       tokenPlaceholder: 'Paste a new token from BotFather',
       enabled: 'Enable local Telegram bot',
+      serverEnabled: 'Enable server Afterlight Bot',
       save: 'Save and start',
+      saveServer: 'Save mode',
       check: 'Check connection',
       disconnect: 'Disconnect',
       status: 'Status',
+      serverMode: 'server mode',
       running: 'bot is running',
       stopped: 'bot is stopped',
       tokenSaved: 'token saved',
@@ -638,12 +652,14 @@ const NotificationsSettings = () => {
 const TelegramSettings = () => {
   const copy = useSettingsCopy();
   const settings = useTaskStore((state) => state.settings);
+  const [botMode, setBotMode] = useState<TelegramBotMode>('custom');
   const [enabled, setEnabled] = useState(false);
   const [message, setMessage] = useState('');
   const [status, setStatus] = useState<TelegramBotStatus | undefined>();
   const [token, setToken] = useState('');
   const [isStatusRefreshing, setStatusRefreshing] = useState(false);
-  const isTelegramConnected = Boolean(status?.enabled && status.isRunning && status.chatId);
+  const isAfterlightBotMode = botMode === 'afterlight';
+  const isTelegramConnected = Boolean(status?.enabled && status.chatId && status.isRunning);
   const statusIcon = isTelegramConnected
     ? settings.theme === 'dark'
       ? 'settings-telegram-status-connected-dt.svg'
@@ -651,7 +667,7 @@ const TelegramSettings = () => {
     : settings.theme === 'dark'
       ? 'settings-telegram-status-notconnected-dt.svg'
       : 'settings-telegram-status-notconnected.svg';
-  const statusMessage = status?.lastError ?? (message || copy.telegram.noConnection);
+  const statusMessage = status?.lastError ?? (isTelegramConnected ? copy.telegram.tested : message || copy.telegram.noConnection);
 
   const hasLoadedTelegramSettingsRef = useRef(false);
 
@@ -673,6 +689,7 @@ const TelegramSettings = () => {
         setStatus(savedStatus);
 
         if (!hasLoadedTelegramSettingsRef.current) {
+          setBotMode(savedStatus.botMode);
           setEnabled(savedStatus.enabled);
           setMessage(savedStatus.lastError ?? '');
           hasLoadedTelegramSettingsRef.current = true;
@@ -689,7 +706,7 @@ const TelegramSettings = () => {
     };
 
     void loadStatus(true);
-    const intervalId = window.setInterval(() => void loadStatus(false), 10000);
+    const intervalId = window.setInterval(() => void loadStatus(false), 5000);
 
     return () => {
       isMounted = false;
@@ -710,6 +727,7 @@ const TelegramSettings = () => {
       setStatus(nextStatus);
 
       if (syncEnabled) {
+        setBotMode(nextStatus.botMode);
         setEnabled(nextStatus.enabled);
       }
 
@@ -726,8 +744,13 @@ const TelegramSettings = () => {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const nextStatus = await runAction(
-      () => window.afterlightApi!.configureTelegram({ enabled, token: token.trim() || undefined }),
-      copy.telegram.saved,
+      () =>
+        window.afterlightApi!.configureTelegram({
+          botMode,
+          enabled,
+          token: isAfterlightBotMode ? undefined : token.trim() || undefined,
+        }),
+      isAfterlightBotMode ? copy.telegram.saveServer : copy.telegram.saved,
     );
 
     if (nextStatus && !nextStatus.lastError) {
@@ -756,36 +779,60 @@ const TelegramSettings = () => {
       <form className="settings-form" onSubmit={handleSubmit}>
         <SettingsGroup title={copy.telegram.title}>
           <img className="telegram-status-icon preserve-icon-color" src={assetUrl(statusIcon)} alt="" />
-          <p className="settings-hint">{copy.telegram.description}</p>
+          <label className="settings-field settings-option-field">
+            <span>{copy.telegram.mode}</span>
+            <div className="category-icon-mode telegram-mode-switch">
+              <button
+                className={botMode === 'custom' ? 'active' : ''}
+                type="button"
+                onClick={() => setBotMode('custom')}
+              >
+                {copy.telegram.customMode}
+              </button>
+              <button
+                className={botMode === 'afterlight' ? 'active' : ''}
+                type="button"
+                onClick={() => setBotMode('afterlight')}
+              >
+                {copy.telegram.afterlightMode}
+              </button>
+            </div>
+          </label>
+          <p className="settings-hint">{isAfterlightBotMode ? copy.telegram.serverDescription : copy.telegram.description}</p>
           <div className="telegram-status">
             <strong>{copy.telegram.status}</strong>
+            {isAfterlightBotMode ? <span>{copy.telegram.serverMode}</span> : null}
             <span>{status?.isRunning ? copy.telegram.running : copy.telegram.stopped}</span>
-            <span>{status?.hasToken ? copy.telegram.tokenSaved : copy.telegram.tokenMissing}</span>
+            {isAfterlightBotMode ? null : <span>{status?.hasToken ? copy.telegram.tokenSaved : copy.telegram.tokenMissing}</span>}
             {status?.botUsername ? <span>{copy.telegram.bot}: @{status.botUsername}</span> : null}
             {status?.chatId ? <span>{copy.telegram.chat}: {status.chatId}</span> : null}
             {status?.linkCode ? <span>{copy.telegram.linkCode}: {status.linkCode}</span> : null}
             {status?.linkCode ? <span>{copy.telegram.linkCommand(status.linkCode)}</span> : null}
           </div>
-          <label className="settings-field settings-option-field">
-            <span>{copy.telegram.token}</span>
-            <input
-              autoComplete="off"
-              placeholder={status?.hasToken ? copy.telegram.tokenSaved : copy.telegram.tokenPlaceholder}
-              type="password"
-              value={token}
-              onChange={(event) => setToken(event.target.value)}
-            />
-          </label>
-          <SettingsToggle checked={enabled} label={copy.telegram.enabled} onChange={setEnabled} />
+          {isAfterlightBotMode ? null : (
+            <label className="settings-field settings-option-field">
+              <span>{copy.telegram.token}</span>
+              <input
+                autoComplete="off"
+                placeholder={status?.hasToken ? copy.telegram.tokenSaved : copy.telegram.tokenPlaceholder}
+                type="password"
+                value={token}
+                onChange={(event) => setToken(event.target.value)}
+              />
+            </label>
+          )}
+          <SettingsToggle checked={enabled} label={isAfterlightBotMode ? copy.telegram.serverEnabled : copy.telegram.enabled} onChange={setEnabled} />
 
           <div className="settings-button-grid telegram-actions">
             <button type="submit" disabled={isStatusRefreshing}>
-              {copy.telegram.save}
+              {isAfterlightBotMode ? copy.telegram.saveServer : copy.telegram.save}
             </button>
 
-            <button type="button" disabled={isStatusRefreshing} onClick={() => void handleCheckConnection()}>
-              {copy.telegram.check}
-            </button>
+            {isAfterlightBotMode ? null : (
+              <button type="button" disabled={isStatusRefreshing} onClick={() => void handleCheckConnection()}>
+                {copy.telegram.check}
+              </button>
+            )}
 
             <button type="button" disabled={isStatusRefreshing} onClick={() => void handleDisconnect()}>
               {copy.telegram.disconnect}

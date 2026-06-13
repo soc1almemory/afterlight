@@ -256,11 +256,12 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     set(activateRoute(state, nextRoute));
   },
   hydrate: async () => {
-    set({ error: undefined, isLoading: true });
+    const wasHydrated = get().hasHydrated;
+    set({ error: undefined, isLoading: !wasHydrated });
 
     try {
       const data = await requireApi().loadData();
-      set({ ...appDataToState(data), ...getStartupRouteState(data.settings) });
+      set({ ...appDataToState(data), ...(wasHydrated ? {} : getStartupRouteState(data.settings)) });
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : 'Не удалось загрузить данные.',

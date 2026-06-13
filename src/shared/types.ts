@@ -15,6 +15,7 @@ export type ThemeMode = 'light' | 'dark';
 export type TaskSortMode = 'date' | 'priority' | 'manual' | 'created';
 export type WeekOrderMode = 'monday' | 'today';
 export type CategorySortMode = 'created' | 'alphabetical' | 'manual' | 'favorites';
+export type TelegramBotMode = 'custom' | 'afterlight';
 
 export interface Task {
   id: string;
@@ -170,11 +171,13 @@ export type SystemQuickAction = 'open' | 'add-task' | 'today' | 'week';
 export type UpdateSettingsInput = Partial<AppSettings>;
 
 export interface TelegramConfigInput {
+  botMode?: TelegramBotMode;
   enabled: boolean;
   token?: string;
 }
 
 export interface TelegramBotStatus {
+  botMode: TelegramBotMode;
   enabled: boolean;
   hasToken: boolean;
   isRunning: boolean;
@@ -182,6 +185,7 @@ export interface TelegramBotStatus {
   botUsername?: string;
   linkCode?: string;
   lastError?: string;
+  serverLastHeartbeatAt?: string;
   lastUpdateAt?: string;
 }
 

@@ -8,6 +8,7 @@ import type {
   LanguageCode,
   Task,
   TaskScope,
+  TelegramBotMode,
   TelegramBotStatus,
   TelegramConfigInput,
 } from '../../shared/types';
@@ -28,6 +29,7 @@ type TelegramConversation =
 
 interface TelegramConfig {
   botMessageIds?: number[];
+  botMode?: TelegramBotMode;
   botUsername?: string;
   chatId?: number;
   conversation?: TelegramConversation;
@@ -35,6 +37,10 @@ interface TelegramConfig {
   language?: LanguageCode;
   lastUpdateId?: number;
   linkCode?: string;
+  serverDeadlineNotifiedKeys?: string[];
+  serverLastError?: string;
+  serverLastHeartbeatAt?: string;
+  serverLastUpdateId?: number;
   token?: string;
   tokenEncrypted?: string;
 }
@@ -134,6 +140,7 @@ const POLL_RETRY_DELAY_MS = 5000;
 const TELEGRAM_API_TIMEOUT_MS = 15000;
 const TASK_LIST_LIMIT = 8;
 const STORED_BOT_MESSAGE_LIMIT = 16;
+const SERVER_HEARTBEAT_STALE_MS = 90_000;
 const CATEGORY_COLORS = ['#7c65ff', '#ffb84d', '#45c27a', '#4aa3ff', '#f06795', '#9b7cff'];
 
 const botCopy = {
@@ -341,29 +348,47 @@ export const configureTelegramBotRuntime = (options: {
 
 export const getTelegramBotStatus = (): TelegramBotStatus => {
   const config = readConfig();
-  const linkCode = config.token && !config.chatId ? getOrCreateLinkCode(config) : undefined;
+  const botMode = getBotMode(config);
+  const linkCode = isTelegramConfigReadyForLink(config) && !config.chatId ? getOrCreateLinkCode(config) : undefined;
+  const isServerMode = botMode === 'afterlight';
+  const isServerRunning = isServerMode && isFreshServerHeartbeat(config.serverLastHeartbeatAt);
+  const serverLastError =
+    isServerMode && config.enabled && !isServerRunning
+      ? config.serverLastError ?? 'Afterlight Bot server is not running.'
+      : config.serverLastError;
 
   return {
-    botUsername: config.botUsername,
+    botMode,
+    botUsername: isServerMode ? config.botUsername ?? 'afterlight_task_bot' : config.botUsername,
     chatId: config.chatId,
     enabled: config.enabled,
-    hasToken: Boolean(config.token),
-    isRunning,
+    hasToken: isServerMode || Boolean(config.token),
+    isRunning: isServerMode ? isServerRunning : isRunning,
     linkCode,
-    lastError,
-    lastUpdateAt,
+    lastError: isServerMode ? serverLastError : lastError,
+    lastUpdateAt: isServerMode ? config.serverLastHeartbeatAt : lastUpdateAt,
+    serverLastHeartbeatAt: config.serverLastHeartbeatAt,
   };
 };
 
 export const updateTelegramBotConfig = async (input: TelegramConfigInput): Promise<TelegramBotStatus> => {
   const currentConfig = readConfig();
+  const botMode = input.botMode ?? getBotMode(currentConfig);
   const nextConfig: TelegramConfig = {
     ...currentConfig,
+    botMode,
     enabled: input.enabled,
-    token: cleanToken(input.token) ?? currentConfig.token,
+    token: botMode === 'custom' ? cleanToken(input.token) ?? currentConfig.token : currentConfig.token,
   };
 
-  if (input.token !== undefined) {
+  if (input.botMode && input.botMode !== getBotMode(currentConfig)) {
+    nextConfig.botMessageIds = [];
+    nextConfig.chatId = undefined;
+    nextConfig.conversation = undefined;
+    nextConfig.linkCode = undefined;
+  }
+
+  if (botMode === 'custom' && input.token !== undefined) {
     nextConfig.botMessageIds = [];
     nextConfig.botUsername = undefined;
     nextConfig.chatId = undefined;
@@ -372,13 +397,17 @@ export const updateTelegramBotConfig = async (input: TelegramConfigInput): Promi
     nextConfig.linkCode = undefined;
   }
 
-  if (nextConfig.enabled && nextConfig.token && !nextConfig.chatId) {
+  if (botMode === 'afterlight') {
+    nextConfig.botUsername = 'afterlight_task_bot';
+  }
+
+  if (isTelegramConfigReadyForLink(nextConfig) && !nextConfig.chatId) {
     nextConfig.linkCode = nextConfig.linkCode ?? createLinkCode();
   }
 
   writeConfig(nextConfig);
 
-  if (nextConfig.enabled && nextConfig.token) {
+  if (botMode === 'custom' && nextConfig.enabled && nextConfig.token) {
     await restartTelegramBot();
   } else {
     stopTelegramBot();
@@ -388,8 +417,16 @@ export const updateTelegramBotConfig = async (input: TelegramConfigInput): Promi
 };
 
 export const disconnectTelegramBot = (): TelegramBotStatus => {
+  const config = readConfig();
   stopTelegramBot();
-  writeConfig({ enabled: false, language: getLanguage(readConfig()) });
+  writeConfig({
+    ...config,
+    botMessageIds: [],
+    chatId: undefined,
+    conversation: undefined,
+    enabled: false,
+    linkCode: undefined,
+  });
   lastError = undefined;
   lastUpdateAt = undefined;
   return getTelegramBotStatus();
@@ -397,6 +434,13 @@ export const disconnectTelegramBot = (): TelegramBotStatus => {
 
 export const testTelegramBotConnection = async (token?: string): Promise<TelegramBotStatus> => {
   const config = readConfig();
+  if (getBotMode(config) === 'afterlight') {
+    writeConfig({ ...config, botUsername: 'afterlight_task_bot' });
+    lastError = undefined;
+    lastUpdateAt = new Date().toISOString();
+    return getTelegramBotStatus();
+  }
+
   const tokenToTest = cleanToken(token) ?? config.token;
 
   if (!tokenToTest) {
@@ -425,7 +469,7 @@ export const testTelegramBotConnection = async (token?: string): Promise<Telegra
 export const notifyTelegramDeadline = async (task: Task, leadMinutes: number) => {
   const config = readConfig();
 
-  if (!config.enabled || !config.token || !config.chatId) {
+  if (getBotMode(config) !== 'custom' || !config.enabled || !config.token || !config.chatId) {
     return false;
   }
 
@@ -452,7 +496,7 @@ export const restartTelegramBot = async () => {
   stopTelegramBot();
   const config = readConfig();
 
-  if (!config.enabled || !config.token) {
+  if (getBotMode(config) !== 'custom' || !config.enabled || !config.token) {
     return;
   }
 
@@ -1567,6 +1611,7 @@ const readConfig = (): TelegramConfig => {
 
     return {
       botMessageIds: Array.isArray(parsed.botMessageIds) ? parsed.botMessageIds.filter(isNumber) : [],
+      botMode: normalizeBotMode(parsed.botMode),
       botUsername: typeof parsed.botUsername === 'string' ? parsed.botUsername : undefined,
       chatId: typeof parsed.chatId === 'number' ? parsed.chatId : undefined,
       conversation: normalizeConversation(parsed.conversation),
@@ -1574,10 +1619,16 @@ const readConfig = (): TelegramConfig => {
       language: normalizeLanguage(parsed.language),
       lastUpdateId: typeof parsed.lastUpdateId === 'number' ? parsed.lastUpdateId : undefined,
       linkCode: normalizeLinkCode(parsed.linkCode),
+      serverDeadlineNotifiedKeys: Array.isArray(parsed.serverDeadlineNotifiedKeys)
+        ? parsed.serverDeadlineNotifiedKeys.filter((item): item is string => typeof item === 'string')
+        : [],
+      serverLastError: typeof parsed.serverLastError === 'string' ? parsed.serverLastError : undefined,
+      serverLastHeartbeatAt: typeof parsed.serverLastHeartbeatAt === 'string' ? parsed.serverLastHeartbeatAt : undefined,
+      serverLastUpdateId: typeof parsed.serverLastUpdateId === 'number' ? parsed.serverLastUpdateId : undefined,
       token,
     };
   } catch {
-    return { botMessageIds: [], enabled: false, language: 'ru' };
+    return { botMessageIds: [], botMode: 'custom', enabled: false, language: 'ru' };
   }
 };
 
@@ -1624,6 +1675,27 @@ const serializeConfig = (config: TelegramConfig) => {
 const cleanToken = (value: string | undefined) => {
   const cleanValue = value?.trim();
   return cleanValue ? cleanValue : undefined;
+};
+
+const normalizeBotMode = (value: unknown): TelegramBotMode => (value === 'afterlight' ? 'afterlight' : 'custom');
+
+const getBotMode = (config: TelegramConfig): TelegramBotMode => normalizeBotMode(config.botMode);
+
+const isFreshServerHeartbeat = (value: string | undefined) => {
+  if (!value) {
+    return false;
+  }
+
+  const timestamp = new Date(value).getTime();
+  return Number.isFinite(timestamp) && Date.now() - timestamp <= SERVER_HEARTBEAT_STALE_MS;
+};
+
+const isTelegramConfigReadyForLink = (config: TelegramConfig) => {
+  if (!config.enabled) {
+    return false;
+  }
+
+  return getBotMode(config) === 'afterlight' || Boolean(config.token);
 };
 
 const createLinkCode = () => String(crypto.randomInt(100000, 1000000));

@@ -2535,6 +2535,15 @@ body.theme-dark .settings-field select:focus {
   padding: 0 14px;
 }
 
+.telegram-mode-switch {
+  margin: 0;
+}
+
+.telegram-mode-switch button {
+  min-width: 128px;
+  padding: 0 12px;
+}
+
 .telegram-status {
   width: min(620px, 100%);
   display: flex;

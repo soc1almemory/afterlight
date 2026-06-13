@@ -37,6 +37,8 @@ let tray: Tray | null = null;
 let isQuitting = false;
 let notificationInterval: NodeJS.Timeout | undefined;
 let backupInterval: NodeJS.Timeout | undefined;
+let dataWatcher: fs.FSWatcher | undefined;
+let dataChangedTimer: NodeJS.Timeout | undefined;
 const notifiedKeys = new Set<string>();
 const PROJECT_REPOSITORY_URL = 'https://github.com/soc1almemory/afterlight';
 const isDevelopment = !app.isPackaged;
@@ -84,11 +86,12 @@ registerTaskIpcHandlers({
 });
 
 configureTelegramBotRuntime({
-  onDataChanged: () => mainWindow?.webContents.send('system:data-changed'),
+  onDataChanged: () => notifyRendererDataChanged(),
 });
 
 const createWindow = async () => {
   await initializeDatabase();
+  startExternalDataWatcher();
   const settings = getCurrentSettings();
 
   mainWindow = new BrowserWindow({
@@ -138,6 +141,7 @@ app.on('second-instance', () => {
 app.on('before-quit', () => {
   isQuitting = true;
   stopTelegramBot();
+  stopExternalDataWatcher();
 });
 
 app.on('window-all-closed', () => {
@@ -335,6 +339,53 @@ const sendQuickAction = (action: SystemQuickAction) => {
   mainWindow?.webContents.send('system:quick-action', action);
 };
 
+const notifyRendererDataChanged = () => {
+  if (dataChangedTimer) {
+    clearTimeout(dataChangedTimer);
+  }
+
+  dataChangedTimer = setTimeout(() => {
+    dataChangedTimer = undefined;
+    mainWindow?.webContents.send('system:data-changed');
+  }, 250);
+};
+
+const startExternalDataWatcher = () => {
+  stopExternalDataWatcher();
+
+  const { databasePath, storageDir } = getStoragePaths();
+  const databaseFile = path.basename(databasePath);
+  const watchedFiles = new Set([databaseFile, `${databaseFile}-wal`, `${databaseFile}-shm`, 'telegram.json']);
+
+  try {
+    dataWatcher = fs.watch(storageDir, { persistent: false }, (_event, filename) => {
+      const changedFile = filename ? String(filename) : undefined;
+
+      if (!changedFile || !watchedFiles.has(changedFile)) {
+        return;
+      }
+
+      notifyRendererDataChanged();
+    });
+
+    dataWatcher.on('error', () => {
+      dataWatcher = undefined;
+    });
+  } catch {
+    dataWatcher = undefined;
+  }
+};
+
+const stopExternalDataWatcher = () => {
+  if (dataChangedTimer) {
+    clearTimeout(dataChangedTimer);
+    dataChangedTimer = undefined;
+  }
+
+  dataWatcher?.close();
+  dataWatcher = undefined;
+};
+
 const scheduleNotifications = (settings: AppSettings) => {
   if (notificationInterval) {
     clearInterval(notificationInterval);
@@ -374,7 +425,13 @@ const runNotificationSweep = (settings: AppSettings) => {
 
       const telegramStatus = getTelegramBotStatus();
       const telegramKey = `telegram:${reminderKey}`;
-      if (telegramStatus.enabled && telegramStatus.hasToken && telegramStatus.chatId && rememberOnce(telegramKey)) {
+      if (
+        telegramStatus.botMode === 'custom' &&
+        telegramStatus.enabled &&
+        telegramStatus.hasToken &&
+        telegramStatus.chatId &&
+        rememberOnce(telegramKey)
+      ) {
         void notifyTelegramDeadline(task, leadMinutes).then((wasSent) => {
           if (!wasSent) {
             notifiedKeys.delete(telegramKey);

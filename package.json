@@ -12,6 +12,7 @@
     "package": "electron-forge package",
     "make": "electron-forge make",
     "build": "tsc --noEmit && electron-forge package",
+    "bot:server": "node afterlight-bot-server/server.mjs",
     "lint": "tsc --noEmit"
   },
   "dependencies": {
