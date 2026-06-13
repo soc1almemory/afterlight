@@ -106,7 +106,6 @@ export interface UpdateProfileInput {
   name: string;
   email?: string;
   avatarDataUrl?: string;
-  password?: string;
   isSetupComplete?: boolean;
 }
 
@@ -119,7 +118,6 @@ export interface ProfileSetupInput {
   avatarDataUrl?: string;
   email: string;
   name: string;
-  password: string;
   workspaceTitle: string;
 }
 

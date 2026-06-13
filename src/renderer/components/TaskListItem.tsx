@@ -17,9 +17,9 @@ export const TaskListItem = ({ task, withSeparator, onEditTask, showCategory = f
   const toggleTask = useTaskStore((state) => state.toggleTask);
   const t = useTranslator();
   const isCompleted = task.status === 'completed';
-  const isExpired = task.isExpired || isActiveOverdueTask(task);
+  const isExpired = isActiveOverdueTask(task, settings.todayRefreshTime);
   const category = categories.find((item) => item.id === task.categoryId);
-  const dateLabel = formatDeadline(task, settings.language);
+  const dateLabel = formatDeadline(task, settings.language, settings.todayRefreshTime);
 
   const handleDragStart = (event: DragEvent<HTMLElement>) => {
     event.dataTransfer.setData('text/plain', task.id);
@@ -75,18 +75,29 @@ const CategoryMarker = ({ category }: { category: Category }) => {
   return <span className="task-category-hash">#</span>;
 };
 
-const isActiveOverdueTask = (task: Task) =>
-  task.status === 'active' && Boolean(task.dueDate && task.dueDate < getTodayDate());
+const isActiveOverdueTask = (task: Task, refreshTime?: string) =>
+  task.status === 'active' && Boolean(task.dueDate && task.dueDate < getTodayDate(refreshTime));
 
-const getTodayDate = () => {
+const getTodayDate = (refreshTime?: string) => {
   const date = new Date();
+
+  if (refreshTime) {
+    const [hours, minutes] = refreshTime.split(':').map((part) => Number.parseInt(part, 10));
+    const refreshMoment = new Date(date);
+    refreshMoment.setHours(Number.isFinite(hours) ? hours : 0, Number.isFinite(minutes) ? minutes : 0, 0, 0);
+
+    if (date.getTime() < refreshMoment.getTime()) {
+      date.setDate(date.getDate() - 1);
+    }
+  }
+
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 };
 
-const formatDeadline = (task: Task, language: LanguageCode) => {
+const formatDeadline = (task: Task, language: LanguageCode, refreshTime?: string) => {
   const dueTime = normalizeDueTime(task.dueLabel);
 
   if (!task.dueDate) {
@@ -94,8 +105,8 @@ const formatDeadline = (task: Task, language: LanguageCode) => {
   }
 
   const formattedDate = formatTaskDate(task.dueDate);
-  const today = getTodayDate();
-  const tomorrow = getRelativeDate(1);
+  const today = getTodayDate(refreshTime);
+  const tomorrow = getRelativeDate(today, 1);
 
   if (task.dueDate === today) {
     return [translate(language, 'today'), dueTime, formattedDate].filter(Boolean).join(', ');
@@ -113,8 +124,8 @@ const normalizeDueTime = (value: string | undefined) => {
   return cleanValue && /^\d{2}:\d{2}$/.test(cleanValue) ? cleanValue : undefined;
 };
 
-const getRelativeDate = (offsetDays: number) => {
-  const date = new Date();
+const getRelativeDate = (dateValue: string, offsetDays: number) => {
+  const date = new Date(`${dateValue}T00:00:00`);
   date.setDate(date.getDate() + offsetDays);
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');

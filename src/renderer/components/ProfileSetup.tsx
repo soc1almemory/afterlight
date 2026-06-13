@@ -13,8 +13,6 @@ const setupCopy = {
     maximize: 'Развернуть',
     minimize: 'Свернуть',
     name: 'Имя пользователя',
-    password: 'Пароль',
-    passwordPlaceholder: 'Введите пароль',
     start: 'Начать работу',
     subheading: 'Создайте локальный профиль и рабочее пространство для задач.',
     language: 'Язык интерфейса',
@@ -31,8 +29,6 @@ const setupCopy = {
     maximize: 'Maximize',
     minimize: 'Minimize',
     name: 'Username',
-    password: 'Password',
-    passwordPlaceholder: 'Enter password',
     start: 'Start working',
     subheading: 'Create a local profile and workspace for your tasks.',
     language: 'Interface language',
@@ -52,11 +48,10 @@ export const ProfileSetup = () => {
   const [avatarDataUrl, setAvatarDataUrl] = useState<string | undefined>();
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
-  const [password, setPassword] = useState('');
   const [workspaceTitle, setWorkspaceTitle] = useState('');
   const [isSaving, setSaving] = useState(false);
   const controls = window.afterlightWindow;
-  const canSubmit = Boolean(name.trim() && workspaceTitle.trim() && email.trim() && password.trim());
+  const canSubmit = Boolean(name.trim() && workspaceTitle.trim() && email.trim());
   const copy = setupCopy[settings.language];
   const defaultAvatar = assetUrl(settings.theme === 'dark' ? 'default-avatar-dark.png' : 'default-avatar-light.png');
   const handleLanguageChange = (language: LanguageCode) => {
@@ -95,7 +90,6 @@ export const ProfileSetup = () => {
         avatarDataUrl,
         email,
         name,
-        password,
         workspaceTitle,
       });
     } finally {
@@ -177,42 +171,35 @@ export const ProfileSetup = () => {
               <span>{copy.email}</span>
               <input value={email} onChange={(event) => setEmail(event.target.value)} placeholder="username@gmail.com" />
             </label>
-            <label className="form-field">
-              <span>{copy.password}</span>
-              <input
-                value={password}
-                type="password"
-                onChange={(event) => setPassword(event.target.value)}
-                placeholder={copy.passwordPlaceholder}
-              />
-            </label>
           </div>
 
           {error ? <div className="app-error">{error}</div> : null}
 
-          <button className="setup-submit" type="submit" disabled={!canSubmit || isSaving}>
-            {isSaving ? copy.loading : copy.start}
-          </button>
+          <div className="setup-actions-row">
+            <button className="setup-submit" type="submit" disabled={!canSubmit || isSaving}>
+              {isSaving ? copy.loading : copy.start}
+            </button>
 
-          <fieldset className="setup-language">
-            <legend>{copy.language}</legend>
-            <div className="category-icon-mode">
-              <button
-                className={settings.language === 'ru' ? 'active' : ''}
-                type="button"
-                onClick={() => handleLanguageChange('ru')}
-              >
-                Русский
-              </button>
-              <button
-                className={settings.language === 'en' ? 'active' : ''}
-                type="button"
-                onClick={() => handleLanguageChange('en')}
-              >
-                English
-              </button>
-            </div>
-          </fieldset>
+            <fieldset className="setup-language">
+              <legend>{copy.language}</legend>
+              <div className="category-icon-mode">
+                <button
+                  className={settings.language === 'ru' ? 'active' : ''}
+                  type="button"
+                  onClick={() => handleLanguageChange('ru')}
+                >
+                  Русский
+                </button>
+                <button
+                  className={settings.language === 'en' ? 'active' : ''}
+                  type="button"
+                  onClick={() => handleLanguageChange('en')}
+                >
+                  English
+                </button>
+              </div>
+            </fieldset>
+          </div>
         </form>
       </main>
     </div>

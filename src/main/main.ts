@@ -39,6 +39,7 @@ let notificationInterval: NodeJS.Timeout | undefined;
 let backupInterval: NodeJS.Timeout | undefined;
 const notifiedKeys = new Set<string>();
 const PROJECT_REPOSITORY_URL = 'https://github.com/soc1almemory/afterlight';
+const isDevelopment = !app.isPackaged;
 
 const systemCopy = {
   ru: {
@@ -104,8 +105,8 @@ const createWindow = async () => {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false,
-      devTools: true,
+      sandbox: true,
+      devTools: isDevelopment,
     },
   });
 
@@ -307,8 +308,6 @@ const showMainWindow = () => {
   mainWindow.focus();
 };
 
-const isDevelopment = !app.isPackaged;
-
 const openDevToolsInDevelopment = () => {
   if (!isDevelopment || !mainWindow) {
     return;
@@ -388,7 +387,7 @@ const runNotificationSweep = (settings: AppSettings) => {
   if (settings.notifyOverdue && supportsNotifications) {
     const intervalMinutes = Math.max(5, settings.overdueNotifyEveryMinutes);
     const intervalBucket = Math.floor(now.getTime() / (intervalMinutes * 60_000));
-    const overdueTasks = tasks.filter((task) => isOverdueTask(task, now));
+    const overdueTasks = tasks.filter((task) => isOverdueTask(task, now, settings.todayRefreshTime));
     if (overdueTasks.length > 0) {
       notifyOnce(`overdue:${intervalBucket}`, copy.appName, copy.overdue.replace('{count}', String(overdueTasks.length)));
     }
@@ -477,23 +476,22 @@ const importTasksJson = async () => {
   }
 
   const raw = fs.readFileSync(result.filePaths[0], 'utf8');
-  const parsed = JSON.parse(raw) as Array<Partial<CreateTaskInput>>;
+  const parsed = JSON.parse(raw) as unknown;
+
+  if (!Array.isArray(parsed)) {
+    throw new Error('Import file must contain an array of tasks.');
+  }
+
   let count = 0;
 
   parsed.forEach((item) => {
-    if (!item.title?.trim()) {
+    const taskInput = normalizeImportedTask(item);
+
+    if (!taskInput) {
       return;
     }
 
-    createTask({
-      title: item.title,
-      description: item.description,
-      dueDate: item.dueDate,
-      dueLabel: item.dueLabel,
-      priority: item.priority,
-      scope: item.scope ?? 'inbox',
-      categoryId: item.categoryId,
-    });
+    createTask(taskInput);
     count += 1;
   });
 
@@ -530,14 +528,48 @@ const tasksToCsv = (tasks: Task[]) => {
 
 const csvCell = (value: string) => `"${value.replace(/"/g, '""')}"`;
 
+const normalizeImportedTask = (value: unknown): CreateTaskInput | undefined => {
+  if (!value || typeof value !== 'object') {
+    return undefined;
+  }
+
+  const item = value as Record<string, unknown>;
+  const title = typeof item.title === 'string' ? item.title.trim() : '';
+
+  if (!title) {
+    return undefined;
+  }
+
+  return {
+    title,
+    description: typeof item.description === 'string' ? item.description : undefined,
+    dueDate: typeof item.dueDate === 'string' ? item.dueDate : undefined,
+    dueLabel: typeof item.dueLabel === 'string' ? item.dueLabel : undefined,
+    priority: normalizeImportedPriority(item.priority),
+    scope: normalizeImportedScope(item.scope),
+    categoryId: typeof item.categoryId === 'string' ? item.categoryId : undefined,
+  };
+};
+
+const normalizeImportedPriority = (value: unknown): CreateTaskInput['priority'] =>
+  value === 1 || value === 2 || value === 3 || value === 4 ? value : undefined;
+
+const normalizeImportedScope = (value: unknown): CreateTaskInput['scope'] => {
+  if (value === 'today' || value === 'week' || value === 'category') {
+    return value;
+  }
+
+  return 'inbox';
+};
+
 const isActiveTaskWithDeadlineTime = (task: Task) => task.status === 'active' && Boolean(task.dueDate && task.dueLabel);
 
-const isOverdueTask = (task: Task, now: Date) => {
+const isOverdueTask = (task: Task, now: Date, todayRefreshTime?: string) => {
   if (task.status !== 'active' || !task.dueDate) {
     return false;
   }
 
-  if (task.dueDate < getTodayDate()) {
+  if (task.dueDate < getTodayDate(todayRefreshTime)) {
     return true;
   }
 
@@ -566,8 +598,19 @@ const getNextRefresh = (refreshTime: string) => {
   return nextRefresh;
 };
 
-const getTodayDate = () => {
+const getTodayDate = (refreshTime?: string) => {
   const date = new Date();
+
+  if (refreshTime) {
+    const [hours, minutes] = refreshTime.split(':').map((part) => Number.parseInt(part, 10));
+    const refreshMoment = new Date(date);
+    refreshMoment.setHours(Number.isFinite(hours) ? hours : 0, Number.isFinite(minutes) ? minutes : 0, 0, 0);
+
+    if (date.getTime() < refreshMoment.getTime()) {
+      date.setDate(date.getDate() - 1);
+    }
+  }
+
   return toDateKey(date);
 };
 

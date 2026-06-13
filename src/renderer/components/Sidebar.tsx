@@ -304,7 +304,7 @@ const getPrimaryCount = (
 
   if (scope === 'week') {
     const weekDates = getCurrentWeekDates();
-    return countableTasks.filter((task) => task.scope === 'week' || Boolean(task.dueDate && weekDates.includes(task.dueDate))).length;
+    return countableTasks.filter((task) => (task.dueDate ? weekDates.includes(task.dueDate) : task.scope === 'week')).length;
   }
 
   return countableTasks.filter((task) => task.scope === 'inbox').length;

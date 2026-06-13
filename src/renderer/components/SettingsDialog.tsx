@@ -48,7 +48,6 @@ const settingsCopy = {
       workspace: 'Название пространства',
       security: 'Безопасность',
       email: 'Email',
-      password: 'Новый пароль',
       save: 'Сохранить изменения',
       deleteTitle: 'Удаление профиля',
       deleteDescription: 'Сбросить профиль и все данные текущего рабочего пространства.',
@@ -208,7 +207,6 @@ const settingsCopy = {
       workspace: 'Workspace name',
       security: 'Security',
       email: 'Email',
-      password: 'New password',
       save: 'Save changes',
       deleteTitle: 'Profile deletion',
       deleteDescription: 'Reset the profile and all data in the current workspace.',
@@ -866,7 +864,6 @@ const AccountSettings = ({ onAfterReset }: { onAfterReset: () => void }) => {
   const [avatarDataUrl, setAvatarDataUrl] = useState(profile.avatarDataUrl);
   const [email, setEmail] = useState(profile.email ?? '');
   const [name, setName] = useState(profile.name);
-  const [password, setPassword] = useState('');
   const [workspaceTitle, setWorkspaceTitle] = useState(workspace.title);
   const [isConfirmingReset, setConfirmingReset] = useState(false);
   const [isSavedToastVisible, setSavedToastVisible] = useState(false);
@@ -877,7 +874,6 @@ const AccountSettings = ({ onAfterReset }: { onAfterReset: () => void }) => {
     setAvatarDataUrl(profile.avatarDataUrl);
     setEmail(profile.email ?? '');
     setName(profile.name);
-    setPassword('');
     setConfirmingReset(false);
     setSavedToastVisible(false);
   }, [profile]);
@@ -917,7 +913,6 @@ const AccountSettings = ({ onAfterReset }: { onAfterReset: () => void }) => {
         email,
         isSetupComplete: true,
         name,
-        password: password || undefined,
       }),
       updateWorkspace({ ...workspace, title: workspaceTitle }),
     ]).then(() => {
@@ -983,10 +978,6 @@ const AccountSettings = ({ onAfterReset }: { onAfterReset: () => void }) => {
             <label className="settings-field">
               <span>{copy.account.email}</span>
               <input value={email} onChange={(event) => setEmail(event.target.value)} />
-            </label>
-            <label className="settings-field">
-              <span>{copy.account.password}</span>
-              <input value={password} type="password" onChange={(event) => setPassword(event.target.value)} placeholder="************" />
             </label>
           </div>
           <div className="settings-save-row">

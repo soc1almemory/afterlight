@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { safeStorage } from 'electron';
 import type {
   Category,
   CreateTaskInput,
@@ -35,6 +36,7 @@ interface TelegramConfig {
   lastUpdateId?: number;
   linkCode?: string;
   token?: string;
+  tokenEncrypted?: string;
 }
 
 interface TelegramUser {
@@ -1041,7 +1043,7 @@ const getVisibleTasks = (filter: { categoryId?: string; scope: TaskScope }) => {
       }
 
       if (filter.scope === 'week') {
-        return task.scope === 'week' || Boolean(task.dueDate && weekDates.includes(task.dueDate));
+        return task.dueDate ? weekDates.includes(task.dueDate) : task.scope === 'week';
       }
 
       return task.scope === 'inbox';
@@ -1561,6 +1563,7 @@ const readConfig = (): TelegramConfig => {
   try {
     const rawValue = fs.readFileSync(getConfigPath(), 'utf8');
     const parsed = JSON.parse(rawValue) as Partial<TelegramConfig>;
+    const token = readStoredToken(parsed);
 
     return {
       botMessageIds: Array.isArray(parsed.botMessageIds) ? parsed.botMessageIds.filter(isNumber) : [],
@@ -1571,7 +1574,7 @@ const readConfig = (): TelegramConfig => {
       language: normalizeLanguage(parsed.language),
       lastUpdateId: typeof parsed.lastUpdateId === 'number' ? parsed.lastUpdateId : undefined,
       linkCode: normalizeLinkCode(parsed.linkCode),
-      token: typeof parsed.token === 'string' ? parsed.token : undefined,
+      token,
     };
   } catch {
     return { botMessageIds: [], enabled: false, language: 'ru' };
@@ -1581,10 +1584,42 @@ const readConfig = (): TelegramConfig => {
 const writeConfig = (config: TelegramConfig) => {
   const configPath = getConfigPath();
   fs.mkdirSync(path.dirname(configPath), { recursive: true });
-  fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf8');
+  fs.writeFileSync(configPath, JSON.stringify(serializeConfig(config), null, 2), 'utf8');
 };
 
 const getConfigPath = () => path.join(getStoragePaths().storageDir, 'telegram.json');
+
+const readStoredToken = (config: Partial<TelegramConfig>) => {
+  if (typeof config.tokenEncrypted === 'string' && safeStorage.isEncryptionAvailable()) {
+    try {
+      return safeStorage.decryptString(Buffer.from(config.tokenEncrypted, 'base64'));
+    } catch {
+      return undefined;
+    }
+  }
+
+  return typeof config.token === 'string' ? config.token : undefined;
+};
+
+const serializeConfig = (config: TelegramConfig) => {
+  const { token, tokenEncrypted: _tokenEncrypted, ...safeConfig } = config;
+
+  if (!token) {
+    return safeConfig;
+  }
+
+  if (safeStorage.isEncryptionAvailable()) {
+    return {
+      ...safeConfig,
+      tokenEncrypted: safeStorage.encryptString(token).toString('base64'),
+    };
+  }
+
+  return {
+    ...safeConfig,
+    token,
+  };
+};
 
 const cleanToken = (value: string | undefined) => {
   const cleanValue = value?.trim();

@@ -49,10 +49,6 @@ export const registerTaskIpcHandlers = (options: RegisterTaskIpcHandlersOptions 
       throw new Error('Email is required.');
     }
 
-    if (!input.password.trim()) {
-      throw new Error('Password is required.');
-    }
-
     return completeProfileSetup(input);
   });
   ipcMain.handle('profile:reset', () => resetProfile());

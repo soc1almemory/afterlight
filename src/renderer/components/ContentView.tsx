@@ -320,7 +320,7 @@ const WeekTaskList = ({
   settings: AppSettings;
 }) => {
   const updateTask = useTaskStore((state) => state.updateTask);
-  const today = getTodayDate();
+  const today = getTodayDate(settings.todayRefreshTime);
   const addTaskIcon = settings.theme === 'dark' ? 'add-task-icon-dt.svg' : 'add-task-icon.svg';
 
   const moveTaskToDate = async (taskId: string, dueDate?: string) => {
@@ -404,7 +404,7 @@ const isTaskVisible = (task: Task, activeScope: TaskScope, activeCategoryId: str
   }
 
   if (activeScope === 'week') {
-    return isTaskInCurrentWeek(task) || task.scope === 'week';
+    return task.dueDate ? isTaskInCurrentWeek(task) : task.scope === 'week';
   }
 
   return task.scope === activeScope;
@@ -452,7 +452,7 @@ const wouldExceedNoteLineLimit = (value: string, selectionStart: number, selecti
 };
 
 const buildWeekGroups = (tasks: Task[], settings: AppSettings): WeekGroup[] => {
-  const weekDates = orderWeekDates(getCurrentWeekDates(), settings.weekOrderMode);
+  const weekDates = orderWeekDates(getCurrentWeekDates(), settings.weekOrderMode, settings.todayRefreshTime);
   const withoutDateTasks = tasks.filter((task) => task.scope === 'week' && !task.dueDate);
   const labels = dayLabels[settings.language];
   const dateGroups: WeekGroup[] = weekDates.map((date) => ({
@@ -500,12 +500,12 @@ const getCurrentWeekDates = () => {
   });
 };
 
-const orderWeekDates = (weekDates: string[], mode: AppSettings['weekOrderMode']) => {
+const orderWeekDates = (weekDates: string[], mode: AppSettings['weekOrderMode'], todayRefreshTime?: string) => {
   if (mode !== 'today') {
     return weekDates;
   }
 
-  const todayIndex = weekDates.indexOf(getTodayDate());
+  const todayIndex = weekDates.indexOf(getTodayDate(todayRefreshTime));
   return todayIndex < 0 ? weekDates : [...weekDates.slice(todayIndex), ...weekDates.slice(0, todayIndex)];
 };
 

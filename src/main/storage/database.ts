@@ -33,7 +33,6 @@ export const initializeDatabase = () => {
       name TEXT NOT NULL,
       email TEXT,
       avatar_data_url TEXT,
-      password_hash TEXT,
       is_setup_complete INTEGER NOT NULL DEFAULT 0,
       active_workspace_id TEXT NOT NULL,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -155,12 +154,7 @@ const seedProfileAndWorkspace = (database: Database.Database) => {
 
 const migrateDatabase = (database: Database.Database) => {
   const profileColumns = database.prepare('PRAGMA table_info(profiles)').all() as Array<{ name: string }>;
-  const hasProfilePasswordColumn = profileColumns.some((column) => column.name === 'password_hash');
   const hasProfileSetupColumn = profileColumns.some((column) => column.name === 'is_setup_complete');
-
-  if (!hasProfilePasswordColumn) {
-    database.exec('ALTER TABLE profiles ADD COLUMN password_hash TEXT');
-  }
 
   if (!hasProfileSetupColumn) {
     database.exec('ALTER TABLE profiles ADD COLUMN is_setup_complete INTEGER NOT NULL DEFAULT 0');

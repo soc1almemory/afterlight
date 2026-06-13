@@ -94,12 +94,12 @@ export const TaskDialog = ({ initialDueDate, isOpen, task, onClose }: TaskDialog
 
     setTitle(task?.title ?? '');
     setDescription(task?.description ?? '');
-    setDueDate(task?.dueDate ?? initialDueDate ?? (activeScope === 'today' ? getTodayDate() : ''));
+    setDueDate(task?.dueDate ?? initialDueDate ?? (activeScope === 'today' ? getTodayDate(settings.todayRefreshTime) : ''));
     setDueLabel(normalizeDueTime(task?.dueLabel));
     setPriority(task?.priority ?? 4);
     setCategoryId(task?.categoryId ?? (activeScope === 'category' ? activeCategoryId : ''));
     setConfirmingDelete(false);
-  }, [activeCategoryId, activeScope, initialDueDate, isOpen, task]);
+  }, [activeCategoryId, activeScope, initialDueDate, isOpen, settings.todayRefreshTime, task]);
 
   if (!isOpen) {
     return null;
@@ -239,8 +239,19 @@ export const TaskDialog = ({ initialDueDate, isOpen, task, onClose }: TaskDialog
   );
 };
 
-const getTodayDate = () => {
+const getTodayDate = (refreshTime?: string) => {
   const date = new Date();
+
+  if (refreshTime) {
+    const [hours, minutes] = refreshTime.split(':').map((part) => Number.parseInt(part, 10));
+    const refreshMoment = new Date(date);
+    refreshMoment.setHours(Number.isFinite(hours) ? hours : 0, Number.isFinite(minutes) ? minutes : 0, 0, 0);
+
+    if (date.getTime() < refreshMoment.getTime()) {
+      date.setDate(date.getDate() - 1);
+    }
+  }
+
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');

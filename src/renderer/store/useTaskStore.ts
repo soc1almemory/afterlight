@@ -153,7 +153,6 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       ...input,
       email: input.email.trim(),
       name: input.name.trim(),
-      password: input.password.trim(),
       workspaceTitle: input.workspaceTitle.trim(),
     });
 
@@ -330,7 +329,6 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       name: input.name.trim(),
       email: input.email?.trim() || undefined,
       avatarDataUrl: input.avatarDataUrl || undefined,
-      password: input.password?.trim() || undefined,
       isSetupComplete: input.isSetupComplete,
     });
 

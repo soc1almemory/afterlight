@@ -283,9 +283,9 @@ export const createTask = (input: CreateTaskInput): Task => {
     description: cleanOptional(input.description),
     dueDate: normalizeDate(input.dueDate),
     dueLabel: normalizeDueTime(input.dueLabel),
-    priority: input.priority ?? 4,
+    priority: normalizePriority(input.priority),
     status: 'active',
-    scope: input.scope,
+    scope: normalizeScope(input.scope),
     categoryId: categoryId && getCategory(categoryId) ? categoryId : undefined,
     isExpired: false,
   };
@@ -361,8 +361,8 @@ export const updateTask = (input: UpdateTaskInput): Task | null => {
       description: cleanOptional(input.description) ?? null,
       dueDate: normalizeDate(input.dueDate) ?? null,
       dueLabel: normalizeDueTime(input.dueLabel) ?? null,
-      priority: input.priority,
-      scope: input.scope ?? existingTask.scope,
+      priority: normalizePriority(input.priority),
+      scope: input.scope ? normalizeScope(input.scope) : existingTask.scope,
       categoryId: categoryId && getCategory(categoryId) ? categoryId : null,
     });
 
@@ -444,7 +444,6 @@ export const updateProfile = (input: UpdateProfileInput): UserProfile | null => 
        SET name = @name,
            email = @email,
            avatar_data_url = @avatarDataUrl,
-           password_hash = COALESCE(@passwordHash, password_hash),
            is_setup_complete = @isSetupComplete,
            updated_at = CURRENT_TIMESTAMP
        WHERE id = @id`,
@@ -454,7 +453,6 @@ export const updateProfile = (input: UpdateProfileInput): UserProfile | null => 
       name: cleanOptional(input.name) ?? existing.name,
       email: cleanOptional(input.email) ?? null,
       avatarDataUrl: cleanOptional(input.avatarDataUrl) ?? null,
-      passwordHash: input.password ? hashPassword(input.password) : null,
       isSetupComplete: Number(input.isSetupComplete ?? existing.isSetupComplete),
     });
 
@@ -471,7 +469,6 @@ export const completeProfileSetup = (input: ProfileSetupInput): AppData => {
     email: input.email,
     isSetupComplete: true,
     name: input.name,
-    password: input.password,
   });
   updateWorkspace({ id: workspace.id, title: input.workspaceTitle });
 
@@ -502,7 +499,6 @@ export const resetProfile = (): AppData => {
          SET name = @name,
              email = @email,
              avatar_data_url = NULL,
-             password_hash = NULL,
              active_workspace_id = @workspaceId,
              is_setup_complete = 0,
              updated_at = CURRENT_TIMESTAMP
@@ -751,6 +747,22 @@ const normalizeTime = (value: string | undefined) => {
 const normalizeOneOf = <T extends string>(value: string | undefined, allowed: T[], fallback: T) =>
   allowed.includes(value as T) ? (value as T) : fallback;
 
+const normalizePriority = (value: unknown): TaskPriority => {
+  if (value === 1 || value === 2 || value === 3 || value === 4) {
+    return value;
+  }
+
+  return 4;
+};
+
+const normalizeScope = (value: unknown): TaskScope => {
+  if (value === 'today' || value === 'week' || value === 'category') {
+    return value;
+  }
+
+  return 'inbox';
+};
+
 const cleanOptional = (value: string | undefined) => {
   const cleanValue = value?.trim();
   return cleanValue ? cleanValue : undefined;
@@ -782,8 +794,6 @@ const normalizeDueTime = (value: string | undefined) => {
   const cleanValue = value?.trim();
   return cleanValue && /^\d{2}:\d{2}$/.test(cleanValue) ? cleanValue : undefined;
 };
-
-const hashPassword = (password: string) => crypto.createHash('sha256').update(password).digest('hex');
 
 const refreshTaskExpiration = () => {
   const today = getTodayDate();

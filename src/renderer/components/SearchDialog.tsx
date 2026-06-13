@@ -52,7 +52,7 @@ export const SearchDialog = ({ isOpen, onClose, onEditTask }: SearchDialogProps)
         icon: item.icon,
         kind: 'scope' as const,
         label: t(item.labelKey),
-        meta: getScopeMeta(item.scope, tasks),
+        meta: getScopeMeta(item.scope, tasks, settings.todayRefreshTime),
         onSelect: () => {
           setScope(item.scope);
           onClose();
@@ -217,8 +217,8 @@ const SearchResultIcon = ({ item }: { item: SearchItem }) => {
   return <span className="search-hash">#</span>;
 };
 
-const getScopeMeta = (scope: TaskScope, tasks: Task[]) => {
-  const scopeTasks = tasks.filter((task) => task.scope === scope || (scope === 'today' && task.dueDate === getTodayDate()));
+const getScopeMeta = (scope: TaskScope, tasks: Task[], todayRefreshTime?: string) => {
+  const scopeTasks = tasks.filter((task) => task.scope === scope || (scope === 'today' && task.dueDate === getTodayDate(todayRefreshTime)));
   const latestUpdatedAt = scopeTasks
     .map((task) => task.updatedAt)
     .filter((value): value is string => Boolean(value))
@@ -256,8 +256,19 @@ const toDateTimeInput = (value: string) => {
   return `${value.replace(' ', 'T')}Z`;
 };
 
-const getTodayDate = () => {
+const getTodayDate = (refreshTime?: string) => {
   const date = new Date();
+
+  if (refreshTime) {
+    const [hours, minutes] = refreshTime.split(':').map((part) => Number.parseInt(part, 10));
+    const refreshMoment = new Date(date);
+    refreshMoment.setHours(Number.isFinite(hours) ? hours : 0, Number.isFinite(minutes) ? minutes : 0, 0, 0);
+
+    if (date.getTime() < refreshMoment.getTime()) {
+      date.setDate(date.getDate() - 1);
+    }
+  }
+
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
