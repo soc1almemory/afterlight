@@ -84,7 +84,6 @@ registerTaskIpcHandlers({
 
 configureTelegramBotRuntime({
   onDataChanged: () => mainWindow?.webContents.send('system:data-changed'),
-  onQuickAction: (action) => sendQuickAction(action),
 });
 
 const createWindow = async () => {

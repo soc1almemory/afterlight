@@ -775,7 +775,7 @@ const normalizeColor = (color: string) => {
 
 const normalizeDate = (date: string | undefined) => {
   const cleanDate = date?.trim();
-  return cleanDate && /^\d{4}-\d{2}-\d{2}$/.test(cleanDate) ? cleanDate : undefined;
+  return cleanDate && isValidDateKey(cleanDate) ? cleanDate : undefined;
 };
 
 const normalizeDueTime = (value: string | undefined) => {
@@ -807,4 +807,19 @@ const getTodayDate = () => {
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+};
+
+const isValidDateKey = (dateValue: string) => {
+  const match = dateValue.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+
+  if (!match) {
+    return false;
+  }
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(year, month - 1, day);
+
+  return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day;
 };

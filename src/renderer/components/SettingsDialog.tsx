@@ -162,8 +162,7 @@ const settingsCopy = {
     },
     telegram: {
       title: 'Интеграция Telegram',
-      description: 'Локальный бот работает только пока Afterlight запущен. Напишите боту /start, чтобы начать.',
-      usernameHint: 'Юзернейм бота: @afterlight_task_bot',
+      description: 'Локальный бот работает только пока Afterlight запущен. Получите токен из BotFather. Затем отправьте боту команду с кодом ниже для привязки.',
       token: 'Токен бота',
       tokenPlaceholder: 'Вставьте новый токен из BotFather',
       enabled: 'Включить локального Telegram-бота',
@@ -177,6 +176,8 @@ const settingsCopy = {
       tokenMissing: 'токен не сохранён',
       chat: 'chat_id',
       bot: 'бот',
+      linkCode: 'код привязки',
+      linkCommand: (code: string) => `отправьте боту: /start ${code}`,
       noConnection: 'Подключение отсутствует',
       saved: 'Настройки Telegram сохранены',
       tested: '✅ Подключено',
@@ -321,8 +322,7 @@ const settingsCopy = {
     },
     telegram: {
       title: 'Telegram integration',
-      description: 'The local bot only works while Afterlight is running. Write to the bot /start to get started.',
-      usernameHint: 'Bot username: @afterlight_task_bot',
+      description: 'The local bot only works while Afterlight is running. Get a token from BotFather. Then send the bot the command with the code below to link it.',
       token: 'Bot token',
       tokenPlaceholder: 'Paste a new token from BotFather',
       enabled: 'Enable local Telegram bot',
@@ -336,6 +336,8 @@ const settingsCopy = {
       tokenMissing: 'token not saved',
       chat: 'chat_id',
       bot: 'bot',
+      linkCode: 'pairing code',
+      linkCommand: (code: string) => `send to the bot: /start ${code}`,
       noConnection: 'No connection',
       saved: 'Telegram settings saved',
       tested: '✅ Connected',
@@ -757,13 +759,14 @@ const TelegramSettings = () => {
         <SettingsGroup title={copy.telegram.title}>
           <img className="telegram-status-icon preserve-icon-color" src={assetUrl(statusIcon)} alt="" />
           <p className="settings-hint">{copy.telegram.description}</p>
-          <p className="settings-hint">{copy.telegram.usernameHint}</p>
           <div className="telegram-status">
             <strong>{copy.telegram.status}</strong>
             <span>{status?.isRunning ? copy.telegram.running : copy.telegram.stopped}</span>
             <span>{status?.hasToken ? copy.telegram.tokenSaved : copy.telegram.tokenMissing}</span>
             {status?.botUsername ? <span>{copy.telegram.bot}: @{status.botUsername}</span> : null}
             {status?.chatId ? <span>{copy.telegram.chat}: {status.chatId}</span> : null}
+            {status?.linkCode ? <span>{copy.telegram.linkCode}: {status.linkCode}</span> : null}
+            {status?.linkCode ? <span>{copy.telegram.linkCommand(status.linkCode)}</span> : null}
           </div>
           <label className="settings-field settings-option-field">
             <span>{copy.telegram.token}</span>

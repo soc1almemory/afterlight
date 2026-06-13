@@ -1,10 +1,10 @@
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import type {
   Category,
   CreateTaskInput,
   LanguageCode,
-  SystemQuickAction,
   Task,
   TaskScope,
   TelegramBotStatus,
@@ -33,6 +33,7 @@ interface TelegramConfig {
   enabled: boolean;
   language?: LanguageCode;
   lastUpdateId?: number;
+  linkCode?: string;
   token?: string;
 }
 
@@ -128,6 +129,7 @@ type BotCopy = typeof botCopy.ru;
 
 const POLL_TIMEOUT_SECONDS = 25;
 const POLL_RETRY_DELAY_MS = 5000;
+const TELEGRAM_API_TIMEOUT_MS = 15000;
 const TASK_LIST_LIMIT = 8;
 const STORED_BOT_MESSAGE_LIMIT = 16;
 const CATEGORY_COLORS = ['#7c65ff', '#ffb84d', '#45c27a', '#4aa3ff', '#f06795', '#9b7cff'];
@@ -170,7 +172,7 @@ const botCopy = {
         'Напишите название новой категории.\n\nПримеры:\nРабота\nУчёба\nДом\n\nПосле создания можно писать задачи с хэштегом, например: “Позвонить клиенту завтра 12:00 #Работа”.',
       chooseLanguage: 'Выберите язык бота.',
       connectedElsewhere: 'Этот бот уже подключён к другому рабочему пространству Afterlight.',
-      connectPrompt: 'Откройте настройки Afterlight, включите Telegram-интеграцию и отправьте /start, чтобы привязать этот чат.',
+      connectPrompt: 'Откройте настройки Afterlight, включите Telegram-интеграцию и отправьте команду с кодом привязки.',
       createdPrefix: 'Добавлено:',
       deleted: (title?: string) => `Удалено: ${title ?? 'задача'}`,
       deadlineReminder: (title: string, due: string, minutes: number) =>
@@ -260,7 +262,7 @@ const botCopy = {
         'Send the new category name.\n\nExamples:\nWork\nStudy\nHome\n\nAfter creating it, use a hashtag in tasks, for example: “Call client tomorrow 12:00 #Work”.',
       chooseLanguage: 'Choose bot language.',
       connectedElsewhere: 'This bot is already connected to another Afterlight workspace.',
-      connectPrompt: 'Open Afterlight settings, enable Telegram integration, then send /start to connect this chat.',
+      connectPrompt: 'Open Afterlight settings, enable Telegram integration, then send the pairing command.',
       createdPrefix: 'Added:',
       deleted: (title?: string) => `Deleted: ${title ?? 'task'}`,
       deadlineReminder: (title: string, due: string, minutes: number) =>
@@ -325,13 +327,13 @@ let onDataChanged: (() => void) | undefined;
 
 export const configureTelegramBotRuntime = (options: {
   onDataChanged: () => void;
-  onQuickAction?: (action: SystemQuickAction) => void;
 }) => {
   onDataChanged = options.onDataChanged;
 };
 
 export const getTelegramBotStatus = (): TelegramBotStatus => {
   const config = readConfig();
+  const linkCode = config.token && !config.chatId ? getOrCreateLinkCode(config) : undefined;
 
   return {
     botUsername: config.botUsername,
@@ -339,6 +341,7 @@ export const getTelegramBotStatus = (): TelegramBotStatus => {
     enabled: config.enabled,
     hasToken: Boolean(config.token),
     isRunning,
+    linkCode,
     lastError,
     lastUpdateAt,
   };
@@ -358,6 +361,11 @@ export const updateTelegramBotConfig = async (input: TelegramConfigInput): Promi
     nextConfig.chatId = undefined;
     nextConfig.conversation = undefined;
     nextConfig.lastUpdateId = undefined;
+    nextConfig.linkCode = undefined;
+  }
+
+  if (nextConfig.enabled && nextConfig.token && !nextConfig.chatId) {
+    nextConfig.linkCode = nextConfig.linkCode ?? createLinkCode();
   }
 
   writeConfig(nextConfig);
@@ -515,30 +523,21 @@ const pollTelegram = async (sessionId: number) => {
     let nextConfig = readConfig();
 
     for (const update of updates) {
+      const freshConfig = readConfig();
+      nextConfig = {
+        ...freshConfig,
+        lastUpdateId: Math.max(freshConfig.lastUpdateId ?? 0, update.update_id),
+      };
+      writeConfig(nextConfig);
+
       try {
         await handleUpdate(update, nextConfig.token);
-
-        const freshConfig = readConfig();
-        nextConfig = {
-          ...freshConfig,
-          lastUpdateId: Math.max(freshConfig.lastUpdateId ?? 0, update.update_id),
-        };
-
-        writeConfig(nextConfig);
       } catch (error) {
+        lastError = getErrorMessage(error);
+
         if (isTelegramRateLimitError(error)) {
           throw error;
         }
-
-        lastError = getErrorMessage(error);
-
-        const freshConfig = readConfig();
-        nextConfig = {
-          ...freshConfig,
-          lastUpdateId: Math.max(freshConfig.lastUpdateId ?? 0, update.update_id),
-        };
-
-        writeConfig(nextConfig);
       }
     }
 
@@ -606,8 +605,8 @@ const handleUpdate = async (update: TelegramUpdate, token?: string) => {
   const text = message.text.trim();
 
   if (!config.chatId) {
-    if (isStartIntent(text)) {
-      writeConfig({ ...config, chatId: message.chat.id, conversation: undefined, language });
+    if (isStartIntent(text) && isValidLinkStart(text, config)) {
+      writeConfig({ ...config, chatId: message.chat.id, conversation: undefined, language, linkCode: undefined });
       await clearChatBeforeAction(token, message.chat.id, message.message_id);
       await sendMainMenu(token, message.chat.id, copy.text.botConnected, language);
       return;
@@ -1331,6 +1330,10 @@ const extractDate = (value: string): { dueDate?: string; text: string } => {
 
   const year = dateMatch[3] ?? String(new Date().getFullYear());
   const dueDate = `${year}-${dateMatch[2]}-${dateMatch[1]}`;
+  if (!isValidDateKey(dueDate)) {
+    return { text: value.trim() };
+  }
+
   return { dueDate, text: value.replace(dateMatch[0], '').trim() };
 };
 
@@ -1347,7 +1350,7 @@ const isHelpIntent = (value: string) => isMenuButton(value, 'help') || /^\/help(
 const isInboxIntent = (value: string) => isMenuButton(value, 'inbox') || /^\/inbox(?:@\w+)?$/i.test(value);
 const isLanguageIntent = (value: string) => isMenuButton(value, 'language') || /^\/language(?:@\w+)?$/i.test(value);
 const isMenuIntent = (value: string) => /^\/menu(?:@\w+)?$/i.test(value);
-const isStartIntent = (value: string) => /^\/start(?:@\w+)?$/i.test(value);
+const isStartIntent = (value: string) => /^\/start(?:@\w+)?(?:\s|$)/i.test(value);
 const isTodayIntent = (value: string) => isMenuButton(value, 'today') || /^\/today(?:@\w+)?$/i.test(value);
 const isWeekIntent = (value: string) => isMenuButton(value, 'week') || /^\/week(?:@\w+)?$/i.test(value);
 
@@ -1360,14 +1363,34 @@ const telegramApi = async <T>(
   payload: Record<string, unknown> = {},
   signal?: AbortSignal,
 ): Promise<T> => {
-  const response = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
-    body: JSON.stringify(payload),
-    headers: { 'Content-Type': 'application/json' },
-    method: 'POST',
-    signal,
-  });
+  const timeoutController = new AbortController();
+  const timeoutId = setTimeout(() => timeoutController.abort(), getTelegramApiTimeoutMs(method));
+  const requestSignal = signal ? AbortSignal.any([signal, timeoutController.signal]) : timeoutController.signal;
+  let response: Response;
 
-  const data = (await response.json()) as TelegramApiResponse<T>;
+  try {
+    response = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
+      body: JSON.stringify(payload),
+      headers: { 'Content-Type': 'application/json' },
+      method: 'POST',
+      signal: requestSignal,
+    });
+  } catch (error) {
+    if (timeoutController.signal.aborted && !(signal?.aborted)) {
+      throw new Error(`Telegram API request timed out: ${method}`);
+    }
+
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+
+  let data: TelegramApiResponse<T>;
+  try {
+    data = (await response.json()) as TelegramApiResponse<T>;
+  } catch {
+    throw new Error(`Telegram API returned an invalid response for ${method}.`);
+  }
 
   if (!response.ok || !data.ok) {
     const message = data.description ?? `Telegram API request failed: ${method}`;
@@ -1454,6 +1477,7 @@ const readConfig = (): TelegramConfig => {
       enabled: Boolean(parsed.enabled),
       language: normalizeLanguage(parsed.language),
       lastUpdateId: typeof parsed.lastUpdateId === 'number' ? parsed.lastUpdateId : undefined,
+      linkCode: normalizeLinkCode(parsed.linkCode),
       token: typeof parsed.token === 'string' ? parsed.token : undefined,
     };
   } catch {
@@ -1472,6 +1496,39 @@ const getConfigPath = () => path.join(getStoragePaths().storageDir, 'telegram.js
 const cleanToken = (value: string | undefined) => {
   const cleanValue = value?.trim();
   return cleanValue ? cleanValue : undefined;
+};
+
+const createLinkCode = () => String(crypto.randomInt(100000, 1000000));
+
+const getOrCreateLinkCode = (config: TelegramConfig) => {
+  const existingCode = normalizeLinkCode(config.linkCode);
+
+  if (existingCode) {
+    return existingCode;
+  }
+
+  const linkCode = createLinkCode();
+  writeConfig({ ...config, linkCode });
+  return linkCode;
+};
+
+const normalizeLinkCode = (value: unknown) => {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  const cleanValue = value.trim().toUpperCase();
+  return /^\d{6}$/.test(cleanValue) ? cleanValue : undefined;
+};
+
+const getStartPayload = (value: string) => {
+  const match = value.trim().match(/^\/start(?:@\w+)?(?:\s+(.+))?$/i);
+  return match?.[1]?.trim();
+};
+
+const isValidLinkStart = (value: string, config: TelegramConfig) => {
+  const linkCode = getOrCreateLinkCode(config);
+  return normalizeLinkCode(getStartPayload(value)) === linkCode;
 };
 
 const cleanCategoryTitle = (value: string) =>
@@ -1497,6 +1554,9 @@ const getErrorMessage = (error: unknown) => (error instanceof Error ? error.mess
 const isTelegramPollingConflict = (message: string) => message.includes('Conflict: terminated by other getUpdates request');
 
 const isNetworkFetchFailure = (message: string) => message === 'fetch failed';
+
+const getTelegramApiTimeoutMs = (method: string) =>
+  method === 'getUpdates' ? (POLL_TIMEOUT_SECONDS + 10) * 1000 : TELEGRAM_API_TIMEOUT_MS;
 
 const normalizeConversation = (value: unknown): TelegramConversation => {
   if (!value || typeof value !== 'object') {
@@ -1557,6 +1617,21 @@ const toDateKey = (date: Date) => {
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+};
+
+const isValidDateKey = (dateValue: string) => {
+  const match = dateValue.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+
+  if (!match) {
+    return false;
+  }
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(year, month - 1, day);
+
+  return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day;
 };
 
 const formatDateForUser = (dateValue: string) => {

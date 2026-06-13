@@ -182,6 +182,7 @@ export interface TelegramBotStatus {
   isRunning: boolean;
   chatId?: number;
   botUsername?: string;
+  linkCode?: string;
   lastError?: string;
   lastUpdateAt?: string;
 }
