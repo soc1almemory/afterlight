@@ -44,6 +44,7 @@ export const ContentView = ({ onAddTask, onEditTask, onMouseEnter }: ContentView
   const deleteTasks = useTaskStore((state) => state.deleteTasks);
   const toggleCategoryFavorite = useTaskStore((state) => state.toggleCategoryFavorite);
   const updateNote = useTaskStore((state) => state.updateNote);
+  const [clearConfirmationTaskIds, setClearConfirmationTaskIds] = useState<string[]>([]);
   const [isControlMenuOpen, setControlMenuOpen] = useState(false);
   const [refreshLabel, setRefreshLabel] = useState(getTodayRefreshLabel(settings.todayRefreshTime, settings.language));
   const [draftNoteText, setDraftNoteText] = useState('');
@@ -110,24 +111,30 @@ export const ContentView = ({ onAddTask, onEditTask, onMouseEnter }: ContentView
   );
   const tasksToClear = activeScope === 'week' ? weekGroups.flatMap((group) => group.tasks) : visibleTasks;
   const addTaskIcon = settings.theme === 'dark' ? 'add-task-icon-dt.svg' : 'add-task-icon.svg';
+  const clearConfirmCancelLabel = settings.language === 'en' ? 'Cancel' : 'Отмена';
 
   const handleClearPage = async () => {
-    if (tasksToClear.length === 0) {
+    const taskIds = tasksToClear.map((task) => task.id);
+
+    if (taskIds.length === 0) {
       setControlMenuOpen(false);
       return;
     }
 
-    if (settings.confirmTaskDelete && !window.confirm(t('clearCurrentSectionConfirm'))) {
+    setControlMenuOpen(false);
+
+    if (settings.confirmTaskDelete) {
+      setClearConfirmationTaskIds(taskIds);
       return;
     }
 
-    setControlMenuOpen(false);
-    await deleteTasks(tasksToClear.map((task) => task.id));
-    requestAnimationFrame(() => {
-      if (document.activeElement instanceof HTMLElement) {
-        document.activeElement.blur();
-      }
-    });
+    await deleteTasks(taskIds);
+  };
+
+  const handleConfirmClearPage = async () => {
+    const taskIds = clearConfirmationTaskIds;
+    setClearConfirmationTaskIds([]);
+    await deleteTasks(taskIds);
   };
 
   const handleDeleteCategory = async () => {
@@ -304,9 +311,49 @@ export const ContentView = ({ onAddTask, onEditTask, onMouseEnter }: ContentView
           />
         </label>
       </section>
+      {clearConfirmationTaskIds.length > 0 ? (
+        <ClearSectionConfirmDialog
+          onCancel={() => setClearConfirmationTaskIds([])}
+          onConfirm={() => void handleConfirmClearPage()}
+          cancelLabel={clearConfirmCancelLabel}
+          t={t}
+        />
+      ) : null}
     </main>
   );
 };
+
+const ClearSectionConfirmDialog = ({
+  cancelLabel,
+  onCancel,
+  onConfirm,
+  t,
+}: {
+  cancelLabel: string;
+  onCancel: () => void;
+  onConfirm: () => void;
+  t: ReturnType<typeof useTranslator>;
+}) => (
+  <div className="dialog-overlay" role="presentation" onMouseDown={onCancel}>
+    <section className="confirm-dialog" aria-label={t('clearCurrentSectionConfirm')} onMouseDown={(event) => event.stopPropagation()}>
+      <div className="dialog-heading">
+        <h2>{t('clear')}</h2>
+        <button type="button" aria-label={t('close')} onClick={onCancel}>
+          <img src={assetUrl('popup-close-icon.svg')} alt="" />
+        </button>
+      </div>
+      <p>{t('clearCurrentSectionConfirm')}</p>
+      <div className="dialog-actions">
+        <button type="button" onClick={onCancel}>
+          {cancelLabel}
+        </button>
+        <button type="button" onClick={onConfirm}>
+          {t('clear')}
+        </button>
+      </div>
+    </section>
+  </div>
+);
 
 const WeekTaskList = ({
   groups,

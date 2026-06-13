@@ -68,6 +68,7 @@ const defaultSettings: AppSettings = {
 
 const DEFAULT_PROFILE_NAME = 'Username';
 const DEFAULT_PROFILE_EMAIL = 'username@gmail.com';
+const SQL_BATCH_SIZE = 500;
 const DEFAULT_WORKSPACE_TITLE = 'Личное пространство';
 
 interface CategoryRow {
@@ -388,14 +389,20 @@ export const deleteTasks = (taskIds: string[]): string[] => {
   const database = getDatabase();
   const workspaceId = getActiveWorkspaceId();
   const deletedTaskIds: string[] = [];
-  const deleteStatement = database.prepare('DELETE FROM tasks WHERE id = @taskId AND workspace_id = @workspaceId');
   const runDelete = database.transaction((ids: string[]) => {
-    ids.forEach((taskId) => {
-      const result = deleteStatement.run({ taskId, workspaceId });
+    chunkItems(ids, SQL_BATCH_SIZE).forEach((chunk) => {
+      const placeholders = chunk.map(() => '?').join(', ');
+      const params = [workspaceId, ...chunk];
+      const existingRows = database
+        .prepare(`SELECT id FROM tasks WHERE workspace_id = ? AND id IN (${placeholders})`)
+        .all(...params) as Array<{ id: string }>;
 
-      if (result.changes > 0) {
-        deletedTaskIds.push(taskId);
+      if (existingRows.length === 0) {
+        return;
       }
+
+      database.prepare(`DELETE FROM tasks WHERE workspace_id = ? AND id IN (${placeholders})`).run(...params);
+      deletedTaskIds.push(...existingRows.map((row) => row.id));
     });
   });
 
@@ -766,6 +773,16 @@ const normalizeScope = (value: unknown): TaskScope => {
 const cleanOptional = (value: string | undefined) => {
   const cleanValue = value?.trim();
   return cleanValue ? cleanValue : undefined;
+};
+
+const chunkItems = <T>(items: T[], size: number): T[][] => {
+  const chunks: T[][] = [];
+
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size));
+  }
+
+  return chunks;
 };
 
 const normalizeIconMode = (value: string | undefined, emoji: string | undefined | null): CategoryIconMode => {

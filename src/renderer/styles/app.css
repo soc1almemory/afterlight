@@ -2705,7 +2705,8 @@ body.theme-dark .settings-field select:focus {
 }
 
 .task-dialog,
-.category-dialog {
+.category-dialog,
+.confirm-dialog {
   width: min(480px, calc(100vw - 40px));
   border-radius: 8px;
   background: #ffffff;
@@ -2716,6 +2717,13 @@ body.theme-dark .settings-field select:focus {
   flex-direction: column;
   gap: 18px;
   animation: surface-pop-in var(--motion-slow) var(--motion-spring);
+}
+
+.confirm-dialog p {
+  margin: 0;
+  color: #515151;
+  font-weight: 700;
+  line-height: 1.45;
 }
 
 .info-overlay {
@@ -3286,6 +3294,7 @@ body.theme-dark .search-dialog,
 body.theme-dark .settings-dialog,
 body.theme-dark .task-dialog,
 body.theme-dark .category-dialog,
+body.theme-dark .confirm-dialog,
 body.theme-dark .info-dialog {
   background: #1f1f1f;
   border-color: #303030;
