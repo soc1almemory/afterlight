@@ -2207,9 +2207,13 @@ body.theme-dark .task-edit-button:hover {
   min-height: 30px;
   border: 2px solid #5E6BFE;
   border-radius: 8px;
+  background-color: transparent;
   color: #5E6BFE;
   padding: 0 8px;
   font-weight: 800;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  -webkit-font-smoothing: antialiased;
   transition:
     background var(--motion-fast) ease,
     color var(--motion-fast) ease,
@@ -2218,7 +2222,7 @@ body.theme-dark .task-edit-button:hover {
 
 .outline-accent-button:hover {
   background-color: #ebedff;
-  transform: translateY(-1px);
+  transform: translate3d(0, -1px, 0);
 }
 
 .settings-field {
@@ -3464,7 +3468,7 @@ body.theme-dark .outline-accent-button {
 
 body.theme-dark .outline-accent-button:hover {
   background-color: #242638;
-  transform: translateY(-1px);
+  transform: translate3d(0, -1px, 0);
 }
 
 body.theme-dark .date-pill,
