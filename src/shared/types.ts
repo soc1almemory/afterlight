@@ -156,6 +156,7 @@ export interface AppSettings {
   showSidebarCounts: boolean;
   showTabBar: boolean;
   showTodayOverdueFirst: boolean;
+  sortCompletedTasksLast: boolean;
   showWeekNoDate: boolean;
   startSection: StartSectionMode;
   taskSortMode: TaskSortMode;

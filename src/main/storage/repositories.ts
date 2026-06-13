@@ -56,6 +56,7 @@ const defaultSettings: AppSettings = {
   showSidebarCounts: true,
   showTabBar: true,
   showTodayOverdueFirst: true,
+  sortCompletedTasksLast: true,
   showWeekNoDate: true,
   startSection: 'inbox',
   taskSortMode: 'created',

@@ -506,6 +506,10 @@ const sortTasks = (tasks: Task[], settings: AppSettings, activeScope: TaskScope)
     sortedTasks.sort((first, second) => Number(isActiveOverdueTask(second, settings)) - Number(isActiveOverdueTask(first, settings)));
   }
 
+  if (settings.sortCompletedTasksLast) {
+    sortedTasks.sort((first, second) => Number(first.status === 'completed') - Number(second.status === 'completed'));
+  }
+
   return sortedTasks;
 };
 

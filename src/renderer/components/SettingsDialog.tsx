@@ -89,6 +89,7 @@ const settingsCopy = {
       byPriority: 'По приоритету',
       manual: 'Вручную',
       byCreated: 'По созданию',
+      completedLast: 'Перемещать выполненные задачи вниз',
       confirmTaskDelete: 'Подтверждать удаление задач',
       weekPage: 'Неделя',
       weekOrder: 'Порядок дней',
@@ -258,6 +259,7 @@ const settingsCopy = {
       byPriority: 'By priority',
       manual: 'Manual',
       byCreated: 'By creation',
+      completedLast: 'Move completed tasks to the bottom',
       confirmTaskDelete: 'Confirm task deletion',
       weekPage: 'Week',
       weekOrder: 'Day order',
@@ -503,6 +505,7 @@ const MainSettings = () => {
           ]}
           onChange={(taskSortMode) => void updateSettings({ taskSortMode })}
         />
+        <SettingsToggle checked={settings.sortCompletedTasksLast} label={copy.main.completedLast} onChange={(sortCompletedTasksLast) => void updateSettings({ sortCompletedTasksLast })} />
         <SettingsToggle checked={settings.confirmTaskDelete} label={copy.main.confirmTaskDelete} onChange={(confirmTaskDelete) => void updateSettings({ confirmTaskDelete })} />
       </SettingsGroup>
 
@@ -1291,6 +1294,7 @@ const defaults = {
   },
   tasks: {
     confirmTaskDelete: true,
+    sortCompletedTasksLast: true,
     taskSortMode: 'created',
   },
   theme: {
