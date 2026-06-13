@@ -2,7 +2,7 @@
 
 ### Local Windows task manager for tasks, notes, categories, notifications, backups, and Telegram integration.
 
-![Version](https://img.shields.io/badge/version-0.2.1-FF5B5B)
+![Version](https://img.shields.io/badge/version-0.2.2-FF5B5B)
 ![Platform](https://img.shields.io/badge/platform-Windows-5B6EFF)
 ![Runtime](https://img.shields.io/badge/runtime-Electron-5BFFD0)
 ![UI](https://img.shields.io/badge/UI-React%20%2B%20TypeScript-FCFFA4)
@@ -29,7 +29,9 @@ The app stores its main data locally in SQLite, uses an Electron + React interfa
 - **Settings** - account, language, theme, notifications, sidebar, Telegram, and backup settings.
 - **Notifications** - Windows reminders for deadlines, overdue tasks, and Today page refresh.
 - **Telegram integration** - task creation, task lists, categories, completion, deletion, language choice, and deadline reminders.
+- **Telegram session control** - connected chat count, session reset, pairing code, and localized status messages.
 - **Import / Export / Backup** - JSON/CSV export, validated JSON import, and automatic SQLite backups.
+- **App updates** - installed Windows builds can check GitHub Releases, download updates, and prompt for restart.
 - **Markdown Help / Changelog** - Help and Changelog popup content is loaded from external `.md` files.
 
 ## Tech Stack
@@ -80,6 +82,7 @@ src/
     app-version.json     # app version used by the UI
 
 assets/                  # SVG/PNG/ICO assets
+afterlight-bot-server/   # optional standalone server for @afterlight_task_bot
 ```
 
 ## Commands
@@ -113,14 +116,6 @@ For a GitHub release, use `npm run make` and upload the Squirrel installer artif
 out/make/squirrel.windows/x64/
 ```
 
-Expected files include:
-
-```text
-afterlight-0.2.1 Setup.exe
-afterlight-0.2.1-full.nupkg
-RELEASES
-```
-
 The installer icon is configured in `forge.config.ts` through `assets/logo-main.ico`.
 
 ## Telegram Integration
@@ -144,13 +139,49 @@ To connect:
 3. Go to Telegram integration.
 4. Select `Own token`.
 5. Paste the token, enable the bot, and save.
-6. Send the shown `/start <code>` command to your bot.
+6. Send `/start` to your bot, then send the shown 6-digit pairing code as a separate message.
+
+If Telegram allows a start payload, `/start <code>` is also supported.
 
 ### Afterlight Bot
 
 This mode connects the app to `@afterlight_task_bot`. It is designed for the companion server workflow and uses the same local Afterlight data files when configured.
 
+The companion server lives in:
+
+```text
+afterlight-bot-server/
+```
+
+It can be started from the project root:
+
+```bash
+npm run bot:server
+```
+
+The server reads:
+
+```text
+storage/telegram.json
+storage/afterlight.sqlite
+```
+
+Connection flow:
+
+1. Open `Settings -> Telegram integration`.
+2. Select `Afterlight Bot`.
+3. Enable the mode and save.
+4. Start the companion server.
+5. Send `/start` to `@afterlight_task_bot`.
+6. Send the 6-digit pairing code shown in Afterlight.
+
+The app shows the number of authorized Telegram chats in server mode. If the connection state becomes messy, use `Reset sessions` in Telegram settings. This clears authorized chats and pending authorizations, but keeps the integration enabled and keeps the pairing code.
+
+In `Afterlight Bot` mode, `chat_id` is intentionally hidden from the status area because the mode can handle multiple chats. In `Own token` mode, `chat_id` is still shown because that mode remains one-chat oriented.
+
 The app watches local SQLite and Telegram config changes, so tasks and categories created through Telegram can appear in an open Afterlight window without restarting the app.
+
+Telegram status messages are localized in the UI for known technical errors, including server-not-running, connection failure, rate limit, invalid token, duplicate polling, and chat access errors.
 
 ## Telegram Task Format
 
@@ -166,6 +197,8 @@ Call the client #Work
 Homework 12.06 14:30 #Study
 ```
 
+If a message uses a category hashtag that does not exist yet, the bot can create that category while adding the task.
+
 Priority can be placed at the beginning of the message:
 
 ```text
@@ -176,6 +209,22 @@ Buy milk               # normal priority
 ```
 
 The bot can also show task lists, create categories, complete tasks, restore tasks, delete tasks, and switch between Russian and English.
+
+## Notifications
+
+Afterlight supports Windows notifications for:
+
+- task deadlines;
+- overdue tasks;
+- Today page refresh reminders.
+
+Deadline notification timing is configurable. Telegram deadline reminders use the same deadline lead setting when Telegram notifications are enabled.
+
+## App Updates
+
+Installed Windows builds can check GitHub Releases for new versions. When an update is available, Afterlight downloads it in the background and shows a small notification after the update is ready to install.
+
+The update notification includes a restart action to finish installation. Automatic update checks are not intended for development mode.
 
 ## Local Data
 
@@ -194,6 +243,8 @@ storage/telegram.json  # Telegram integration config
 
 Telegram tokens for the in-app custom bot mode are stored through Electron `safeStorage` when OS encryption is available.
 
+The Telegram config stores pairing codes, server heartbeat data, authorized chat sessions, pending authorizations, and bot status metadata.
+
 ## Documentation Content
 
 Help and Changelog are loaded from Markdown files:
@@ -206,6 +257,5 @@ This keeps user-facing documentation editable without changing React components.
 
 ## Current Status
 
-Afterlight v0.2.1 is a complete local MVP with desktop UI, persistent SQLite storage, task sections, notes, settings, themes, search, backups, Markdown Help/Changelog content, Windows notifications, Telegram integration modes, Electron hardening, validated import, and polished interface animations.
+Afterlight v0.2.2 is a complete local desktop application with desktop UI, persistent SQLite storage, task sections, notes, settings, themes, search, backups, Markdown Help/Changelog content, Windows notifications, Telegram integration modes, session-aware Telegram status, Electron hardening, validated import, automatic update support, and polished interface animations.
 
-The next natural direction is turning Afterlight from a local desktop app into a synchronized product with cloud storage, account-based sync, server-side Telegram webhooks, multi-device access, and richer workspace collaboration.
