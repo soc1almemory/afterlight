@@ -1,6 +1,6 @@
 # Afterlight v0.2.0
 
-Current MVP state of Afterlight: a local Windows task manager with tasks, categories, notes, settings, Telegram integration, and backups.
+Current MVP state of Afterlight: a local Windows task manager with tasks, categories, notes, settings, Telegram integration, notifications, and backups.
 
 ## Core Workflow
 
@@ -8,8 +8,9 @@ Current MVP state of Afterlight: a local Windows task manager with tasks, catego
 - Added tasks with title, description, date, deadline time, priority, status, and category binding.
 - Added fast task creation from the current section.
 - Added task editing, completion, restore, and deletion.
-- Today shows current-day tasks and overdue tasks when enabled in settings.
-- Week lets tasks be distributed across days, including drag-and-drop from the no-date distributor.
+- Today uses the configured refresh time and can show active overdue tasks.
+- Week shows current-week dated tasks and no-date week tasks in the distributor.
+- Fixed Week counters so dated tasks outside the current week are no longer counted as current-week tasks.
 
 ## Categories And Favorites
 
@@ -36,12 +37,14 @@ Current MVP state of Afterlight: a local Windows task manager with tasks, catego
 - Added automatic sidebar collapse.
 - Added smooth animations for popups, dropdowns, lists, tabs, buttons, and workspace screens.
 - Added fullscreen launch mode.
+- Removed the obsolete profile security field because the app does not yet provide real local authentication.
 
 ## Search
 
 - Added search popup for tasks and categories.
 - Added recently opened history.
 - Search can quickly open a found task or category.
+- Search Today metadata now follows the configured Today refresh time.
 
 ## Windows Settings
 
@@ -55,14 +58,14 @@ Current MVP state of Afterlight: a local Windows task manager with tasks, catego
 
 - Added JSON task export.
 - Added CSV task export.
-- Added JSON task import.
+- Added validated JSON task import.
 - Added button to open the data folder.
 - Added button to open the SQLite database.
 - Added automatic SQLite backups.
 
 ## Telegram
 
-- Added local Telegram integration through @afterlight_task_bot.
+- Added local Telegram integration through a user-provided BotFather token.
 - The bot can add tasks from normal Telegram text.
 - The bot understands dates, time, and hashtag categories.
 - Added Telegram bot commands and buttons.
@@ -70,10 +73,13 @@ Current MVP state of Afterlight: a local Windows task manager with tasks, catego
 - Added category creation from Telegram.
 - Added task lists, completion, and deletion directly from Telegram.
 - Added automatic cleanup of old bot messages in chat.
+- Telegram tokens are stored with Electron `safeStorage` when OS encryption is available.
 
 ## Technical Improvements
 
 - App data is stored locally in SQLite.
 - Electron renderer is isolated behind a preload API.
+- Added renderer sandboxing and a Content Security Policy.
 - Build pipeline uses Electron Forge and Vite.
 - TypeScript validation runs before packaging.
+- Production sourcemaps are disabled for release builds.

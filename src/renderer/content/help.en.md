@@ -1,17 +1,17 @@
 # User Guide
 
-Afterlight helps you capture tasks quickly, plan them by day and category, keep short notes, and manage tasks from Telegram.
+Afterlight helps you capture tasks quickly, plan them by day and category, keep short notes, and manage tasks from Telegram while the desktop app is running.
 
 ## Main Sections
 
-- **Inbox** — a place for tasks without a specific day. Use it to collect things you will sort later.
-- **Today** — tasks for the current day. If overdue visibility is enabled, active overdue tasks also appear here.
-- **Week** — day-by-day planning. Tasks can be added to a specific day or dragged between days.
-- **Categories** — contexts such as Study, Home, Work, or Project. Categories can be marked as favorites.
+- **Inbox** - a place for tasks without a specific day. Use it to collect things you will sort later.
+- **Today** - tasks for the current app day. The day can start at the refresh time configured in settings, and active overdue tasks can also appear here.
+- **Week** - day-by-day planning for the current week. No-date week tasks live in the distributor and can be dragged to a day.
+- **Categories** - contexts such as Study, Home, Work, or Project. Categories can be marked as favorites.
 
 ## Working With Tasks
 
-- Click “Add task” to create a task in the current section.
+- Click "Add task" to create a task in the current section.
 - A task can have a title, description, date, time, priority, and category.
 - Click the task title to edit it.
 - Click the checkbox on the left to complete or restore a task.
@@ -62,8 +62,8 @@ Afterlight helps you capture tasks quickly, plan them by day and category, keep 
 ## Telegram
 
 - The Telegram bot works only while Afterlight is running on your computer.
-- Bot username: @afterlight_task_bot.
-- After connecting, send `/start` to the bot.
+- Create your own bot in BotFather and paste its token in Settings -> Telegram integration.
+- After saving the token, send the shown `/start <code>` command to your bot.
 - You can send normal text and the bot will create a task.
 - Message examples:
 - `Buy milk`
@@ -80,7 +80,7 @@ Afterlight helps you capture tasks quickly, plan them by day and category, keep 
 - Theme switches between light and dark mode.
 - Sidebar controls auto-collapse and counters.
 - Notifications configures Windows system reminders.
-- Telegram integration connects the local bot.
+- Telegram integration connects your local bot.
 - Backups contains export, import, data access, and automatic backups.
 
 ## Backups
