@@ -119,28 +119,6 @@ RELEASES
 
 The installer icon is configured in `forge.config.ts` through `assets/logo-main.ico`.
 
-# First production Windows build
-
-1. Make sure the version is correct in `package.json` and `src/shared/app-version.json`.
-2. Run checks:
-
-```bash
-npm run lint
-npm audit --omit=dev
-```
-
-3. Create the distributable build:
-
-```bash
-npm run make
-```
-
-4. Smoke-test the installer from `out/make/squirrel.windows/x64/`.
-5. Create a GitHub Release, for example `v0.2.0`.
-6. Upload the Squirrel artifacts as release assets.
-
-For a public `.exe` download, GitHub Releases are the right place. GitHub Packages is meant for package registries such as npm packages and container images, not ordinary Windows installer downloads.
-
 # Telegram integration
 
 The Telegram bot runs locally through long polling. No external server, webhook, VPS, or ngrok setup is required.
