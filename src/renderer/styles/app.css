@@ -582,6 +582,32 @@ body {
   right: 6px;
 }
 
+.app-titlebar button,
+.titlebar-sidebar-tools,
+.tab-navigation,
+.nav-arrows,
+.nav-arrows button,
+.tabs-group,
+.app-tab,
+.tab-title,
+.tab-close-button,
+.add-tab-button,
+.window-actions,
+.window-actions button {
+  -webkit-app-region: no-drag;
+}
+
+.tab-navigation {
+  position: relative;
+  z-index: 2;
+}
+
+.drag-region {
+  -webkit-app-region: drag;
+  position: relative;
+  z-index: 1;
+}
+
 .tab-navigation {
   min-width: 0;
   height: 40px;
