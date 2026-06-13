@@ -1569,7 +1569,7 @@ const clearChatBeforeAction = async (
 ) => {
   const config = readConfig();
   const botMessageIds = new Set(config.botMessageIds ?? []);
-  const ids = [...new Set([...botMessageIds, incomingMessageId].filter(isNumber))];
+  const ids = [...botMessageIds].filter((messageId) => messageId !== incomingMessageId);
 
   if (ids.length === 0) {
     return;
@@ -1587,7 +1587,10 @@ const clearChatBeforeAction = async (
     await delay(250);
   }
 
-  writeConfig({ ...readConfig(), botMessageIds: [] });
+  writeConfig({
+    ...readConfig(),
+    botMessageIds: isNumber(incomingMessageId) && botMessageIds.has(incomingMessageId) ? [incomingMessageId] : [],
+  });
 };
 
 const rememberBotMessage = (chatId: number, messageId: number) => {
