@@ -45,6 +45,7 @@ export const ContentView = ({ onAddTask, onEditTask, onMouseEnter }: ContentView
   const toggleCategoryFavorite = useTaskStore((state) => state.toggleCategoryFavorite);
   const updateNote = useTaskStore((state) => state.updateNote);
   const [clearConfirmationTaskIds, setClearConfirmationTaskIds] = useState<string[]>([]);
+  const [deleteCategoryConfirmation, setDeleteCategoryConfirmation] = useState<{ id: string; title: string }>();
   const [isControlMenuOpen, setControlMenuOpen] = useState(false);
   const [refreshLabel, setRefreshLabel] = useState(getTodayRefreshLabel(settings.todayRefreshTime, settings.language));
   const [draftNoteText, setDraftNoteText] = useState('');
@@ -142,12 +143,25 @@ export const ContentView = ({ onAddTask, onEditTask, onMouseEnter }: ContentView
       return;
     }
 
-    if (settings.confirmCategoryDelete && !window.confirm(t('deleteCategoryConfirm', { title: activeCategory.title }))) {
+    setControlMenuOpen(false);
+
+    if (settings.confirmCategoryDelete) {
+      setDeleteCategoryConfirmation({ id: activeCategory.id, title: activeCategory.title });
       return;
     }
 
-    setControlMenuOpen(false);
     await deleteCategory(activeCategory.id);
+  };
+
+  const handleConfirmDeleteCategory = async () => {
+    const category = deleteCategoryConfirmation;
+
+    if (!category) {
+      return;
+    }
+
+    setDeleteCategoryConfirmation(undefined);
+    await deleteCategory(category.id);
   };
 
   useEffect(() => {
@@ -312,43 +326,59 @@ export const ContentView = ({ onAddTask, onEditTask, onMouseEnter }: ContentView
         </label>
       </section>
       {clearConfirmationTaskIds.length > 0 ? (
-        <ClearSectionConfirmDialog
+        <ConfirmDialog
+          cancelLabel={clearConfirmCancelLabel}
+          confirmLabel={t('clear')}
+          message={t('clearCurrentSectionConfirm')}
           onCancel={() => setClearConfirmationTaskIds([])}
           onConfirm={() => void handleConfirmClearPage()}
+          title={t('clear')}
+        />
+      ) : null}
+      {deleteCategoryConfirmation ? (
+        <ConfirmDialog
           cancelLabel={clearConfirmCancelLabel}
-          t={t}
+          confirmLabel={t('delete')}
+          message={t('deleteCategoryConfirm', { title: deleteCategoryConfirmation.title })}
+          onCancel={() => setDeleteCategoryConfirmation(undefined)}
+          onConfirm={() => void handleConfirmDeleteCategory()}
+          title={t('delete')}
         />
       ) : null}
     </main>
   );
 };
 
-const ClearSectionConfirmDialog = ({
+const ConfirmDialog = ({
   cancelLabel,
+  confirmLabel,
+  message,
   onCancel,
   onConfirm,
-  t,
+  title,
 }: {
   cancelLabel: string;
+  confirmLabel: string;
+  message: string;
   onCancel: () => void;
   onConfirm: () => void;
-  t: ReturnType<typeof useTranslator>;
+  title: string;
 }) => (
   <div className="dialog-overlay" role="presentation" onMouseDown={onCancel}>
-    <section className="confirm-dialog" aria-label={t('clearCurrentSectionConfirm')} onMouseDown={(event) => event.stopPropagation()}>
+    <section className="confirm-dialog" aria-label={message} onMouseDown={(event) => event.stopPropagation()}>
       <div className="dialog-heading">
-        <h2>{t('clear')}</h2>
-        <button type="button" aria-label={t('close')} onClick={onCancel}>
+        <h2>{title}</h2>
+        <button type="button" aria-label={cancelLabel} onClick={onCancel}>
           <img src={assetUrl('popup-close-icon.svg')} alt="" />
         </button>
       </div>
-      <p>{t('clearCurrentSectionConfirm')}</p>
+      <p>{message}</p>
       <div className="dialog-actions">
         <button type="button" onClick={onCancel}>
           {cancelLabel}
         </button>
         <button type="button" onClick={onConfirm}>
-          {t('clear')}
+          {confirmLabel}
         </button>
       </div>
     </section>
