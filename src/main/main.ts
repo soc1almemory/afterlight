@@ -4,6 +4,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
 import type { AppSettings, CreateTaskInput, SystemQuickAction, Task, TelegramConfigInput } from '../shared/types';
+import {
+  checkForUpdates,
+  configureAutoUpdates,
+  getUpdateStatus,
+  installDownloadedUpdate,
+  stopAutoUpdateChecks,
+} from './auto-updates';
 import { registerTaskIpcHandlers } from './ipc/tasks';
 import { getDatabase, getStoragePaths, initializeDatabase } from './storage/database';
 import { createTask, listAppData } from './storage/repositories';
@@ -129,6 +136,7 @@ const createWindow = async () => {
   }
 
   applySystemSettings();
+  configureAutoUpdates(() => mainWindow);
   void restartTelegramBot();
 };
 
@@ -141,6 +149,7 @@ app.on('second-instance', () => {
 
 app.on('before-quit', () => {
   isQuitting = true;
+  stopAutoUpdateChecks();
   stopTelegramBot();
   stopExternalDataWatcher();
 });
@@ -192,6 +201,9 @@ ipcMain.handle('system:open-database', () => {
 });
 ipcMain.handle('system:open-project-repository', () => shell.openExternal(PROJECT_REPOSITORY_URL));
 ipcMain.handle('system:create-backup', () => createDatabaseBackup());
+ipcMain.handle('updates:get-status', () => getUpdateStatus());
+ipcMain.handle('updates:check', () => checkForUpdates());
+ipcMain.handle('updates:install', () => installDownloadedUpdate());
 ipcMain.handle('telegram:status', () => getTelegramBotStatus());
 ipcMain.handle('telegram:configure', (_event, input: TelegramConfigInput) => updateTelegramBotConfig(input));
 ipcMain.handle('telegram:test', (_event, token?: string) => testTelegramBotConnection(token));

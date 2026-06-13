@@ -16,6 +16,14 @@ export type TaskSortMode = 'date' | 'priority' | 'manual' | 'created';
 export type WeekOrderMode = 'monday' | 'today';
 export type CategorySortMode = 'created' | 'alphabetical' | 'manual' | 'favorites';
 export type TelegramBotMode = 'custom' | 'afterlight';
+export type AppUpdateStatusKind =
+  | 'idle'
+  | 'checking'
+  | 'available'
+  | 'not-available'
+  | 'downloaded'
+  | 'error'
+  | 'unsupported';
 
 export interface Task {
   id: string;
@@ -189,6 +197,14 @@ export interface TelegramBotStatus {
   lastError?: string;
   serverLastHeartbeatAt?: string;
   lastUpdateAt?: string;
+}
+
+export interface AppUpdateStatus {
+  currentVersion: string;
+  error?: string;
+  releaseName?: string;
+  status: AppUpdateStatusKind;
+  updateUrl?: string;
 }
 
 export interface AppData {

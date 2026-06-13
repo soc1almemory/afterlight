@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { Category, Task } from '../shared/types';
+import type { AppUpdateStatus, Category, Task } from '../shared/types';
 import { CategoryDialog } from './components/CategoryDialog';
 import { ContentView } from './components/ContentView';
 import { InfoDialog } from './components/InfoDialog';
@@ -27,6 +27,8 @@ export const App = () => {
   const [isSettingsOpen, setSettingsOpen] = useState(false);
   const [settingsInitialPage, setSettingsInitialPage] = useState<SettingsPage>('account');
   const [infoDialog, setInfoDialog] = useState<'changelog' | 'help' | undefined>();
+  const [updateStatus, setUpdateStatus] = useState<AppUpdateStatus | undefined>();
+  const [dismissedUpdateStatus, setDismissedUpdateStatus] = useState<string | undefined>();
   const activeScope = useTaskStore((state) => state.activeScope);
   const hasHydrated = useTaskStore((state) => state.hasHydrated);
   const hydrate = useTaskStore((state) => state.hydrate);
@@ -121,6 +123,11 @@ export const App = () => {
     const unsubscribeData = window.afterlightApi?.onDataChanged(() => {
       void hydrate();
     });
+    void window.afterlightApi?.getUpdateStatus().then(setUpdateStatus);
+    const unsubscribeUpdateStatus = window.afterlightApi?.onUpdateStatus((status) => {
+      setUpdateStatus(status);
+      setDismissedUpdateStatus(undefined);
+    });
     const unsubscribeQuickAction = window.afterlightWindow?.onQuickAction((action) => {
       if (action === 'add-task') {
         openCreateDialog();
@@ -139,6 +146,7 @@ export const App = () => {
 
     return () => {
       unsubscribeData?.();
+      unsubscribeUpdateStatus?.();
       unsubscribeQuickAction?.();
     };
   }, [hydrate, openCreateDialog, setScope]);
@@ -159,6 +167,11 @@ export const App = () => {
   ]
     .filter(Boolean)
     .join(' ');
+  const updateToastKey = updateStatus ? `${updateStatus.status}:${updateStatus.releaseName ?? ''}` : undefined;
+  const shouldShowUpdateToast =
+    updateStatus &&
+    updateToastKey !== dismissedUpdateStatus &&
+    (updateStatus.status === 'available' || updateStatus.status === 'downloaded');
 
   const renderView = (mode: AppViewMode) => {
     if (mode === 'loading') {
@@ -224,6 +237,33 @@ export const App = () => {
         <SearchDialog isOpen={isSearchOpen} onClose={() => setSearchOpen(false)} onEditTask={openEditDialog} />
         <SettingsDialog initialPage={settingsInitialPage} isOpen={isSettingsOpen} onClose={() => setSettingsOpen(false)} />
         {infoDialog ? <InfoDialog kind={infoDialog} onClose={() => setInfoDialog(undefined)} /> : null}
+        {shouldShowUpdateToast ? (
+          <div className="update-toast" role="status" aria-live="polite">
+            <button
+              className="update-toast-close"
+              type="button"
+              aria-label={t('close')}
+              onClick={() => setDismissedUpdateStatus(updateToastKey)}
+            >
+              x
+            </button>
+            <div className="update-toast-copy">
+              <strong>
+                {updateStatus.status === 'downloaded' ? t('updateReadyTitle') : t('updateDownloadingTitle')}
+              </strong>
+              <span>
+                {updateStatus.status === 'downloaded'
+                  ? t('updateReadyBody', { version: updateStatus.releaseName ?? t('updateNewVersion') })
+                  : t('updateDownloadingBody')}
+              </span>
+            </div>
+            {updateStatus.status === 'downloaded' ? (
+              <button className="update-toast-action" type="button" onClick={() => window.afterlightApi?.installUpdate()}>
+                {t('updateRestart')}
+              </button>
+            ) : null}
+          </div>
+        ) : null}
       </div>
     );
   };

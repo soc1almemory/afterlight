@@ -2,6 +2,7 @@
 
 import type {
   AppData,
+  AppUpdateStatus,
   Category,
   CreateCategoryInput,
   CreateTaskInput,
@@ -60,6 +61,10 @@ interface AfterlightApi {
   openDatabase: () => Promise<void>;
   openProjectRepository: () => Promise<void>;
   createBackup: () => Promise<string>;
+  getUpdateStatus: () => Promise<AppUpdateStatus>;
+  checkForUpdates: () => Promise<AppUpdateStatus>;
+  installUpdate: () => Promise<void>;
+  onUpdateStatus: (callback: (status: AppUpdateStatus) => void) => () => void;
   getTelegramStatus: () => Promise<TelegramBotStatus>;
   configureTelegram: (input: TelegramConfigInput) => Promise<TelegramBotStatus>;
   testTelegram: (token?: string) => Promise<TelegramBotStatus>;

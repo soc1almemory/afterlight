@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 import type { IpcRendererEvent } from 'electron';
 import type {
   AppData,
+  AppUpdateStatus,
   Category,
   CreateCategoryInput,
   CreateTaskInput,
@@ -66,6 +67,14 @@ contextBridge.exposeInMainWorld('afterlightApi', {
   openDatabase: (): Promise<void> => ipcRenderer.invoke('system:open-database'),
   openProjectRepository: (): Promise<void> => ipcRenderer.invoke('system:open-project-repository'),
   createBackup: (): Promise<string> => ipcRenderer.invoke('system:create-backup'),
+  getUpdateStatus: (): Promise<AppUpdateStatus> => ipcRenderer.invoke('updates:get-status'),
+  checkForUpdates: (): Promise<AppUpdateStatus> => ipcRenderer.invoke('updates:check'),
+  installUpdate: (): Promise<void> => ipcRenderer.invoke('updates:install'),
+  onUpdateStatus: (callback: (status: AppUpdateStatus) => void) => {
+    const listener = (_event: IpcRendererEvent, status: AppUpdateStatus) => callback(status);
+    ipcRenderer.on('updates:status', listener);
+    return () => ipcRenderer.removeListener('updates:status', listener);
+  },
   getTelegramStatus: (): Promise<TelegramBotStatus> => ipcRenderer.invoke('telegram:status'),
   configureTelegram: (input: TelegramConfigInput): Promise<TelegramBotStatus> =>
     ipcRenderer.invoke('telegram:configure', input),
