@@ -1,5 +1,6 @@
 # Afterlight
-### Local Windows task manager for tasks, notes, categories, and Telegram reminders.
+
+### Local Windows task manager for tasks, notes, categories, notifications, backups, and Telegram reminders.
 
 ![Version](https://img.shields.io/badge/version-0.2.0-FF5B5B)
 ![Platform](https://img.shields.io/badge/platform-Windows-5B6EFF)
@@ -7,27 +8,27 @@
 ![UI](https://img.shields.io/badge/UI-React%20%2B%20TypeScript-FCFFA4)
 ![Storage](https://img.shields.io/badge/storage-SQLite-FFA4FD)
 
-![Afterlight banner](https://files.catbox.moe/xi3av6.png)
+![Afterlight banner](https://files.catbox.moe/evmj3n.png)
 
 # About
 
-**Afterlight** is a lightweight local desktop app for Windows, built as a personal task manager for everyday workflow. It helps organize tasks, notes, categories, deadlines, and weekly planning without requiring a server or cloud account.
+**Afterlight** is a lightweight local desktop app for Windows, built as a personal task manager for everyday workflow. It helps organize tasks, notes, categories, deadlines, weekly planning, and reminders without requiring a server or cloud account.
 
-The app stores data locally in SQLite, uses an Electron + React interface, and includes a Telegram bot integration for adding, viewing, completing, and deleting tasks while the desktop app is running.
+The app stores data locally in SQLite, uses an Electron + React interface, and includes a local Telegram bot integration for adding, viewing, completing, and deleting tasks while the desktop app is running.
 
 # Features
 
-- **Tasks** — create, edit, complete, and delete tasks.
-- **Inbox / Today / Week** — system sections for incoming tasks, daily planning, and weekly scheduling.
-- **Categories** — custom categories with color, icon mode, emoji mode, and favorites.
-- **Notes** — page and category notes with autosave.
-- **Search** — quick search across sections, categories, and tasks.
-- **Tabs & history** — tab-based navigation, route history, back and forward actions.
-- **Themes** — light and dark interface modes.
-- **Settings** — account, language, theme, notifications, sidebar, Telegram, and backup settings.
-- **Notifications** — Windows reminders for deadlines, overdue tasks, and Today page refresh.
-- **Telegram bot** — local bot for task creation, task lists, completion, deletion, categories, and deadline reminders.
-- **Import / Export / Backup** — JSON/CSV export, JSON import, and SQLite backups.
+- **Tasks** - create, edit, complete, restore, and delete tasks.
+- **Inbox / Today / Week** - system sections for incoming tasks, daily planning, and weekly scheduling.
+- **Categories** - custom categories with color, hash, emoji mode, and favorites.
+- **Notes** - page and category notes with autosave.
+- **Search** - quick search across sections, categories, and tasks.
+- **Tabs & history** - tab-based navigation, route history, back and forward actions.
+- **Themes** - light and dark interface modes.
+- **Settings** - account, language, theme, notifications, sidebar, Telegram, and backup settings.
+- **Notifications** - Windows reminders for deadlines, overdue tasks, and Today page refresh.
+- **Telegram bot** - user-configured local bot for task creation, task lists, completion, deletion, categories, and deadline reminders.
+- **Import / Export / Backup** - JSON/CSV export, validated JSON import, and SQLite backups.
 
 # Tech stack
 
@@ -75,7 +76,6 @@ src/
    └─ app-version.json     # app version
 
 assets/                    # SVG/PNG/ICO assets
-reference/                 # Figma HTML/CSS export and visual references
 ```
 
 # Commands
@@ -90,22 +90,68 @@ npm run dev
 # Run TypeScript checks
 npm run lint
 
-# Package the Windows build
+# Package an unpacked Windows app
 npm run package
 
-# Create distributable artifacts
+# Create distributable Windows artifacts
 npm run make
 ```
 
-After `npm run package`, the Windows build is created here:
+After `npm run package`, the unpacked Windows app is created here:
 
 ```text
 out/afterlight-win32-x64/afterlight.exe
 ```
 
+This executable is useful for local smoke testing. For a GitHub release, use `npm run make` and upload the Squirrel installer artifacts from:
+
+```text
+out/make/squirrel.windows/x64/
+```
+
+Expected files include:
+
+```text
+afterlight-0.2.0 Setup.exe
+afterlight-0.2.0-full.nupkg
+RELEASES
+```
+
+The installer icon is configured in `forge.config.ts` through `assets/logo-main.ico`.
+
+# First production Windows build
+
+1. Make sure the version is correct in `package.json` and `src/shared/app-version.json`.
+2. Run checks:
+
+```bash
+npm run lint
+npm audit --omit=dev
+```
+
+3. Create the distributable build:
+
+```bash
+npm run make
+```
+
+4. Smoke-test the installer from `out/make/squirrel.windows/x64/`.
+5. Create a GitHub Release, for example `v0.2.0`.
+6. Upload the Squirrel artifacts as release assets.
+
+For a public `.exe` download, GitHub Releases are the right place. GitHub Packages is meant for package registries such as npm packages and container images, not ordinary Windows installer downloads.
+
 # Telegram integration
 
 The Telegram bot runs locally through long polling. No external server, webhook, VPS, or ngrok setup is required.
+
+To connect Telegram:
+
+1. Create a bot in BotFather and copy its token.
+2. Open Afterlight settings.
+3. Go to Telegram integration.
+4. Paste the token, enable the bot, and save.
+5. Send the shown `/start <code>` command to your bot.
 
 The bot can:
 
@@ -140,8 +186,10 @@ storage/backups        # SQLite backups
 storage/telegram.json  # local Telegram bot config
 ```
 
+Telegram tokens are stored through Electron `safeStorage` when OS encryption is available.
+
 # Current status
 
-Afterlight v0.2.0 is a complete local MVP with desktop UI, persistent local storage, task sections, notes, settings, themes, search, backups, Markdown help/changelog content, Windows notifications, and local Telegram integration.
+Afterlight v0.2.0 is a complete local MVP with desktop UI, persistent local storage, task sections, notes, settings, themes, search, backups, Markdown help/changelog content, Windows notifications, Electron hardening, validated import, and local Telegram integration.
 
 The project is ready to evolve from a local desktop app into a synchronized product with cloud storage, server-side Telegram webhooks, multi-device sync, and multiple workspaces.
