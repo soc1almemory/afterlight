@@ -2217,7 +2217,7 @@ body.theme-dark .task-edit-button:hover {
 }
 
 .outline-accent-button:hover {
-  background-color: #ebedff;
+  
   transform: translateY(-1px);
 }
 
@@ -3459,12 +3459,7 @@ body.theme-dark .settings-action.danger .settings-confirm-actions button:last-ch
 
 body.theme-dark .outline-accent-button {
   border-color: #8c95ff;
-  color: #8c95ff;
-}
-
-body.theme-dark .outline-accent-button:hover {
-  background-color: #242638;
-  transform: translateY(-1px);
+  color: #a4abff;
 }
 
 body.theme-dark .date-pill,
