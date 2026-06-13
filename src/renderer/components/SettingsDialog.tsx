@@ -174,6 +174,8 @@ const settingsCopy = {
       saveServer: 'Сохранить и запустить',
       check: 'Проверить подключение',
       disconnect: 'Отключить',
+      resetSessions: 'Сбросить сессии',
+      sessionsReset: 'Сессии Telegram сброшены',
       status: 'Статус',
       serverMode: 'серверный режим',
       running: 'бот запущен',
@@ -181,6 +183,7 @@ const settingsCopy = {
       tokenSaved: 'токен сохранён',
       tokenMissing: 'токен не сохранён',
       chat: 'chat_id',
+      chats: 'чаты',
       bot: 'бот',
       linkCode: 'код привязки',
       linkCommand: (code: string) => `отправьте боту: /start`,
@@ -340,6 +343,8 @@ const settingsCopy = {
       saveServer: 'Save and start',
       check: 'Check connection',
       disconnect: 'Disconnect',
+      resetSessions: 'Reset sessions',
+      sessionsReset: 'Telegram sessions reset',
       status: 'Status',
       serverMode: 'server mode',
       running: 'bot is running',
@@ -347,6 +352,7 @@ const settingsCopy = {
       tokenSaved: 'token saved',
       tokenMissing: 'token not saved',
       chat: 'chat_id',
+      chats: 'chats',
       bot: 'bot',
       linkCode: 'pairing code',
       linkCommand: (code: string) => `send to the bot: /start`,
@@ -662,8 +668,11 @@ const TelegramSettings = () => {
   const isAfterlightBotMode = botMode === 'afterlight';
   const currentStatus = status?.botMode === botMode ? status : undefined;
 
+  const hasAuthorizedTelegramChat = isAfterlightBotMode
+    ? Boolean(currentStatus?.authorizedChatCount)
+    : Boolean(currentStatus?.chatId);
   const isTelegramConnected = Boolean(
-    currentStatus?.enabled && currentStatus.chatId && currentStatus.isRunning,
+    currentStatus?.enabled && hasAuthorizedTelegramChat && currentStatus.isRunning,
   );
 
   const statusIcon = isTelegramConnected
@@ -674,9 +683,18 @@ const TelegramSettings = () => {
       ? 'settings-telegram-status-notconnected-dt.svg'
       : 'settings-telegram-status-notconnected.svg';
 
+  const localSuccessMessages: string[] = [
+    copy.telegram.disconnected,
+    copy.telegram.saved,
+    copy.telegram.saveServer,
+    copy.telegram.sessionsReset,
+    copy.telegram.tested,
+  ];
+  const isLocalSuccessMessage = localSuccessMessages.includes(message);
+  const localErrorMessage = message && !isLocalSuccessMessage ? message : '';
   const statusMessage =
     currentStatus?.lastError ??
-    (isTelegramConnected ? copy.telegram.tested : message || copy.telegram.noConnection);
+    (isTelegramConnected ? copy.telegram.tested : localErrorMessage || copy.telegram.noConnection);
 
   const hasLoadedTelegramSettingsRef = useRef(false);
 
@@ -775,6 +793,10 @@ const TelegramSettings = () => {
     }
   };
 
+  const handleResetSessions = async () => {
+    await runAction(() => window.afterlightApi!.resetTelegramSessions(), copy.telegram.sessionsReset, false);
+  };
+
   const handleCheckConnection = async () => {
     await runAction(
       () => window.afterlightApi!.testTelegram(isAfterlightBotMode ? undefined : token.trim() || undefined),
@@ -830,7 +852,8 @@ const TelegramSettings = () => {
             <span>{currentStatus?.isRunning ? copy.telegram.running : copy.telegram.stopped}</span>
             {isAfterlightBotMode ? null : <span>{currentStatus?.hasToken ? copy.telegram.tokenSaved : copy.telegram.tokenMissing}</span>}
             {currentStatus?.botUsername ? <span>{copy.telegram.bot}: @{currentStatus.botUsername}</span> : null}
-            {currentStatus?.chatId ? <span>{copy.telegram.chat}: {currentStatus.chatId}</span> : null}
+            {isAfterlightBotMode && currentStatus?.authorizedChatCount ? <span>{copy.telegram.chats}: {currentStatus.authorizedChatCount}</span> : null}
+            {!isAfterlightBotMode && currentStatus?.chatId ? <span>{copy.telegram.chat}: {currentStatus.chatId}</span> : null}
             {currentStatus?.linkCode ? <span>{copy.telegram.linkCode}: {currentStatus.linkCode}</span> : null}
             {currentStatus?.linkCode ? <span>{copy.telegram.linkCommand(currentStatus.linkCode)}</span> : null}
 
@@ -860,6 +883,10 @@ const TelegramSettings = () => {
 
             <button type="button" disabled={isStatusRefreshing} onClick={() => void handleDisconnect()}>
               {copy.telegram.disconnect}
+            </button>
+
+            <button type="button" disabled={isStatusRefreshing} onClick={() => void handleResetSessions()}>
+              {copy.telegram.resetSessions}
             </button>
           </div>
 

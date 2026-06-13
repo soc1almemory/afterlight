@@ -12,6 +12,7 @@ import {
   disconnectTelegramBot,
   getTelegramBotStatus,
   notifyTelegramDeadline,
+  resetTelegramSessions,
   restartTelegramBot,
   stopTelegramBot,
   testTelegramBotConnection,
@@ -195,6 +196,7 @@ ipcMain.handle('telegram:status', () => getTelegramBotStatus());
 ipcMain.handle('telegram:configure', (_event, input: TelegramConfigInput) => updateTelegramBotConfig(input));
 ipcMain.handle('telegram:test', (_event, token?: string) => testTelegramBotConnection(token));
 ipcMain.handle('telegram:disconnect', () => disconnectTelegramBot());
+ipcMain.handle('telegram:reset-sessions', () => resetTelegramSessions());
 
 const attachWindowEvents = () => {
   if (!mainWindow) return;

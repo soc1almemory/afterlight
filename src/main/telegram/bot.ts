@@ -366,6 +366,7 @@ export const getTelegramBotStatus = (): TelegramBotStatus => {
   const linkCode = isTelegramConfigReadyForLink(config) ? getOrCreateLinkCode(config) : undefined;
   const isServerMode = botMode === 'afterlight';
   const isServerRunning = isServerMode && isFreshServerHeartbeat(config.serverLastHeartbeatAt);
+  const authorizedChatCount = isServerMode ? getAuthorizedChatCount(config) : config.chatId ? 1 : 0;
   const serverLastError =
     isServerMode && config.enabled && !isServerRunning
       ? config.serverLastError ?? 'Afterlight Bot server is not running.'
@@ -373,6 +374,7 @@ export const getTelegramBotStatus = (): TelegramBotStatus => {
 
   return {
     botMode,
+    authorizedChatCount,
     botUsername: isServerMode ? config.botUsername ?? 'afterlight_task_bot' : config.botUsername,
     chatId: config.chatId,
     enabled: config.enabled,
@@ -443,6 +445,19 @@ export const disconnectTelegramBot = (): TelegramBotStatus => {
   });
   lastError = undefined;
   lastUpdateAt = undefined;
+  return getTelegramBotStatus();
+};
+
+export const resetTelegramSessions = (): TelegramBotStatus => {
+  const config = readConfig();
+  writeConfig({
+    ...config,
+    botMessageIds: [],
+    chatId: undefined,
+    chatSessions: {},
+    conversation: undefined,
+    pendingAuthChats: {},
+  });
   return getTelegramBotStatus();
 };
 
@@ -1766,6 +1781,19 @@ const cleanToken = (value: string | undefined) => {
 const normalizeBotMode = (value: unknown): TelegramBotMode => (value === 'afterlight' ? 'afterlight' : 'custom');
 
 const getBotMode = (config: TelegramConfig): TelegramBotMode => normalizeBotMode(config.botMode);
+
+const getAuthorizedChatCount = (config: TelegramConfig) =>
+  Object.values(config.chatSessions ?? {}).filter((session) => {
+    if (!session || typeof session !== 'object') {
+      return false;
+    }
+
+    const typedSession = session as { authenticatedAt?: unknown; authSource?: unknown; workspaceId?: unknown };
+    return (
+      typeof typedSession.workspaceId === 'string' &&
+      (typeof typedSession.authenticatedAt === 'string' || typedSession.authSource === 'legacy')
+    );
+  }).length;
 
 const isFreshServerHeartbeat = (value: string | undefined) => {
   if (!value) {

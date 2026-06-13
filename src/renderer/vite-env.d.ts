@@ -64,6 +64,7 @@ interface AfterlightApi {
   configureTelegram: (input: TelegramConfigInput) => Promise<TelegramBotStatus>;
   testTelegram: (token?: string) => Promise<TelegramBotStatus>;
   disconnectTelegram: () => Promise<TelegramBotStatus>;
+  resetTelegramSessions: () => Promise<TelegramBotStatus>;
 }
 
 declare global {

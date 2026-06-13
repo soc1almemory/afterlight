@@ -181,6 +181,7 @@ export interface TelegramBotStatus {
   enabled: boolean;
   hasToken: boolean;
   isRunning: boolean;
+  authorizedChatCount?: number;
   chatId?: number;
   botUsername?: string;
   linkCode?: string;

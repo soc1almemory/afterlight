@@ -71,6 +71,7 @@ contextBridge.exposeInMainWorld('afterlightApi', {
     ipcRenderer.invoke('telegram:configure', input),
   testTelegram: (token?: string): Promise<TelegramBotStatus> => ipcRenderer.invoke('telegram:test', token),
   disconnectTelegram: (): Promise<TelegramBotStatus> => ipcRenderer.invoke('telegram:disconnect'),
+  resetTelegramSessions: (): Promise<TelegramBotStatus> => ipcRenderer.invoke('telegram:reset-sessions'),
 });
 contextBridge.exposeInMainWorld('afterlightSystem', {
   platform: process.platform,

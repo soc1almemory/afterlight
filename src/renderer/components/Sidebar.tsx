@@ -48,7 +48,10 @@ export const Sidebar = ({
   const favoriteCategories = useMemo(() => sortedCategories.filter((category) => category.isFavorite), [sortedCategories]);
   const regularCategories = useMemo(() => sortedCategories.filter((category) => !category.isFavorite), [sortedCategories]);
   const defaultAvatar = assetUrl(settings.theme === 'dark' ? 'default-avatar-dark.png' : 'default-avatar-light.png');
-  const isTelegramConnected = Boolean(telegramStatus?.isRunning && telegramStatus.chatId);
+  const hasAuthorizedTelegramChat = telegramStatus?.botMode === 'afterlight'
+    ? Boolean(telegramStatus.authorizedChatCount)
+    : Boolean(telegramStatus?.chatId);
+  const isTelegramConnected = Boolean(telegramStatus?.isRunning && hasAuthorizedTelegramChat);
 
   useEffect(() => {
     let isMounted = true;
