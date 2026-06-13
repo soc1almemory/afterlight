@@ -7,3 +7,5 @@ coverage
 *.sqlite
 *.sqlite-shm
 *.sqlite-wal
+Afterlight_Project.txt
+afterlight-bot-server
