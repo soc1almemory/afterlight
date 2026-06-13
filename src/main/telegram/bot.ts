@@ -31,16 +31,20 @@ interface TelegramConfig {
   botMessageIds?: number[];
   botMode?: TelegramBotMode;
   botUsername?: string;
+  chatSessionSchemaVersion?: number;
+  chatSessions?: Record<string, unknown>;
   chatId?: number;
   conversation?: TelegramConversation;
   enabled: boolean;
   language?: LanguageCode;
   lastUpdateId?: number;
   linkCode?: string;
+  pendingAuthChats?: Record<string, unknown>;
   serverDeadlineNotifiedKeys?: string[];
   serverLastError?: string;
   serverLastHeartbeatAt?: string;
   serverLastUpdateId?: number;
+  serverLastStatus?: string;
   token?: string;
   tokenEncrypted?: string;
 }
@@ -359,7 +363,7 @@ export const configureTelegramBotRuntime = (options: {
 export const getTelegramBotStatus = (): TelegramBotStatus => {
   const config = readConfig();
   const botMode = getBotMode(config);
-  const linkCode = isTelegramConfigReadyForLink(config) && !config.chatId ? getOrCreateLinkCode(config) : undefined;
+  const linkCode = isTelegramConfigReadyForLink(config) ? getOrCreateLinkCode(config) : undefined;
   const isServerMode = botMode === 'afterlight';
   const isServerRunning = isServerMode && isFreshServerHeartbeat(config.serverLastHeartbeatAt);
   const serverLastError =
@@ -411,7 +415,7 @@ export const updateTelegramBotConfig = async (input: TelegramConfigInput): Promi
     nextConfig.botUsername = 'afterlight_task_bot';
   }
 
-  if (isTelegramConfigReadyForLink(nextConfig) && !nextConfig.chatId) {
+  if (isTelegramConfigReadyForLink(nextConfig)) {
     nextConfig.linkCode = nextConfig.linkCode ?? createLinkCode();
   }
 
@@ -1687,21 +1691,26 @@ const readConfig = (): TelegramConfig => {
     const token = readStoredToken(parsed);
 
     return {
+      ...parsed,
       botMessageIds: Array.isArray(parsed.botMessageIds) ? parsed.botMessageIds.filter(isNumber) : [],
       botMode: normalizeBotMode(parsed.botMode),
       botUsername: typeof parsed.botUsername === 'string' ? parsed.botUsername : undefined,
+      chatSessionSchemaVersion: typeof parsed.chatSessionSchemaVersion === 'number' ? parsed.chatSessionSchemaVersion : undefined,
+      chatSessions: parsed.chatSessions && typeof parsed.chatSessions === 'object' ? parsed.chatSessions : undefined,
       chatId: typeof parsed.chatId === 'number' ? parsed.chatId : undefined,
       conversation: normalizeConversation(parsed.conversation),
       enabled: Boolean(parsed.enabled),
       language: normalizeLanguage(parsed.language),
       lastUpdateId: typeof parsed.lastUpdateId === 'number' ? parsed.lastUpdateId : undefined,
       linkCode: normalizeLinkCode(parsed.linkCode),
+      pendingAuthChats: parsed.pendingAuthChats && typeof parsed.pendingAuthChats === 'object' ? parsed.pendingAuthChats : undefined,
       serverDeadlineNotifiedKeys: Array.isArray(parsed.serverDeadlineNotifiedKeys)
         ? parsed.serverDeadlineNotifiedKeys.filter((item): item is string => typeof item === 'string')
         : [],
       serverLastError: typeof parsed.serverLastError === 'string' ? parsed.serverLastError : undefined,
       serverLastHeartbeatAt: typeof parsed.serverLastHeartbeatAt === 'string' ? parsed.serverLastHeartbeatAt : undefined,
       serverLastUpdateId: typeof parsed.serverLastUpdateId === 'number' ? parsed.serverLastUpdateId : undefined,
+      serverLastStatus: typeof parsed.serverLastStatus === 'string' ? parsed.serverLastStatus : undefined,
       token,
     };
   } catch {
