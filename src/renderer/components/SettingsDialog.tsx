@@ -658,8 +658,14 @@ const TelegramSettings = () => {
   const [status, setStatus] = useState<TelegramBotStatus | undefined>();
   const [token, setToken] = useState('');
   const [isStatusRefreshing, setStatusRefreshing] = useState(false);
+
   const isAfterlightBotMode = botMode === 'afterlight';
-  const isTelegramConnected = Boolean(status?.enabled && status.chatId && status.isRunning);
+  const currentStatus = status?.botMode === botMode ? status : undefined;
+
+  const isTelegramConnected = Boolean(
+    currentStatus?.enabled && currentStatus.chatId && currentStatus.isRunning,
+  );
+
   const statusIcon = isTelegramConnected
     ? settings.theme === 'dark'
       ? 'settings-telegram-status-connected-dt.svg'
@@ -667,7 +673,10 @@ const TelegramSettings = () => {
     : settings.theme === 'dark'
       ? 'settings-telegram-status-notconnected-dt.svg'
       : 'settings-telegram-status-notconnected.svg';
-  const statusMessage = status?.lastError ?? (isTelegramConnected ? copy.telegram.tested : message || copy.telegram.noConnection);
+
+  const statusMessage =
+    currentStatus?.lastError ??
+    (isTelegramConnected ? copy.telegram.tested : message || copy.telegram.noConnection);
 
   const hasLoadedTelegramSettingsRef = useRef(false);
 
@@ -774,6 +783,19 @@ const TelegramSettings = () => {
     );
   };
 
+  const handleModeChange = (nextMode: TelegramBotMode) => {
+    setBotMode(nextMode);
+    setMessage('');
+    setToken('');
+
+    if (status?.botMode === nextMode) {
+      setEnabled(status.enabled);
+      return;
+    }
+
+    setEnabled(false);
+  };
+
   return (
     <div className="settings-page main-settings-page">
       <form className="settings-form" onSubmit={handleSubmit}>
@@ -782,39 +804,43 @@ const TelegramSettings = () => {
           <div className="settings-field settings-option-field telegram-mode-field">
             <span>{copy.telegram.mode}</span>
             <div className="category-icon-mode telegram-mode-switch">
+
               <button
                 className={botMode === 'custom' ? 'active' : ''}
                 type="button"
-                onClick={() => setBotMode('custom')}
+                onClick={() => handleModeChange('custom')}
               >
                 {copy.telegram.customMode}
               </button>
               <button
                 className={botMode === 'afterlight' ? 'active' : ''}
                 type="button"
-                onClick={() => setBotMode('afterlight')}
+                onClick={() => handleModeChange('afterlight')}
               >
                 {copy.telegram.afterlightMode}
               </button>
+
             </div>
           </div>
           <p className="settings-hint">{isAfterlightBotMode ? copy.telegram.serverDescription : copy.telegram.description}</p>
           <div className="telegram-status">
             <strong>{copy.telegram.status}</strong>
             {isAfterlightBotMode ? <span>{copy.telegram.serverMode}</span> : null}
-            <span>{status?.isRunning ? copy.telegram.running : copy.telegram.stopped}</span>
-            {isAfterlightBotMode ? null : <span>{status?.hasToken ? copy.telegram.tokenSaved : copy.telegram.tokenMissing}</span>}
-            {status?.botUsername ? <span>{copy.telegram.bot}: @{status.botUsername}</span> : null}
-            {status?.chatId ? <span>{copy.telegram.chat}: {status.chatId}</span> : null}
-            {status?.linkCode ? <span>{copy.telegram.linkCode}: {status.linkCode}</span> : null}
-            {status?.linkCode ? <span>{copy.telegram.linkCommand(status.linkCode)}</span> : null}
+
+            <span>{currentStatus?.isRunning ? copy.telegram.running : copy.telegram.stopped}</span>
+            {isAfterlightBotMode ? null : <span>{currentStatus?.hasToken ? copy.telegram.tokenSaved : copy.telegram.tokenMissing}</span>}
+            {currentStatus?.botUsername ? <span>{copy.telegram.bot}: @{currentStatus.botUsername}</span> : null}
+            {currentStatus?.chatId ? <span>{copy.telegram.chat}: {currentStatus.chatId}</span> : null}
+            {currentStatus?.linkCode ? <span>{copy.telegram.linkCode}: {currentStatus.linkCode}</span> : null}
+            {currentStatus?.linkCode ? <span>{copy.telegram.linkCommand(currentStatus.linkCode)}</span> : null}
+
           </div>
           {isAfterlightBotMode ? null : (
             <label className="settings-field settings-option-field">
               <span>{copy.telegram.token}</span>
               <input
                 autoComplete="off"
-                placeholder={status?.hasToken ? copy.telegram.tokenSaved : copy.telegram.tokenPlaceholder}
+                placeholder={currentStatus?.hasToken ? copy.telegram.tokenSaved : copy.telegram.tokenPlaceholder}
                 type="password"
                 value={token}
                 onChange={(event) => setToken(event.target.value)}
