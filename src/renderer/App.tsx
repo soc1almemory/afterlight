@@ -13,6 +13,9 @@ import { TitleBar } from './components/TitleBar';
 import { useTranslator } from './i18n';
 import { useTaskStore } from './store/useTaskStore';
 
+type AppViewMode = 'app' | 'loading' | 'setup';
+type AppTransitionDirection = 'app-to-setup' | 'direct' | 'setup-to-app';
+
 export const App = () => {
   const [isTaskDialogOpen, setTaskDialogOpen] = useState(false);
   const [isCategoryDialogOpen, setCategoryDialogOpen] = useState(false);
@@ -31,6 +34,10 @@ export const App = () => {
   const settings = useTaskStore((state) => state.settings);
   const setScope = useTaskStore((state) => state.setScope);
   const t = useTranslator();
+  const currentViewMode: AppViewMode = !hasHydrated ? 'loading' : profile.isSetupComplete ? 'app' : 'setup';
+  const [displayViewMode, setDisplayViewMode] = useState<AppViewMode>(currentViewMode);
+  const [leavingViewMode, setLeavingViewMode] = useState<AppViewMode | undefined>();
+  const [transitionDirection, setTransitionDirection] = useState<AppTransitionDirection>('direct');
 
   const openCreateDialog = useCallback((dueDate?: string) => {
     setEditingTask(undefined);
@@ -83,6 +90,30 @@ export const App = () => {
   }, [pageClass, settings.theme]);
 
   useEffect(() => {
+    if (currentViewMode === displayViewMode) {
+      return undefined;
+    }
+
+    if (currentViewMode === 'loading' || displayViewMode === 'loading') {
+      setDisplayViewMode(currentViewMode);
+      setLeavingViewMode(undefined);
+      setTransitionDirection('direct');
+      return undefined;
+    }
+
+    setLeavingViewMode(displayViewMode);
+    setDisplayViewMode(currentViewMode);
+    setTransitionDirection(displayViewMode === 'setup' && currentViewMode === 'app' ? 'setup-to-app' : 'app-to-setup');
+
+    const timerId = window.setTimeout(() => {
+      setLeavingViewMode(undefined);
+      setTransitionDirection('direct');
+    }, 520);
+
+    return () => window.clearTimeout(timerId);
+  }, [currentViewMode, displayViewMode]);
+
+  useEffect(() => {
     void hydrate();
   }, [hydrate]);
 
@@ -120,18 +151,6 @@ export const App = () => {
     void window.afterlightWindow?.setFullScreen(settings.openMode === 'fullscreen');
   }, [hasHydrated, profile.isSetupComplete, settings.openMode]);
 
-  if (!hasHydrated) {
-    return (
-      <div className={`app-loading theme-${settings.theme}`} role="status" aria-label={t('loadingApp')}>
-        <span className="app-loading-spinner" />
-      </div>
-    );
-  }
-
-  if (!profile.isSetupComplete) {
-    return <ProfileSetup />;
-  }
-
   const appClassName = [
     'afterlight-app',
     `theme-${settings.theme}`,
@@ -141,57 +160,82 @@ export const App = () => {
     .filter(Boolean)
     .join(' ');
 
-  return (
-    <div
-      className={appClassName}
-      onMouseMove={(event) => {
-        if (!settings.autoCollapseSidebar) {
-          return;
-        }
+  const renderView = (mode: AppViewMode) => {
+    if (mode === 'loading') {
+      return (
+      <div className={`app-loading theme-${settings.theme}`} role="status" aria-label={t('loadingApp')}>
+        <span className="app-loading-spinner" />
+      </div>
+      );
+    }
 
-        const target = event.target as HTMLElement;
-        if (target.closest('.sidebar')) {
-          setSidebarCollapsed(false);
-          return;
-        }
+    if (mode === 'setup') {
+      return <ProfileSetup />;
+    }
 
-        if (target.closest('.workspace')) {
-          setSidebarCollapsed(true);
-        }
-      }}
-    >
-      <TitleBar
-        isSidebarCollapsed={isSidebarCollapsed}
-        onAddCategory={openCreateCategoryDialog}
-        onToggleSidebar={() => setSidebarCollapsed((value) => !value)}
-      />
-      <Sidebar
-        onAddCategory={openCreateCategoryDialog}
-        onEditCategory={openEditCategoryDialog}
-        onMouseEnter={() => {
-          if (settings.autoCollapseSidebar) {
-            setSidebarCollapsed(false);
+    return (
+      <div
+        className={appClassName}
+        onMouseMove={(event) => {
+          if (!settings.autoCollapseSidebar) {
+            return;
           }
-        }}
-        onOpenInfo={setInfoDialog}
-        onOpenSearch={() => setSearchOpen(true)}
-        onOpenSettings={() => openSettings()}
-        onOpenTelegramSettings={() => openSettings('telegram')}
-      />
-      <ContentView
-        onAddTask={openCreateDialog}
-        onEditTask={openEditDialog}
-        onMouseEnter={() => {
-          if (settings.autoCollapseSidebar) {
+
+          const target = event.target as HTMLElement;
+          if (target.closest('.sidebar')) {
+            setSidebarCollapsed(false);
+            return;
+          }
+
+          if (target.closest('.workspace')) {
             setSidebarCollapsed(true);
           }
         }}
-      />
-      <TaskDialog isOpen={isTaskDialogOpen} task={editingTask} initialDueDate={initialTaskDate} onClose={closeDialog} />
-      <CategoryDialog isOpen={isCategoryDialogOpen} category={editingCategory} onClose={closeCategoryDialog} />
-      <SearchDialog isOpen={isSearchOpen} onClose={() => setSearchOpen(false)} onEditTask={openEditDialog} />
-      <SettingsDialog initialPage={settingsInitialPage} isOpen={isSettingsOpen} onClose={() => setSettingsOpen(false)} />
-      {infoDialog ? <InfoDialog kind={infoDialog} onClose={() => setInfoDialog(undefined)} /> : null}
+      >
+        <TitleBar
+          isSidebarCollapsed={isSidebarCollapsed}
+          onAddCategory={openCreateCategoryDialog}
+          onToggleSidebar={() => setSidebarCollapsed((value) => !value)}
+        />
+        <Sidebar
+          onAddCategory={openCreateCategoryDialog}
+          onEditCategory={openEditCategoryDialog}
+          onMouseEnter={() => {
+            if (settings.autoCollapseSidebar) {
+              setSidebarCollapsed(false);
+            }
+          }}
+          onOpenInfo={setInfoDialog}
+          onOpenSearch={() => setSearchOpen(true)}
+          onOpenSettings={() => openSettings()}
+          onOpenTelegramSettings={() => openSettings('telegram')}
+        />
+        <ContentView
+          onAddTask={openCreateDialog}
+          onEditTask={openEditDialog}
+          onMouseEnter={() => {
+            if (settings.autoCollapseSidebar) {
+              setSidebarCollapsed(true);
+            }
+          }}
+        />
+        <TaskDialog isOpen={isTaskDialogOpen} task={editingTask} initialDueDate={initialTaskDate} onClose={closeDialog} />
+        <CategoryDialog isOpen={isCategoryDialogOpen} category={editingCategory} onClose={closeCategoryDialog} />
+        <SearchDialog isOpen={isSearchOpen} onClose={() => setSearchOpen(false)} onEditTask={openEditDialog} />
+        <SettingsDialog initialPage={settingsInitialPage} isOpen={isSettingsOpen} onClose={() => setSettingsOpen(false)} />
+        {infoDialog ? <InfoDialog kind={infoDialog} onClose={() => setInfoDialog(undefined)} /> : null}
+      </div>
+    );
+  };
+
+  return (
+    <div className={`app-transition-root theme-${settings.theme} transition-${transitionDirection}`}>
+      {leavingViewMode ? (
+        <div className={`app-screen app-screen-${leavingViewMode} app-screen-leaving`} aria-hidden="true">
+          {renderView(leavingViewMode)}
+        </div>
+      ) : null}
+      <div className={`app-screen app-screen-${displayViewMode} app-screen-active`}>{renderView(displayViewMode)}</div>
     </div>
   );
 };

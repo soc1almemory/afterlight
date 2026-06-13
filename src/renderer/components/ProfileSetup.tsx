@@ -43,12 +43,16 @@ export const ProfileSetup = () => {
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const completeProfileSetup = useTaskStore((state) => state.completeProfileSetup);
   const error = useTaskStore((state) => state.error);
+  const profile = useTaskStore((state) => state.profile);
   const settings = useTaskStore((state) => state.settings);
   const updateSettings = useTaskStore((state) => state.updateSettings);
-  const [avatarDataUrl, setAvatarDataUrl] = useState<string | undefined>();
-  const [email, setEmail] = useState('');
-  const [name, setName] = useState('');
-  const [workspaceTitle, setWorkspaceTitle] = useState('');
+  const workspace = useTaskStore((state) => state.workspace);
+  const [avatarDataUrl, setAvatarDataUrl] = useState<string | undefined>(() =>
+    profile.isSetupComplete ? profile.avatarDataUrl : undefined,
+  );
+  const [email, setEmail] = useState(() => (profile.isSetupComplete ? profile.email ?? '' : ''));
+  const [name, setName] = useState(() => (profile.isSetupComplete ? profile.name : ''));
+  const [workspaceTitle, setWorkspaceTitle] = useState(() => (profile.isSetupComplete ? workspace.title : ''));
   const [isSaving, setSaving] = useState(false);
   const controls = window.afterlightWindow;
   const canSubmit = Boolean(name.trim() && workspaceTitle.trim() && email.trim());

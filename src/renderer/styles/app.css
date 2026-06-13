@@ -104,9 +104,152 @@ body {
   border-top-color: #ffffff;
 }
 
+.app-transition-root {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #fafafa;
+}
+
+.app-transition-root.theme-dark {
+  background: #242424;
+}
+
+.app-screen {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  backface-visibility: hidden;
+  transform-origin: center;
+  will-change: opacity, transform, filter;
+}
+
+.app-screen-active {
+  z-index: 2;
+  pointer-events: auto;
+}
+
+.app-screen-leaving {
+  z-index: 1;
+  pointer-events: none;
+}
+
+.transition-direct .app-screen-active {
+  animation: overlay-fade-in var(--motion-slow) ease both;
+}
+
+.transition-setup-to-app .app-screen-setup.app-screen-leaving {
+  animation: setup-screen-leave 500ms var(--motion-ease) both;
+}
+
+.transition-setup-to-app .app-screen-app.app-screen-active {
+  animation: app-screen-enter 520ms var(--motion-spring) both;
+}
+
+.transition-app-to-setup .app-screen-app.app-screen-leaving {
+  animation: app-screen-leave 460ms var(--motion-ease) both;
+}
+
+.transition-app-to-setup .app-screen-setup.app-screen-active {
+  animation: setup-screen-enter 520ms var(--motion-spring) both;
+}
+
+.transition-setup-to-app .app-screen-app.app-screen-active .app-titlebar,
+.transition-setup-to-app .app-screen-app.app-screen-active .sidebar,
+.transition-setup-to-app .app-screen-app.app-screen-active .workspace {
+  animation: app-chrome-compose 560ms var(--motion-spring) both;
+}
+
+.transition-app-to-setup .app-screen-setup.app-screen-active .setup-panel {
+  animation: setup-panel-compose 560ms var(--motion-spring) both;
+}
+
 @keyframes app-loading-spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+@keyframes setup-screen-leave {
+  from {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0) scale(1);
+  }
+
+  to {
+    opacity: 0;
+    filter: blur(7px);
+    transform: translateY(-22px) scale(0.965);
+  }
+}
+
+@keyframes setup-screen-enter {
+  from {
+    opacity: 0;
+    filter: blur(8px);
+    transform: translateY(-18px) scale(1.025);
+  }
+
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes app-screen-enter {
+  from {
+    opacity: 0;
+    filter: blur(6px);
+    transform: translateY(28px) scale(0.982);
+  }
+
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes app-screen-leave {
+  from {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0) scale(1);
+  }
+
+  to {
+    opacity: 0;
+    filter: blur(6px);
+    transform: translateY(22px) scale(1.015);
+  }
+}
+
+@keyframes app-chrome-compose {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes setup-panel-compose {
+  from {
+    opacity: 0;
+    transform: translateY(-12px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
 
