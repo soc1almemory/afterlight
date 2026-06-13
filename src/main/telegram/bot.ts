@@ -217,11 +217,15 @@ const botCopy = {
       '• Сдать отчёт 12.06 14:30',
       '• Позвонить клиенту #Работа',
       '• Домашка завтра #Учёба',
+      '• 1 Срочно отправить отчёт',
+      '• 2 Сделать домашку',
+      '• 3 Посмотреть материалы',
       '',
       'Что понимает бот:',
       '• Дата: сегодня, завтра, 12.06, 12.06.2026',
       '• Время: 09:30, 18:00',
       '• Категория: #Название, если такая категория уже есть',
+      '• Приоритет в начале: 1 - высший, 2 - средний, 3 - низкий',
       '',
       'Можно также использовать /add текст задачи.',
     ],
@@ -310,11 +314,15 @@ const botCopy = {
       '• Submit report 12.06 14:30',
       '• Call client #Work',
       '• Homework tomorrow #Study',
+      '• 1 Send the report',
+      '• 2 Do homework',
+      '• 3 Read materials',
       '',
       'What the bot understands:',
       '• Date: today, tomorrow, 12.06, 12.06.2026',
       '• Time: 09:30, 18:00',
       '• Category: #Name, if this category already exists',
+      '• Priority at the start: 1 - highest, 2 - medium, 3 - low',
       '',
       'You can also use /add task text.',
     ],
@@ -1368,6 +1376,8 @@ const setupBotCommands = (token: string, language: LanguageCode) => {
 
 const parseTaskText = (value: string): { input: CreateTaskInput; unknownCategoryName?: string } => {
   let text = value.replace(/^\/add(@\w+)?\s*/i, '').trim();
+  const priorityInfo = extractPriority(text);
+  text = priorityInfo.text;
   const categoryInfo = extractCategory(text);
   text = categoryInfo.text;
 
@@ -1385,11 +1395,24 @@ const parseTaskText = (value: string): { input: CreateTaskInput; unknownCategory
       categoryId: categoryInfo.category?.id,
       dueDate: dateInfo.dueDate,
       dueLabel,
-      priority: 4,
+      priority: priorityInfo.priority,
       scope: categoryInfo.category ? 'category' : dateInfo.dueDate === getTodayDate() ? 'today' : 'inbox',
       title: text,
     },
     unknownCategoryName: categoryInfo.unknownCategoryName,
+  };
+};
+
+const extractPriority = (value: string): { priority: CreateTaskInput['priority']; text: string } => {
+  const match = value.match(/^\s*([123])(?:[\s.)-]+)(.+)$/);
+
+  if (!match) {
+    return { priority: 4, text: value.trim() };
+  }
+
+  return {
+    priority: Number(match[1]) as CreateTaskInput['priority'],
+    text: match[2].trim(),
   };
 };
 
