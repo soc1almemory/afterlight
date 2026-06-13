@@ -177,7 +177,9 @@ export const Sidebar = ({
               className="preserve-icon-color"
               src={assetUrl(
                 isTelegramConnected
-                  ? 'telegram-icon-connected.svg'
+                  ? settings.theme === 'dark'
+                    ? 'telegram-icon-connected.svg'
+                    : 'telegram-icon-connected-light.svg'
                   : settings.theme === 'dark'
                     ? 'telegram-icon-dt.svg'
                     : 'telegram-icon.svg',
