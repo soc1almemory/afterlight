@@ -146,6 +146,7 @@ const botCopy = {
       help: '❓ Помощь',
       inbox: '📥 Входящие',
       language: '🌐 Язык / Language',
+      noDate: 'Без даты',
       restoreTask: '↩️ Вернуть',
       today: '📅 Сегодня',
       week: '7⃣ Неделя',
@@ -183,11 +184,13 @@ const botCopy = {
       invalidCommand: 'Команда не распознана. Вот что можно сделать:',
       languageSaved: 'Язык сохранён. Главное меню обновлено.',
       noCategories: 'Категорий пока нет. Создайте первую кнопкой ниже.',
+      staleMessageClosed: 'Сообщение закрыто.',
       taskCompleted: (title: string) => `Готово: ${title}`,
       taskNotFound: 'Задача не найдена.',
       taskRestored: (title: string) => `Вернул в активные: ${title}`,
       taskWasDeleted: 'Задача уже удалена или не найдена.',
       unknownCategory: (name: string) => `Категория #${name} не найдена. Создайте её кнопкой “➕ Категория” или выберите существующую.`,
+      weekDayPrompt: 'Выберите день недели для новой задачи.',
       writeTask: (target: string) => `Напишите задачу для раздела: ${target}`,
     },
     title: {
@@ -236,6 +239,7 @@ const botCopy = {
       help: '❓ Help',
       inbox: '📥 Inbox',
       language: '🌐 Language / Язык',
+      noDate: 'No date',
       restoreTask: '↩️ Restore',
       today: '📅 Today',
       week: '7⃣ Week',
@@ -273,11 +277,13 @@ const botCopy = {
       invalidCommand: 'Unknown command. Here is what you can do:',
       languageSaved: 'Language saved. Main menu updated.',
       noCategories: 'No categories yet. Create the first one with the button below.',
+      staleMessageClosed: 'Message closed.',
       taskCompleted: (title: string) => `Done: ${title}`,
       taskNotFound: 'Task not found.',
       taskRestored: (title: string) => `Moved back to active: ${title}`,
       taskWasDeleted: 'Task was already deleted or not found.',
       unknownCategory: (name: string) => `Category #${name} was not found. Create it with “➕ Category” or pick an existing one.`,
+      weekDayPrompt: 'Choose a week day for the new task.',
       writeTask: (target: string) => `Send a task for: ${target}`,
     },
     title: {
@@ -607,7 +613,7 @@ const handleUpdate = async (update: TelegramUpdate, token?: string) => {
   if (!config.chatId) {
     if (isStartIntent(text) && isValidLinkStart(text, config)) {
       writeConfig({ ...config, chatId: message.chat.id, conversation: undefined, language, linkCode: undefined });
-      await clearChatBeforeAction(token, message.chat.id, message.message_id);
+      await clearChatBeforeAction(token, message.chat.id, message.message_id, copy.text.staleMessageClosed);
       await sendMainMenu(token, message.chat.id, copy.text.botConnected, language);
       return;
     }
@@ -621,7 +627,7 @@ const handleUpdate = async (update: TelegramUpdate, token?: string) => {
     return;
   }
 
-  await clearChatBeforeAction(token, message.chat.id, message.message_id);
+  await clearChatBeforeAction(token, message.chat.id, message.message_id, copy.text.staleMessageClosed);
   const freshConfig = readConfig();
   const freshLanguage = getLanguage(freshConfig);
   const freshCopy = getCopy(freshLanguage);
@@ -703,7 +709,7 @@ const handleCallbackQuery = async (query: TelegramCallbackQuery, token: string) 
   }
 
   await answerCallbackQuery(token, query.id);
-  await clearChatBeforeAction(token, chatId, query.message?.message_id);
+  await clearChatBeforeAction(token, chatId, query.message?.message_id, copy.text.staleMessageClosed, true);
   const freshConfig = readConfig();
   const freshLanguage = getLanguage(freshConfig);
   const freshCopy = getCopy(freshLanguage);
@@ -763,7 +769,18 @@ const handleCallbackQuery = async (query: TelegramCallbackQuery, token: string) 
   }
 
   if (data === 'add:week') {
+    await sendWeekDayPicker(token, chatId, freshLanguage);
+    return;
+  }
+
+  if (data === 'week:add:none') {
     await startAddFlow(token, chatId, { scope: 'week' }, freshLanguage);
+    return;
+  }
+
+  if (data.startsWith('week:add:')) {
+    const dueDate = data.slice('week:add:'.length);
+    await startAddFlow(token, chatId, { dueDate, scope: 'week' }, freshLanguage);
     return;
   }
 
@@ -909,6 +926,10 @@ const startCategoryFlow = async (token: string, chatId: number, language: Langua
   await sendMessage(token, chatId, copy.text.categoryPrompt, buildCancelKeyboard(language));
 };
 
+const sendWeekDayPicker = async (token: string, chatId: number, language: LanguageCode) => {
+  await sendMessage(token, chatId, getCopy(language).text.weekDayPrompt, buildWeekDayKeyboard(language));
+};
+
 const sendTaskList = async (
   token: string,
   chatId: number,
@@ -1038,8 +1059,24 @@ const mergeConversationTaskInput = (
     ...input,
     categoryId,
     dueDate,
-    scope: categoryId ? 'category' : dueDate === getTodayDate() ? 'today' : dueDate ? 'week' : conversation.scope,
+    scope: resolveConversationTaskScope(conversation.scope, categoryId, dueDate),
   };
+};
+
+const resolveConversationTaskScope = (conversationScope: TaskScope, categoryId?: string, dueDate?: string): TaskScope => {
+  if (categoryId) {
+    return 'category';
+  }
+
+  if (!dueDate) {
+    return conversationScope;
+  }
+
+  if (conversationScope === 'week') {
+    return 'week';
+  }
+
+  return dueDate === getTodayDate() ? 'today' : 'week';
 };
 
 const buildMainMenuKeyboard = (language: LanguageCode): ReplyKeyboardMarkup => {
@@ -1131,6 +1168,26 @@ const buildCancelKeyboard = (language: LanguageCode): InlineKeyboardMarkup => ({
   inline_keyboard: [...buildCancelRows(language), ...buildNavigationRows(language)],
 });
 
+const buildWeekDayKeyboard = (language: LanguageCode): InlineKeyboardMarkup => {
+  const copy = getCopy(language);
+  const dayRows = chunkRows(
+    getCurrentWeekDates().map((dateValue) => ({
+      callback_data: `week:add:${dateValue}`,
+      text: formatWeekDayButton(dateValue, language),
+    })),
+    2,
+  );
+
+  return {
+    inline_keyboard: [
+      [{ callback_data: 'week:add:none', text: copy.buttons.noDate }],
+      ...dayRows,
+      ...buildCancelRows(language),
+      ...buildNavigationRows(language),
+    ],
+  };
+};
+
 const buildHomeKeyboard = (language: LanguageCode): InlineKeyboardMarkup => {
   const copy = getCopy(language);
 
@@ -1191,11 +1248,15 @@ const formatTaskTarget = (scope: TaskScope, language: LanguageCode, dueDate?: st
   }
 
   if (dueDate === getTodayDate()) {
-    return copy.title.today.replace(/^.\s/, '');
+    return scope === 'week'
+      ? `${copy.title.week.replace(/^.\s/, '')} · ${formatWeekDayButton(dueDate, language)}`
+      : copy.title.today.replace(/^.\s/, '');
   }
 
   if (scope === 'week') {
-    return copy.title.week.replace(/^.\s/, '');
+    return dueDate
+      ? `${copy.title.week.replace(/^.\s/, '')} · ${formatWeekDayButton(dueDate, language)}`
+      : copy.title.week.replace(/^.\s/, '');
   }
 
   return copy.title.inbox.replace(/^.\s/, '');
@@ -1430,21 +1491,53 @@ const deleteMessage = async (token: string, chatId: number, messageId: number) =
       chat_id: chatId,
       message_id: messageId,
     });
-  } catch {
-    // Telegram can reject deletes for older or already removed messages; chat cleanup is best effort.
+    return true;
+  } catch (error) {
+    lastError = `Telegram cleanup failed: ${getErrorMessage(error)}`;
+    return false;
   }
 };
+
+const closeStaleBotMessage = async (token: string, chatId: number, messageId: number, text: string) => {
+  try {
+    await telegramApi(token, 'editMessageText', {
+      chat_id: chatId,
+      message_id: messageId,
+      reply_markup: { inline_keyboard: [] },
+      text,
+    });
+    return true;
+  } catch (error) {
+    lastError = `Telegram cleanup fallback failed: ${getErrorMessage(error)}`;
+    return false;
+  }
+};
+
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-const clearChatBeforeAction = async (token: string, chatId: number, incomingMessageId?: number) => {
+const clearChatBeforeAction = async (
+  token: string,
+  chatId: number,
+  incomingMessageId?: number,
+  fallbackText?: string,
+  canFallbackIncomingMessage = false,
+) => {
   const config = readConfig();
-  const ids = [...new Set([...(config.botMessageIds ?? []), incomingMessageId].filter(isNumber))];
+  const botMessageIds = new Set(config.botMessageIds ?? []);
+  const ids = [...new Set([...botMessageIds, incomingMessageId].filter(isNumber))];
 
   if (ids.length === 0) {
     return;
   }
 
   for (const messageId of ids) {
-    await deleteMessage(token, chatId, messageId);
+    const wasDeleted = await deleteMessage(token, chatId, messageId);
+
+    const canUseFallback = botMessageIds.has(messageId) || (canFallbackIncomingMessage && messageId === incomingMessageId);
+
+    if (!wasDeleted && fallbackText && canUseFallback) {
+      await closeStaleBotMessage(token, chatId, messageId, fallbackText);
+    }
+
     await delay(250);
   }
 
@@ -1606,6 +1699,40 @@ const getCurrentWeekDates = () => {
   });
 };
 
+const formatWeekDayButton = (dateValue: string, language: LanguageCode) => {
+  const date = parseDateKey(dateValue);
+  const dayNames =
+    language === 'en' ? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] : ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+
+  return `${formatShortDateForUser(dateValue)} ${date ? dayNames[getMondayBasedDayIndex(date)] : ''}`.trim();
+};
+
+const parseDateKey = (dateValue: string) => {
+  const match = dateValue.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+
+  if (!match) {
+    return undefined;
+  }
+
+  const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  return Number.isNaN(date.getTime()) ? undefined : date;
+};
+
+const getMondayBasedDayIndex = (date: Date) => {
+  const day = date.getDay();
+  return day === 0 ? 6 : day - 1;
+};
+
+const chunkRows = <T>(items: T[], size: number) => {
+  const rows: T[][] = [];
+
+  for (let index = 0; index < items.length; index += size) {
+    rows.push(items.slice(index, index + size));
+  }
+
+  return rows;
+};
+
 const getRelativeDate = (offsetDays: number) => {
   const date = new Date();
   date.setDate(date.getDate() + offsetDays);
@@ -1637,6 +1764,11 @@ const isValidDateKey = (dateValue: string) => {
 const formatDateForUser = (dateValue: string) => {
   const [year, month, day] = dateValue.split('-');
   return `${day}.${month}.${year}`;
+};
+
+const formatShortDateForUser = (dateValue: string) => {
+  const [_year, month, day] = dateValue.split('-');
+  return `${day}.${month}`;
 };
 
 const truncate = (value: string, maxLength: number) =>
