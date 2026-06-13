@@ -8,7 +8,7 @@
 ![UI](https://img.shields.io/badge/UI-React%20%2B%20TypeScript-FCFFA4)
 ![Storage](https://img.shields.io/badge/storage-SQLite-FFA4FD)
 
-![Afterlight banner](https://files.catbox.moe/evmj3n.png)
+![Afterlight banner](https://files.catbox.moe/gpj8v2.png)
 
 # About
 
