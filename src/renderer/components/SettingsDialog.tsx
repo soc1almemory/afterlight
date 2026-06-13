@@ -767,19 +767,19 @@ const TelegramSettings = () => {
   };
 
   const handleCheckConnection = async () => {
-  await runAction(
-    () => window.afterlightApi!.testTelegram(token.trim() || undefined),
-    copy.telegram.tested,
-    false,
-  );
-};
+    await runAction(
+      () => window.afterlightApi!.testTelegram(isAfterlightBotMode ? undefined : token.trim() || undefined),
+      copy.telegram.tested,
+      false,
+    );
+  };
 
   return (
     <div className="settings-page main-settings-page">
       <form className="settings-form" onSubmit={handleSubmit}>
         <SettingsGroup title={copy.telegram.title}>
           <img className="telegram-status-icon preserve-icon-color" src={assetUrl(statusIcon)} alt="" />
-          <label className="settings-field settings-option-field">
+          <div className="settings-field settings-option-field telegram-mode-field">
             <span>{copy.telegram.mode}</span>
             <div className="category-icon-mode telegram-mode-switch">
               <button
@@ -797,7 +797,7 @@ const TelegramSettings = () => {
                 {copy.telegram.afterlightMode}
               </button>
             </div>
-          </label>
+          </div>
           <p className="settings-hint">{isAfterlightBotMode ? copy.telegram.serverDescription : copy.telegram.description}</p>
           <div className="telegram-status">
             <strong>{copy.telegram.status}</strong>
@@ -828,11 +828,9 @@ const TelegramSettings = () => {
               {isAfterlightBotMode ? copy.telegram.saveServer : copy.telegram.save}
             </button>
 
-            {isAfterlightBotMode ? null : (
-              <button type="button" disabled={isStatusRefreshing} onClick={() => void handleCheckConnection()}>
-                {copy.telegram.check}
-              </button>
-            )}
+            <button type="button" disabled={isStatusRefreshing} onClick={() => void handleCheckConnection()}>
+              {copy.telegram.check}
+            </button>
 
             <button type="button" disabled={isStatusRefreshing} onClick={() => void handleDisconnect()}>
               {copy.telegram.disconnect}
