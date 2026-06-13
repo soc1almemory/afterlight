@@ -176,6 +176,7 @@ const botCopy = {
       botConnected: 'Afterlight подключён. Теперь можно управлять задачами прямо из Telegram.',
       cancel: 'Действие отменено. Главное меню открыто.',
       categoryCreated: (title: string) => `Категория создана: #${title}`,
+      categoryCreatedForTask: (title: string) => `Создал категорию: #${title}`,
       categoryEmpty: 'Название категории пустое. Напишите название или нажмите “❌️ Отмена”.',
       categoryExists: (title: string) => `Категория #${title} уже есть. Можно сразу добавлять в неё задачи.`,
       categoryPrompt:
@@ -273,6 +274,7 @@ const botCopy = {
       botConnected: 'Afterlight is connected. You can now manage tasks directly from Telegram.',
       cancel: 'Action canceled. Main menu is open.',
       categoryCreated: (title: string) => `Category created: #${title}`,
+      categoryCreatedForTask: (title: string) => `Created category: #${title}`,
       categoryEmpty: 'Category name is empty. Send a name or tap “❌️ Cancel”.',
       categoryExists: (title: string) => `Category #${title} already exists. You can add tasks to it right away.`,
       categoryPrompt:
@@ -882,12 +884,18 @@ const handleConversationMessage = async (
 
   const parsedTask = parseTaskText(text);
 
-  if (parsedTask.unknownCategoryName) {
-    await sendMessage(token, chatId, copy.text.unknownCategory(parsedTask.unknownCategoryName), buildCategoryCreateKeyboard(language));
-    return;
-  }
+  const createdCategory = parsedTask.unknownCategoryName
+    ? createCategoryForTask(parsedTask.unknownCategoryName)
+    : undefined;
 
-  const taskInput = mergeConversationTaskInput(parsedTask.input, conversation);
+  const taskInput = mergeConversationTaskInput(
+    {
+      ...parsedTask.input,
+      categoryId: createdCategory?.id ?? parsedTask.input.categoryId,
+      scope: createdCategory ? 'category' : parsedTask.input.scope,
+    },
+    conversation,
+  );
 
   if (!taskInput.title) {
     await sendMessage(token, chatId, `${copy.text.emptyTask}\n\n${formatGuide(language)}`, buildCancelKeyboard(language));
@@ -897,26 +905,69 @@ const handleConversationMessage = async (
   const task = createTask(taskInput);
   writeConfig({ ...config, conversation: undefined });
   onDataChanged?.();
-  await sendMessage(token, chatId, formatCreatedTask(task, language), buildTaskKeyboard(task, language));
+  await sendMessage(
+    token,
+    chatId,
+    [createdCategory ? copy.text.categoryCreatedForTask(createdCategory.title) : undefined, formatCreatedTask(task, language)]
+      .filter(Boolean)
+      .join('\n\n'),
+    buildTaskKeyboard(task, language),
+  );
+};
+
+const createCategoryForTask = (name: string) => {
+  const title = cleanCategoryTitle(name);
+
+  if (!title) {
+    return undefined;
+  }
+
+  const existingCategory = findCategoryByTitle(title);
+
+  if (existingCategory) {
+    return existingCategory;
+  }
+
+  const category = createCategory({
+    color: pickCategoryColor(),
+    iconMode: 'hash',
+    isFavorite: false,
+    title,
+  });
+
+  onDataChanged?.();
+  return category;
 };
 
 const createTaskFromTelegramText = async (token: string, chatId: number, text: string, language: LanguageCode) => {
   const copy = getCopy(language);
   const parsedTask = parseTaskText(text);
 
-  if (parsedTask.unknownCategoryName) {
-    await sendMessage(token, chatId, copy.text.unknownCategory(parsedTask.unknownCategoryName), buildCategoryCreateKeyboard(language));
-    return;
-  }
+  const createdCategory = parsedTask.unknownCategoryName
+    ? createCategoryForTask(parsedTask.unknownCategoryName)
+    : undefined;
 
-  if (!parsedTask.input.title) {
+  const taskInput: CreateTaskInput = {
+    ...parsedTask.input,
+    categoryId: createdCategory?.id ?? parsedTask.input.categoryId,
+    scope: createdCategory ? 'category' : parsedTask.input.scope,
+  };
+
+  if (!taskInput.title) {
     await sendMessage(token, chatId, `${copy.text.emptyTask}\n\n${formatGuide(language)}`, buildHomeKeyboard(language));
     return;
   }
 
-  const task = createTask(parsedTask.input);
+  const task = createTask(taskInput);
   onDataChanged?.();
-  await sendMessage(token, chatId, formatCreatedTask(task, language), buildTaskKeyboard(task, language));
+  await sendMessage(
+    token,
+    chatId,
+    [createdCategory ? copy.text.categoryCreatedForTask(createdCategory.title) : undefined, formatCreatedTask(task, language)]
+      .filter(Boolean)
+      .join('\n\n'),
+    buildTaskKeyboard(task, language),
+  );
 };
 
 const createCategoryFromTelegramText = async (token: string, chatId: number, text: string, language: LanguageCode) => {
