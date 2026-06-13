@@ -1,94 +1,142 @@
 # User Guide
 
-Afterlight helps you capture tasks quickly, plan them by day and category, keep short notes, and manage tasks from Telegram while the desktop app is running.
+Afterlight helps you capture tasks quickly, organize them by day and category, keep short notes, search across your workspace, and manage part of your task flow from Telegram.
 
 ## Main Sections
 
 - **Inbox** - a place for tasks without a specific day. Use it to collect things you will sort later.
-- **Today** - tasks for the current app day. The day can start at the refresh time configured in settings, and active overdue tasks can also appear here.
-- **Week** - day-by-day planning for the current week. No-date week tasks live in the distributor and can be dragged to a day.
-- **Categories** - contexts such as Study, Home, Work, or Project. Categories can be marked as favorites.
+- **Today** - tasks for the current app day. The start of the app day can be configured through the Today refresh time.
+- **Week** - current-week planning by day. Week tasks without a date live in the distributor and can be moved to a specific day.
+- **Categories** - contexts like Study, Home, Work, or Project. Categories can be added to Favorites.
 
-## Working With Tasks
+## Tasks
 
 - Click "Add task" to create a task in the current section.
-- A task can have a title, description, date, time, priority, and category.
-- Click the task title to edit it.
+- A task can have a title, description, date, deadline time, priority, and category.
+- Click a task title to edit it.
 - Click the checkbox on the left to complete or restore a task.
-- The edit button appears when you hover a task row.
-- In Week, tasks can be dragged to another day.
+- The edit button appears when hovering over a task row.
+- In Week, tasks can be moved between days.
+- If overdue display is enabled, active overdue tasks can appear on the Today page.
 
 ## Priorities
 
-- Red means highest priority.
-- Yellow means high priority.
-- Green means medium priority.
-- Blue means normal priority.
+- Red - highest priority.
+- Yellow - medium priority.
+- Green - low priority.
+- Blue - normal task without explicit priority.
 
 ## Categories
 
-- Create a category from the top of the sidebar or from the Categories block.
-- A category can use a color, hash icon, or emoji icon.
-- Favorite categories are shown in a separate block.
+- Create a category from the sidebar or from the Categories block.
+- A category can use a color, hashtag, or emoji icon.
+- Favorite categories appear in a separate block.
 - Counters next to categories show task counts.
-- Category sorting and counter visibility can be changed in settings.
+- Category sorting and counter display can be adjusted in settings.
+- Emoji category icons are shown in the sidebar, tab bar, task metadata, and search.
 
 ## Notes
 
 - Every page has a Notes field at the bottom.
 - Notes are saved automatically.
-- Notes are scoped by context: Inbox, Today, Week, and every category have separate text.
-- Note line limit and autosave interval can be changed in settings.
+- Today, Week, Inbox, and every category each have their own note text.
+- Note line limit and autosave interval can be adjusted in settings.
 
 ## Search
 
-- Click Search in the sidebar.
+- Click "Search" in the sidebar.
 - Search finds tasks, categories, and recently opened sections.
-- Clicking a result opens the task or section.
+- Clicking a result opens the task, category, or section.
+- Recently opened and History blocks help you return to recent working contexts.
 
 ## Tabs
 
 - Tabs help keep multiple sections open.
 - The tab bar can be enabled or disabled in settings.
 - Open tabs can be restored after app launch.
+- Category tabs show the selected category icon.
 
 ## Page Menu
 
-- The three-dot button at the top of the page opens actions for the current section.
-- Normal sections can be cleared.
-- Category pages can delete the category.
-- Category pages also have a favorite toggle.
+- The three-dot button at the top of a page opens current-section actions.
+- Regular sections can be cleared.
+- Category pages can be deleted.
+- Categories can also be added to or removed from Favorites.
+
+## Notifications
+
+- Windows notifications are configured in Settings -> Notifications.
+- Deadline reminders can be enabled.
+- You can choose how many minutes before a deadline Windows and Telegram should notify you.
+- You can enable reminders before the daily Today refresh.
+- You can configure repeated overdue-task reminder intervals.
 
 ## Telegram
 
-- The Telegram bot works only while Afterlight is running on your computer.
-- Create your own bot in BotFather and paste its token in Settings -> Telegram integration.
-- After saving the token, send the shown `/start <code>` command to your bot.
-- You can send normal text and the bot will create a task.
-- Message examples:
+Telegram integration is configured in **Settings -> Telegram integration**.
+
+There are two modes:
+
+- **Own token** - a local bot created by the user in BotFather. It works while Afterlight is running on the computer.
+- **Afterlight Bot** - connection mode for `@afterlight_task_bot`. This mode is used to work with Afterlight through the shared bot when the connection is configured and active.
+
+After saving settings, send the bot the `/start <code>` command shown by Afterlight.
+
+The bot can:
+
+- add tasks from normal messages;
+- show Inbox, Today, Week, and categories;
+- create categories;
+- add tasks to a specific category;
+- complete, restore, and delete tasks;
+- switch between Russian and English;
+- show formatting hints.
+
+## Telegram Message Format
+
+You can send normal text and the bot will create a task:
+
 - `Buy milk`
 - `Buy milk today`
 - `Buy milk tomorrow 18:00`
 - `Submit report 12.06 14:30`
 - `Call client #Work`
-- The bot can show task lists, complete tasks, delete tasks, and create categories.
+- `Homework tomorrow #Study`
+
+The bot understands:
+
+- dates: `today`, `tomorrow`, `12.06`, `12.06.2026`;
+- time: `09:30`, `18:00`;
+- categories through hashtags: `#Work`, if that category already exists;
+- priority at the beginning of the message.
+
+Telegram priorities:
+
+- `1 Send the report` - highest priority;
+- `2 Do homework` - medium priority;
+- `3 Read materials` - low priority;
+- `Buy milk` - normal task without explicit priority.
+
+You can also use `/add task text`.
 
 ## Settings
 
-- General contains launch behavior, tabs, task sorting, Today settings, Week settings, and notes.
-- Language switches between Russian and English.
-- Theme switches between light and dark mode.
-- Sidebar controls auto-collapse and counters.
-- Notifications configures Windows system reminders.
-- Telegram integration connects your local bot.
-- Backups contains export, import, data access, and automatic backups.
+- Account: update name, workspace title, email, and avatar.
+- General: launch behavior, tabs, task sorting, Today and Week settings, notes, and interface behavior.
+- Language: switch the interface between Russian and English.
+- Theme: choose light or dark theme.
+- Sidebar: configure auto-collapse and counters.
+- Notifications: configure system reminders.
+- Telegram integration: connect a Telegram bot.
+- Backups: export, import, open data folder, and configure automatic backups.
 
 ## Backups
 
 - JSON is best for importing tasks back into Afterlight.
 - CSV is best for viewing tasks in spreadsheets.
 - Automatic SQLite backups help protect against accidental data loss.
+- Settings can open the data folder and the database file.
 
 ## MVP Limitation
 
-Afterlight currently works as a local app. Data and the Telegram bot depend on Afterlight running on your computer.
+Afterlight is currently a local app. Main data is stored on your computer in SQLite. Cloud sync between devices and a full user-account server are not part of the MVP yet.
