@@ -80,7 +80,9 @@ There are two modes:
 - **Own token** - a local bot created by the user in BotFather. It works while Afterlight is running on the computer.
 - **Afterlight Bot** - connection mode for `@afterlight_task_bot`. This mode is used to work with Afterlight through the shared bot when the connection is configured and active.
 
-After saving settings, send the bot the `/start <code>` command shown by Afterlight.
+After saving settings, send the bot `/start`, then send the 6-digit code shown by Afterlight as a separate message. If Telegram lets you pass a parameter directly, `/start <code>` is also supported.
+
+In **Afterlight Bot** mode, the status shows the number of connected Telegram chats. If the connection state gets messy, click **Reset sessions** in the Telegram section: the app removes connected chats and pending authorizations, but keeps the integration enabled and keeps the pairing code.
 
 The bot can:
 
@@ -107,7 +109,7 @@ The bot understands:
 
 - dates: `today`, `tomorrow`, `12.06`, `12.06.2026`;
 - time: `09:30`, `18:00`;
-- categories through hashtags: `#Work`, if that category already exists;
+- categories through hashtags: `#Work`; if the category does not exist yet, the bot can create it while adding the task;
 - priority at the beginning of the message.
 
 Telegram priorities:
@@ -129,6 +131,13 @@ You can also use `/add task text`.
 - Notifications: configure system reminders.
 - Telegram integration: connect a Telegram bot.
 - Backups: export, import, open data folder, and configure automatic backups.
+
+## App Updates
+
+- The installed Windows version of Afterlight automatically checks for new versions.
+- If an update is available, the app downloads it in the background and shows a small notification.
+- When the update is ready, click "Restart" in the notification to finish installing it.
+- Automatic updates do not run in development mode.
 
 ## Backups
 
