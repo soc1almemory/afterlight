@@ -529,7 +529,6 @@ body {
 
 .titlebar-brand-icon.colored {
   opacity: 0;
-  transform: scale(0.82) rotate(12deg);
 }
 
 .titlebar-brand-mark:hover .titlebar-brand-icon.default {
