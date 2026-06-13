@@ -1,6 +1,6 @@
 # Afterlight v0.2.2
 
-Version 0.2.2 improves Telegram integration, task settings, and introduces automatic updates for the application.
+Версия 0.2.2 улучшает интеграцию с Telegram и настройки задач, а также добавляет автоматические обновления приложения.
 
 ## Обновления приложения
 - Добавлена автоматическая проверка обновлений для установленной Windows-версии Afterlight.
