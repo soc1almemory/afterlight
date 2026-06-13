@@ -64,6 +64,7 @@ contextBridge.exposeInMainWorld('afterlightApi', {
   importTasksJson: (): Promise<number> => ipcRenderer.invoke('system:import-json'),
   openDataFolder: (): Promise<string> => ipcRenderer.invoke('system:open-data-folder'),
   openDatabase: (): Promise<void> => ipcRenderer.invoke('system:open-database'),
+  openProjectRepository: (): Promise<void> => ipcRenderer.invoke('system:open-project-repository'),
   createBackup: (): Promise<string> => ipcRenderer.invoke('system:create-backup'),
   getTelegramStatus: (): Promise<TelegramBotStatus> => ipcRenderer.invoke('telegram:status'),
   configureTelegram: (input: TelegramConfigInput): Promise<TelegramBotStatus> =>

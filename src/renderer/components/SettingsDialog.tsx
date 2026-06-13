@@ -353,6 +353,9 @@ const useSettingsCopy = () => {
 export const SettingsDialog = ({ initialPage = 'account', isOpen, onClose }: SettingsDialogProps) => {
   const [activePage, setActivePage] = useState<SettingsPage>(initialPage);
   const copy = useSettingsCopy();
+  const openProjectRepository = () => {
+    void window.afterlightApi?.openProjectRepository();
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -382,7 +385,9 @@ export const SettingsDialog = ({ initialPage = 'account', isOpen, onClose }: Set
               </button>
             ))}
           </nav>
-          <p className="settings-version-label">Afterlight v{appVersion.version} © soc1almemory 2026</p>
+          <button className="settings-version-label" type="button" onClick={openProjectRepository}>
+            Afterlight v{appVersion.version} © soc1almemory 2026
+          </button>
         </aside>
 
         <button className="settings-close-button" type="button" aria-label={copy.close} onClick={onClose}>

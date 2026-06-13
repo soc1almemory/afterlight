@@ -55,7 +55,7 @@ export const TaskListItem = ({ task, withSeparator, onEditTask, showCategory = f
 
       {(task.description || dateLabel) && (
         <div className="task-meta">
-          {task.description ? <span>{task.description}</span> : null}
+          {task.description ? <span className={isCompleted ? 'task-description completed' : 'task-description'}>{task.description}</span> : null}
           {dateLabel ? <time className={isCompleted ? 'completed' : undefined}>{dateLabel}</time> : null}
         </div>
       )}

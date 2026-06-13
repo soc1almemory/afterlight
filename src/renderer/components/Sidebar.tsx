@@ -78,10 +78,12 @@ export const Sidebar = ({
     <aside className="sidebar" onMouseEnter={onMouseEnter}>
       <div className="menu-top-container">
         <div className="user-row">
-          <img className="user-avatar" src={profile.avatarDataUrl ?? defaultAvatar} alt="" />
-          <button className="user-name-button" type="button" onClick={onOpenSettings}>
-            <span className="user-name">{profile.name}</span>
-            <span className="user-workspace">{workspace.title}</span>
+          <button className="user-profile-button" type="button" onClick={onOpenSettings}>
+            <img className="user-avatar" src={profile.avatarDataUrl ?? defaultAvatar} alt="" />
+            <span className="user-name-button">
+              <span className="user-name">{profile.name}</span>
+              <span className="user-workspace">{workspace.title}</span>
+            </span>
           </button>
           <button className="create-category-button" type="button" aria-label={t('createCategory')} onClick={onAddCategory}>
             <img className="preserve-icon-color" src={assetUrl('create-icon.svg')} alt="" />
@@ -228,7 +230,7 @@ const CategorySection = ({
       </button>
       <div className="menu-section-actions">
         <button className={isOpen ? 'section-toggle open' : 'section-toggle'} type="button" aria-label="Свернуть раздел" onClick={onToggle}>
-          <span aria-hidden="true" />
+          <img src={assetUrl('drop-down-icon.svg')} alt="" />
         </button>
         <button type="button" aria-label="Создать категорию" onClick={onAddCategory}>
           <img src={assetUrl('add-icon.svg')} alt="" />

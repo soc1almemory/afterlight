@@ -38,6 +38,9 @@ export const TitleBar = ({ isSidebarCollapsed, onAddCategory, onToggleSidebar }:
   const setActiveCategory = useTaskStore((state) => state.setActiveCategory);
   const setScope = useTaskStore((state) => state.setScope);
   const t = useTranslator();
+  const openProjectRepository = () => {
+    void window.afterlightApi?.openProjectRepository();
+  };
 
   const activateTab = (route: AppRoute) => {
     if (route.scope === 'category' && route.categoryId) {
@@ -53,10 +56,10 @@ export const TitleBar = ({ isSidebarCollapsed, onAddCategory, onToggleSidebar }:
   return (
     <header className="app-titlebar">
       <div className="titlebar-sidebar-tools">
-        <span className="titlebar-brand-mark" aria-hidden="true">
+        <button className="titlebar-brand-mark" type="button" aria-label="GitHub" onClick={openProjectRepository}>
           <img className="titlebar-brand-icon default preserve-icon-color" src={assetUrl('afterlight-icon.svg')} alt="" />
           <img className="titlebar-brand-icon colored preserve-icon-color" src={assetUrl('afterlight-icon-colored.svg')} alt="" />
-        </span>
+        </button>
         <button
           className={isSidebarCollapsed ? 'titlebar-sidebar-toggle collapsed' : 'titlebar-sidebar-toggle'}
           type="button"

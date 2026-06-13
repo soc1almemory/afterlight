@@ -58,6 +58,7 @@ interface AfterlightApi {
   importTasksJson: () => Promise<number>;
   openDataFolder: () => Promise<string>;
   openDatabase: () => Promise<void>;
+  openProjectRepository: () => Promise<void>;
   createBackup: () => Promise<string>;
   getTelegramStatus: () => Promise<TelegramBotStatus>;
   configureTelegram: (input: TelegramConfigInput) => Promise<TelegramBotStatus>;

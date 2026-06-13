@@ -38,6 +38,7 @@ let isQuitting = false;
 let notificationInterval: NodeJS.Timeout | undefined;
 let backupInterval: NodeJS.Timeout | undefined;
 const notifiedKeys = new Set<string>();
+const PROJECT_REPOSITORY_URL = 'https://github.com/soc1almemory/afterlight';
 
 const systemCopy = {
   ru: {
@@ -184,6 +185,7 @@ ipcMain.handle('system:open-data-folder', () => shell.openPath(getStoragePaths()
 ipcMain.handle('system:open-database', () => {
   shell.showItemInFolder(getStoragePaths().databasePath);
 });
+ipcMain.handle('system:open-project-repository', () => shell.openExternal(PROJECT_REPOSITORY_URL));
 ipcMain.handle('system:create-backup', () => createDatabaseBackup());
 ipcMain.handle('telegram:status', () => getTelegramBotStatus());
 ipcMain.handle('telegram:configure', (_event, input: TelegramConfigInput) => updateTelegramBotConfig(input));

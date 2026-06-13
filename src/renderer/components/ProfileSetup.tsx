@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
+import type { LanguageCode } from '../../shared/types';
 import { assetUrl } from '../lib/assets';
 import { useTaskStore } from '../store/useTaskStore';
 
@@ -16,7 +17,9 @@ const setupCopy = {
     passwordPlaceholder: 'Введите пароль',
     start: 'Начать работу',
     subheading: 'Создайте локальный профиль и рабочее пространство для задач.',
+    language: 'Язык интерфейса',
     upload: 'Загрузить аватар',
+    deleteAvatar: 'Удалить аватар',
     workspace: 'Рабочее пространство',
     workspacePlaceholder: 'Личное пространство',
   },
@@ -32,7 +35,9 @@ const setupCopy = {
     passwordPlaceholder: 'Enter password',
     start: 'Start working',
     subheading: 'Create a local profile and workspace for your tasks.',
+    language: 'Interface language',
     upload: 'Upload avatar',
+    deleteAvatar: 'Remove avatar',
     workspace: 'Workspace',
     workspacePlaceholder: 'Personal workspace',
   },
@@ -43,6 +48,7 @@ export const ProfileSetup = () => {
   const completeProfileSetup = useTaskStore((state) => state.completeProfileSetup);
   const error = useTaskStore((state) => state.error);
   const settings = useTaskStore((state) => state.settings);
+  const updateSettings = useTaskStore((state) => state.updateSettings);
   const [avatarDataUrl, setAvatarDataUrl] = useState<string | undefined>();
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
@@ -53,6 +59,11 @@ export const ProfileSetup = () => {
   const canSubmit = Boolean(name.trim() && workspaceTitle.trim() && email.trim() && password.trim());
   const copy = setupCopy[settings.language];
   const defaultAvatar = assetUrl(settings.theme === 'dark' ? 'default-avatar-dark.png' : 'default-avatar-light.png');
+  const handleLanguageChange = (language: LanguageCode) => {
+    if (language !== settings.language) {
+      void updateSettings({ language });
+    }
+  };
 
   const handleAvatarChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -121,11 +132,22 @@ export const ProfileSetup = () => {
           </div>
 
           <div className="setup-avatar-block">
-            <img
-              className="setup-avatar"
-              src={avatarDataUrl ?? defaultAvatar}
-              alt=""
-            />
+            <div className="setup-avatar-shell">
+              <img
+                className="setup-avatar"
+                src={avatarDataUrl ?? defaultAvatar}
+                alt=""
+              />
+              <button
+                className="delete-avatar-button"
+                type="button"
+                aria-label={copy.deleteAvatar}
+                disabled={!avatarDataUrl}
+                onClick={() => setAvatarDataUrl(undefined)}
+              >
+                <img src={assetUrl('settings-delete-avatar-icon.svg')} alt="" />
+              </button>
+            </div>
             <input
               ref={avatarInputRef}
               accept="image/png,image/jpeg,image/webp,image/gif"
@@ -171,6 +193,26 @@ export const ProfileSetup = () => {
           <button className="setup-submit" type="submit" disabled={!canSubmit || isSaving}>
             {isSaving ? copy.loading : copy.start}
           </button>
+
+          <fieldset className="setup-language">
+            <legend>{copy.language}</legend>
+            <div className="category-icon-mode">
+              <button
+                className={settings.language === 'ru' ? 'active' : ''}
+                type="button"
+                onClick={() => handleLanguageChange('ru')}
+              >
+                Русский
+              </button>
+              <button
+                className={settings.language === 'en' ? 'active' : ''}
+                type="button"
+                onClick={() => handleLanguageChange('en')}
+              >
+                English
+              </button>
+            </div>
+          </fieldset>
         </form>
       </main>
     </div>
