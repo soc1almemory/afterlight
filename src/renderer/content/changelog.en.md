@@ -1,35 +1,40 @@
-# Afterlight v0.2.1
+# Afterlight v0.2.2
 
-Update 0.2.1 improves the in-app Telegram integration and fixes data synchronization.
+Version 0.2.2 improves Telegram integration, task settings, and introduces automatic updates for the application.
+
+## Application Updates
+
+- Added automatic update checks for the installed Windows version of Afterlight.
+- New versions are downloaded from the Afterlight GitHub Releases repository.
+- The application now shows a small notification only after an update has been downloaded and is ready to install.
+- You can restart Afterlight directly from the notification to complete the installation.
 
 ## Settings
 
-- Added a bot mode switch to the "Telegram Integration" section.
-- The "Check connection" button is available for both Telegram modes.
-- The Telegram section now shows the bot username `@afterlight_task_bot`.
+- Improved localization for `telegram-status-message`.
+- Added a new option under **General → Task Sorting** to move completed tasks to the end of the list.
 
-## Help And Changelog
+## Help and Changelog
 
-- Updated the user guide.
+- Updated the user guide and changelog.
 
 ## Telegram
 
-- Added the "Own token" mode in settings for the user's local bot.
-- Added the "Afterlight Bot" mode in settings for connecting to `@afterlight_task_bot`.
-- The connection status now considers not only `chat_id`, but also the real connection state.
-- Fixed data synchronization between the Telegram integration and the open Afterlight window: new tasks and categories are pulled in without restarting the app.
-- Added watching for the local database and Telegram config so the interface updates when external changes occur.
-- Reloading data no longer resets the current page and tabs.
-- Improved Telegram chat cleanup: the bot no longer deletes the message that directly triggered the action, so the chat does not close in mobile Telegram.
-- The bot can now detect task priority from the beginning of a message:
-  - `1 Task text` - highest priority;
-  - `2 Task text` - medium priority;
-  - `3 Task text` - low priority;
-  - no number - normal priority.
-- Updated Russian and English Telegram bot hints for task formatting.
+- The bot now automatically creates the specified category when adding a task if it does not already exist.
+- Telegram integration metadata is now preserved when updating settings, preventing connected chats from being reset.
+- Fixed saving Telegram bot authorization data when updating status and application settings.
+- Afterlight Bot mode status is now determined by actual authorized chats rather than only the legacy `chat_id`.
+- Added a connected chat counter to the Telegram integration status for Afterlight Bot mode.
+- Added a button to reset Telegram sessions without disabling the integration or removing the pairing code.
+- `chat_id` is now displayed only in **Custom Token** mode.
+- Technical Telegram errors shown in the status line are now localized to the application interface language.
+
+## Dark Theme and Icons
+
+- `color-swatch.active` now uses white (`#ffffff`).
+- The connected Telegram icon in the light theme now uses a dedicated light variant.
 
 ## Fixes
 
-- Fixed a conflict between the visual state of the Telegram icon and the status text in settings.
-- Fixed the stretching Telegram mode switch.
-- Fixed the phantom hover on the first option in the Telegram mode switch.
+- Fixed the tab bar drag region interfering with normal button behavior.
+- `telegram-status` strings are no longer inherited when switching between bot modes.
