@@ -3200,34 +3200,40 @@ body.theme-dark .color-swatch.active {
 
 .update-toast {
   position: fixed;
-  right: 22px;
+  right: 34px;
   bottom: 22px;
   z-index: 220;
-  width: min(360px, calc(100vw - 44px));
-  min-height: 92px;
-  border: 1px solid #e2e2e2;
+  width: min(390px, calc(100vw - 44px));
+  min-height: 98px;
+  border: 1px solid #d9d9d9;
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.98);
   color: #111111;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 14px;
-  align-items: end;
-  padding: 18px;
-  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.12);
+  grid-template-columns: minmax(0, 1fr) max-content;
+  gap: 18px;
+  align-items: center;
+  padding: 18px 18px 18px 20px;
+  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.13);
   animation: surface-pop-in var(--motion-medium) var(--motion-spring);
+  opacity: 0.95;
+}
+
+.update-toast.closing {
+  pointer-events: none;
+  animation: update-toast-close 180ms var(--motion-ease) both;
 }
 
 .update-toast-copy {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding-right: 20px;
+  gap: 7px;
+  padding-right: 5px;
 }
 
 .update-toast-copy strong {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 900;
   line-height: 1.2;
 }
@@ -3235,49 +3241,57 @@ body.theme-dark .color-swatch.active {
 .update-toast-copy span {
   color: #515151;
   font-size: 13px;
-  font-weight: 700;
-  line-height: 1.35;
+  font-weight: 600;
+  line-height: 1.45;
 }
 
 .update-toast-action {
-  min-width: 112px;
-  height: 34px;
-  border-radius: 6px;
-  background: #111111;
-  color: #ffffff;
-  font-size: 13px;
-  font-weight: 800;
-  padding: 0 14px;
+  min-width: 124px;
+  align-self: center;
+}
+
+.update-toast-close {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
   transition:
     background var(--motion-fast) ease,
     transform var(--motion-fast) var(--motion-ease);
 }
 
-.update-toast-action:hover {
-  background: #2b2b2b;
-  transform: translateY(-1px);
-}
-
-.update-toast-close {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-  display: grid;
-  place-items: center;
-  color: #777777;
-  font-weight: 900;
-  line-height: 1;
-  transition:
-    background var(--motion-fast) ease,
-    color var(--motion-fast) ease;
+.update-toast-close img {
+  width: 9px;
+  height: 9px;
+  opacity: 0.55;
+  transition: opacity var(--motion-fast) ease;
 }
 
 .update-toast-close:hover {
   background: #f2f2f2;
-  color: #111111;
+  transform: scale(1.04);
+}
+
+.update-toast-close:hover img {
+  opacity: 1;
+}
+
+@keyframes update-toast-close {
+  from {
+    opacity: 0.95;
+    transform: translateY(0) scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
 }
 
 body.theme-dark {
@@ -3335,6 +3349,7 @@ body.theme-dark img[src*='control-eraser-icon.svg'],
 body.theme-dark img[src*='settings-delete-avatar-icon.svg'],
 body.theme-dark img[src*='drop-down-icon.svg'],
 body.theme-dark img[src*='popup-search-icon.svg'],
+body.theme-dark img[src*='popup-close-icon.svg'],
 body.theme-dark img[src*='search-incoming-icon.svg'],
 body.theme-dark img[src*='seartch-today-icon.svg'],
 body.theme-dark img[src*='search-week-icon.svg'],
@@ -3824,15 +3839,12 @@ body.theme-dark .update-toast-copy span {
   color: #d8d8d8;
 }
 
-body.theme-dark .update-toast-action {
-  background: #ffffff;
-  color: #111111;
+body.theme-dark .update-toast-close img {
+  filter: brightness(0) invert(1) !important;
 }
 
-body.theme-dark .update-toast-action:hover,
 body.theme-dark .update-toast-close:hover {
   background: #303030;
-  color: #ffffff;
 }
 
 @media (prefers-reduced-motion: reduce) {

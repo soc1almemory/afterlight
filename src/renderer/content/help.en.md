@@ -135,8 +135,8 @@ You can also use `/add task text`.
 ## App Updates
 
 - The installed Windows version of Afterlight automatically checks for new versions.
-- If an update is available, the app downloads it in the background and shows a small notification.
-- When the update is ready, click "Restart" in the notification to finish installing it.
+- If an update is available, the app downloads it in the background without extra notifications.
+- When the update is ready to install, Afterlight shows a small notification. Click "Restart" to finish installing it.
 - Automatic updates do not run in development mode.
 
 ## Backups

@@ -64,6 +64,7 @@ interface AfterlightApi {
   getUpdateStatus: () => Promise<AppUpdateStatus>;
   checkForUpdates: () => Promise<AppUpdateStatus>;
   installUpdate: () => Promise<void>;
+  simulateUpdateStatus: (status: 'available' | 'downloaded') => Promise<AppUpdateStatus>;
   onUpdateStatus: (callback: (status: AppUpdateStatus) => void) => () => void;
   getTelegramStatus: () => Promise<TelegramBotStatus>;
   configureTelegram: (input: TelegramConfigInput) => Promise<TelegramBotStatus>;

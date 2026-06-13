@@ -1,5 +1,5 @@
 import { app, autoUpdater, BrowserWindow } from 'electron';
-import type { AppUpdateStatus } from '../shared/types';
+import type { AppUpdateStatus, AppUpdateStatusKind } from '../shared/types';
 
 const UPDATE_REPOSITORY = 'soc1almemory/afterlight';
 const UPDATE_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
@@ -114,5 +114,27 @@ export const checkForUpdates = async () => {
 };
 
 export const installDownloadedUpdate = () => {
+  if (!app.isPackaged) {
+    return;
+  }
+
   autoUpdater.quitAndInstall();
+};
+
+export const simulateUpdateStatus = (status: Extract<AppUpdateStatusKind, 'available' | 'downloaded'>) => {
+  if (app.isPackaged) {
+    return updateStatus;
+  }
+
+  updateStatus = {
+    currentVersion: app.getVersion(),
+    releaseName: status === 'downloaded' ? 'Afterlight v0.2.2-dev' : undefined,
+    status,
+  };
+
+  BrowserWindow.getAllWindows().forEach((window) => {
+    window.webContents.send('updates:status', updateStatus);
+  });
+
+  return updateStatus;
 };

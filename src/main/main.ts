@@ -9,6 +9,7 @@ import {
   configureAutoUpdates,
   getUpdateStatus,
   installDownloadedUpdate,
+  simulateUpdateStatus,
   stopAutoUpdateChecks,
 } from './auto-updates';
 import { registerTaskIpcHandlers } from './ipc/tasks';
@@ -204,6 +205,7 @@ ipcMain.handle('system:create-backup', () => createDatabaseBackup());
 ipcMain.handle('updates:get-status', () => getUpdateStatus());
 ipcMain.handle('updates:check', () => checkForUpdates());
 ipcMain.handle('updates:install', () => installDownloadedUpdate());
+ipcMain.handle('updates:simulate-status', (_event, status: 'available' | 'downloaded') => simulateUpdateStatus(status));
 ipcMain.handle('telegram:status', () => getTelegramBotStatus());
 ipcMain.handle('telegram:configure', (_event, input: TelegramConfigInput) => updateTelegramBotConfig(input));
 ipcMain.handle('telegram:test', (_event, token?: string) => testTelegramBotConnection(token));

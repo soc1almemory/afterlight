@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { AppUpdateStatus, Category, Task } from '../shared/types';
 import { CategoryDialog } from './components/CategoryDialog';
 import { ContentView } from './components/ContentView';
@@ -11,10 +11,12 @@ import { Sidebar } from './components/Sidebar';
 import { TaskDialog } from './components/TaskDialog';
 import { TitleBar } from './components/TitleBar';
 import { useTranslator } from './i18n';
+import { assetUrl } from './lib/assets';
 import { useTaskStore } from './store/useTaskStore';
 
 type AppViewMode = 'app' | 'loading' | 'setup';
 type AppTransitionDirection = 'app-to-setup' | 'direct' | 'setup-to-app';
+const UPDATE_TOAST_EXIT_MS = 180;
 
 export const App = () => {
   const [isTaskDialogOpen, setTaskDialogOpen] = useState(false);
@@ -29,6 +31,8 @@ export const App = () => {
   const [infoDialog, setInfoDialog] = useState<'changelog' | 'help' | undefined>();
   const [updateStatus, setUpdateStatus] = useState<AppUpdateStatus | undefined>();
   const [dismissedUpdateStatus, setDismissedUpdateStatus] = useState<string | undefined>();
+  const [closingUpdateToastKey, setClosingUpdateToastKey] = useState<string | undefined>();
+  const updateToastCloseTimer = useRef<number | undefined>(undefined);
   const activeScope = useTaskStore((state) => state.activeScope);
   const hasHydrated = useTaskStore((state) => state.hasHydrated);
   const hydrate = useTaskStore((state) => state.hydrate);
@@ -125,8 +129,14 @@ export const App = () => {
     });
     void window.afterlightApi?.getUpdateStatus().then(setUpdateStatus);
     const unsubscribeUpdateStatus = window.afterlightApi?.onUpdateStatus((status) => {
+      if (updateToastCloseTimer.current) {
+        window.clearTimeout(updateToastCloseTimer.current);
+        updateToastCloseTimer.current = undefined;
+      }
+
       setUpdateStatus(status);
       setDismissedUpdateStatus(undefined);
+      setClosingUpdateToastKey(undefined);
     });
     const unsubscribeQuickAction = window.afterlightWindow?.onQuickAction((action) => {
       if (action === 'add-task') {
@@ -159,6 +169,15 @@ export const App = () => {
     void window.afterlightWindow?.setFullScreen(settings.openMode === 'fullscreen');
   }, [hasHydrated, profile.isSetupComplete, settings.openMode]);
 
+  useEffect(
+    () => () => {
+      if (updateToastCloseTimer.current) {
+        window.clearTimeout(updateToastCloseTimer.current);
+      }
+    },
+    [],
+  );
+
   const appClassName = [
     'afterlight-app',
     `theme-${settings.theme}`,
@@ -169,9 +188,23 @@ export const App = () => {
     .join(' ');
   const updateToastKey = updateStatus ? `${updateStatus.status}:${updateStatus.releaseName ?? ''}` : undefined;
   const shouldShowUpdateToast =
-    updateStatus &&
-    updateToastKey !== dismissedUpdateStatus &&
-    (updateStatus.status === 'available' || updateStatus.status === 'downloaded');
+    updateStatus && updateToastKey !== dismissedUpdateStatus && updateStatus.status === 'downloaded';
+  const closeUpdateToast = useCallback(() => {
+    if (!updateToastKey || closingUpdateToastKey === updateToastKey) {
+      return;
+    }
+
+    if (updateToastCloseTimer.current) {
+      window.clearTimeout(updateToastCloseTimer.current);
+    }
+
+    setClosingUpdateToastKey(updateToastKey);
+    updateToastCloseTimer.current = window.setTimeout(() => {
+      setDismissedUpdateStatus(updateToastKey);
+      setClosingUpdateToastKey(undefined);
+      updateToastCloseTimer.current = undefined;
+    }, UPDATE_TOAST_EXIT_MS);
+  }, [closingUpdateToastKey, updateToastKey]);
 
   const renderView = (mode: AppViewMode) => {
     if (mode === 'loading') {
@@ -238,30 +271,30 @@ export const App = () => {
         <SettingsDialog initialPage={settingsInitialPage} isOpen={isSettingsOpen} onClose={() => setSettingsOpen(false)} />
         {infoDialog ? <InfoDialog kind={infoDialog} onClose={() => setInfoDialog(undefined)} /> : null}
         {shouldShowUpdateToast ? (
-          <div className="update-toast" role="status" aria-live="polite">
+          <div
+            className={`update-toast${closingUpdateToastKey === updateToastKey ? ' closing' : ''}`}
+            role="status"
+            aria-live="polite"
+          >
             <button
               className="update-toast-close"
               type="button"
               aria-label={t('close')}
-              onClick={() => setDismissedUpdateStatus(updateToastKey)}
+              onClick={closeUpdateToast}
             >
-              x
+              <img src={assetUrl('popup-close-icon.svg')} alt="" />
             </button>
             <div className="update-toast-copy">
-              <strong>
-                {updateStatus.status === 'downloaded' ? t('updateReadyTitle') : t('updateDownloadingTitle')}
-              </strong>
-              <span>
-                {updateStatus.status === 'downloaded'
-                  ? t('updateReadyBody', { version: updateStatus.releaseName ?? t('updateNewVersion') })
-                  : t('updateDownloadingBody')}
-              </span>
+              <strong>{t('updateReadyTitle')}</strong>
+              <span>{t('updateReadyBody', { version: updateStatus.releaseName ?? t('updateNewVersion') })}</span>
             </div>
-            {updateStatus.status === 'downloaded' ? (
-              <button className="update-toast-action" type="button" onClick={() => window.afterlightApi?.installUpdate()}>
-                {t('updateRestart')}
-              </button>
-            ) : null}
+            <button
+              className="settings-save-button update-toast-action"
+              type="button"
+              onClick={() => window.afterlightApi?.installUpdate()}
+            >
+              {t('updateRestart')}
+            </button>
           </div>
         ) : null}
       </div>

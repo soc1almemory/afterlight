@@ -70,6 +70,8 @@ contextBridge.exposeInMainWorld('afterlightApi', {
   getUpdateStatus: (): Promise<AppUpdateStatus> => ipcRenderer.invoke('updates:get-status'),
   checkForUpdates: (): Promise<AppUpdateStatus> => ipcRenderer.invoke('updates:check'),
   installUpdate: (): Promise<void> => ipcRenderer.invoke('updates:install'),
+  simulateUpdateStatus: (status: 'available' | 'downloaded'): Promise<AppUpdateStatus> =>
+    ipcRenderer.invoke('updates:simulate-status', status),
   onUpdateStatus: (callback: (status: AppUpdateStatus) => void) => {
     const listener = (_event: IpcRendererEvent, status: AppUpdateStatus) => callback(status);
     ipcRenderer.on('updates:status', listener);
