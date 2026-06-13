@@ -178,6 +178,16 @@ const settingsCopy = {
       resetSessions: 'Сбросить сессии',
       sessionsReset: 'Сессии Telegram сброшены',
       status: 'Статус',
+      errors: {
+        botConflict: 'Бот уже запущен в другом экземпляре Afterlight или другим процессом. Закройте лишний процесс и попробуйте снова.',
+        cleanupFailed: 'Не удалось очистить старые сообщения Telegram.',
+        connectionFailed: 'Не удалось подключиться к Telegram. Повторная попытка будет выполнена автоматически.',
+        forbidden: 'Telegram запретил доступ к чату. Откройте чат с ботом и запустите его снова.',
+        rateLimited: 'Telegram временно ограничил запросы. Подождите немного и попробуйте снова.',
+        serverNotRunning: 'Afterlight Bot server не запущен.',
+        tokenMissing: 'Токен Telegram-бота не настроен.',
+        unauthorized: 'Telegram не принял токен бота. Проверьте токен в настройках.',
+      },
       serverMode: 'серверный режим',
       running: 'бот запущен',
       stopped: 'бот остановлен',
@@ -348,6 +358,16 @@ const settingsCopy = {
       resetSessions: 'Reset sessions',
       sessionsReset: 'Telegram sessions reset',
       status: 'Status',
+      errors: {
+        botConflict: 'The bot is already running in another Afterlight instance or process. Close the duplicate process and try again.',
+        cleanupFailed: 'Could not clean up old Telegram messages.',
+        connectionFailed: 'Could not connect to Telegram. The app will retry automatically.',
+        forbidden: 'Telegram denied access to the chat. Open the bot chat and start it again.',
+        rateLimited: 'Telegram temporarily limited requests. Wait a bit and try again.',
+        serverNotRunning: 'Afterlight Bot server is not running.',
+        tokenMissing: 'Telegram bot token is not configured.',
+        unauthorized: 'Telegram rejected the bot token. Check the token in settings.',
+      },
       serverMode: 'server mode',
       running: 'bot is running',
       stopped: 'bot is stopped',
@@ -370,6 +390,50 @@ const settingsCopy = {
 const useSettingsCopy = () => {
   const language = useTaskStore((state) => state.settings.language);
   return settingsCopy[language];
+};
+
+type TelegramSettingsCopy = ReturnType<typeof useSettingsCopy>['telegram'];
+
+const localizeTelegramStatusMessage = (message: string | undefined, copy: TelegramSettingsCopy) => {
+  if (!message) {
+    return undefined;
+  }
+
+  const normalizedMessage = message.toLocaleLowerCase();
+
+  if (message === 'Afterlight Bot server is not running.') {
+    return copy.errors.serverNotRunning;
+  }
+
+  if (message === 'Telegram token is not configured.') {
+    return copy.errors.tokenMissing;
+  }
+
+  if (message === 'Telegram connection failed. Retrying...' || message === 'fetch failed') {
+    return copy.errors.connectionFailed;
+  }
+
+  if (message.includes('Conflict: terminated by other getUpdates request') || message.includes('already running in another Afterlight')) {
+    return copy.errors.botConflict;
+  }
+
+  if (normalizedMessage.includes('too many requests') || normalizedMessage.includes('retry after') || normalizedMessage.includes('rate limit')) {
+    return copy.errors.rateLimited;
+  }
+
+  if (normalizedMessage.includes('unauthorized') || normalizedMessage.includes('401')) {
+    return copy.errors.unauthorized;
+  }
+
+  if (normalizedMessage.includes('forbidden') || normalizedMessage.includes('403')) {
+    return copy.errors.forbidden;
+  }
+
+  if (message.startsWith('Telegram cleanup failed') || message.startsWith('Telegram cleanup fallback failed')) {
+    return copy.errors.cleanupFailed;
+  }
+
+  return message;
 };
 
 export const SettingsDialog = ({ initialPage = 'account', isOpen, onClose }: SettingsDialogProps) => {
@@ -695,9 +759,11 @@ const TelegramSettings = () => {
   ];
   const isLocalSuccessMessage = localSuccessMessages.includes(message);
   const localErrorMessage = message && !isLocalSuccessMessage ? message : '';
+  const localizedStatusError = localizeTelegramStatusMessage(currentStatus?.lastError, copy.telegram);
+  const localizedLocalError = localizeTelegramStatusMessage(localErrorMessage, copy.telegram);
   const statusMessage =
-    currentStatus?.lastError ??
-    (isTelegramConnected ? copy.telegram.tested : localErrorMessage || copy.telegram.noConnection);
+    localizedStatusError ??
+    (isTelegramConnected ? copy.telegram.tested : localizedLocalError || copy.telegram.noConnection);
 
   const hasLoadedTelegramSettingsRef = useRef(false);
 
