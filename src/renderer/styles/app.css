@@ -2536,12 +2536,23 @@ body.theme-dark .settings-field select:focus {
 }
 
 .telegram-mode-switch {
+  width: fit-content;
   margin: 0;
 }
 
 .telegram-mode-switch button {
   min-width: 128px;
   padding: 0 12px;
+}
+
+.telegram-mode-switch:hover button:not(:hover):not(.active) {
+  background: transparent;
+  transform: none;
+}
+
+.telegram-mode-field {
+  width: fit-content;
+  max-width: 100%;
 }
 
 .telegram-status {
