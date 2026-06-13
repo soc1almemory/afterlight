@@ -8,10 +8,27 @@ import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
 import { AutoUnpackNativesPlugin } from '@electron-forge/plugin-auto-unpack-natives';
 
+const runtimePackagePaths = [
+  /^\/\.vite(\/|$)/,
+  /^\/assets(\/|$)/,
+  /^\/package\.json$/,
+  /^\/node_modules$/,
+  /^\/node_modules\/better-sqlite3(\/|$)/,
+  /^\/node_modules\/bindings(\/|$)/,
+  /^\/node_modules\/file-uri-to-path(\/|$)/,
+];
+
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
     icon: 'assets/logo-main',
+    ignore: (file) => {
+      if (!file) {
+        return false;
+      }
+
+      return !runtimePackagePaths.some((pattern) => pattern.test(file));
+    },
   },
   rebuildConfig: {},
   makers: [
