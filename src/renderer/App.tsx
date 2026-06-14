@@ -196,6 +196,7 @@ export const App = () => {
   const updateToastKey = updateStatus ? `${updateStatus.status}:${updateStatus.releaseName ?? ''}` : undefined;
   const shouldShowUpdateToast =
     updateStatus && updateToastKey !== dismissedUpdateStatus && updateStatus.status === 'downloaded';
+  const shouldShowUpdateDownloadIndicator = updateStatus?.status === 'available';
   const closeUpdateToast = useCallback(() => {
     if (!updateToastKey || closingUpdateToastKey === updateToastKey) {
       return;
@@ -288,6 +289,11 @@ export const App = () => {
           onPageChange={setLastSettingsPage}
         />
         {infoDialog ? <InfoDialog kind={infoDialog} onClose={() => setInfoDialog(undefined)} /> : null}
+        {shouldShowUpdateDownloadIndicator ? (
+          <div className="update-download-indicator" role="status" aria-label={t('updateDownloadingTitle')}>
+            <span className="update-download-spinner" />
+          </div>
+        ) : null}
         {shouldShowUpdateToast ? (
           <div
             className={`update-toast${closingUpdateToastKey === updateToastKey ? ' closing' : ''}`}

@@ -1,9 +1,12 @@
 import { app, autoUpdater, BrowserWindow } from 'electron';
+import fs from 'node:fs';
+import path from 'node:path';
 import type { AppUpdateStatus, AppUpdateStatusKind } from '../shared/types';
 
 const UPDATE_REPOSITORY = 'soc1almemory/afterlight';
 const UPDATE_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
 const INITIAL_UPDATE_CHECK_DELAY_MS = 15_000;
+const PENDING_UPDATE_STATUS_FILE = 'pending-update.json';
 
 let updateStatus: AppUpdateStatus = {
   currentVersion: app.getVersion(),
@@ -30,6 +33,8 @@ export const configureAutoUpdates = (getMainWindow: () => BrowserWindow | null) 
     return;
   }
 
+  loadPendingUpdateStatus();
+
   const updateFeedUrl = `https://update.electronjs.org/${UPDATE_REPOSITORY}/${process.platform}-${process.arch}/${app.getVersion()}`;
   autoUpdater.setFeedURL({ url: updateFeedUrl });
 
@@ -52,16 +57,19 @@ export const configureAutoUpdates = (getMainWindow: () => BrowserWindow | null) 
 
   autoUpdater.on('update-not-available', () => {
     isCheckingForUpdates = false;
+    clearPendingUpdateStatus();
     publishStatus({ status: 'not-available' });
   });
 
   autoUpdater.on('update-downloaded', (_event, _releaseNotes, releaseName, _releaseDate, updateUrl) => {
     isCheckingForUpdates = false;
-    publishStatus({
+    const downloadedStatus = {
       releaseName,
       status: 'downloaded',
       updateUrl,
-    });
+    } as const;
+    savePendingUpdateStatus(downloadedStatus);
+    publishStatus(downloadedStatus);
   });
 
   autoUpdater.on('error', (error) => {
@@ -80,6 +88,57 @@ export const configureAutoUpdates = (getMainWindow: () => BrowserWindow | null) 
   updateCheckInterval = setInterval(scheduleCheck, UPDATE_CHECK_INTERVAL_MS);
 };
 
+const getPendingUpdateStatusPath = () => path.join(app.getPath('userData'), PENDING_UPDATE_STATUS_FILE);
+
+const loadPendingUpdateStatus = () => {
+  try {
+    const raw = fs.readFileSync(getPendingUpdateStatusPath(), 'utf8');
+    const parsed = JSON.parse(raw) as Partial<AppUpdateStatus>;
+
+    if (parsed.status !== 'downloaded' || parsed.currentVersion !== app.getVersion()) {
+      clearPendingUpdateStatus();
+      return;
+    }
+
+    updateStatus = {
+      currentVersion: app.getVersion(),
+      releaseName: parsed.releaseName,
+      status: 'downloaded',
+      updateUrl: parsed.updateUrl,
+    };
+  } catch {
+    // No persisted downloaded update yet.
+  }
+};
+
+const savePendingUpdateStatus = (status: Omit<AppUpdateStatus, 'currentVersion'>) => {
+  try {
+    fs.mkdirSync(app.getPath('userData'), { recursive: true });
+    fs.writeFileSync(
+      getPendingUpdateStatusPath(),
+      JSON.stringify(
+        {
+          currentVersion: app.getVersion(),
+          ...status,
+        },
+        null,
+        2,
+      ),
+      'utf8',
+    );
+  } catch {
+    // A failed reminder write should not break the updater flow.
+  }
+};
+
+const clearPendingUpdateStatus = () => {
+  try {
+    fs.rmSync(getPendingUpdateStatusPath(), { force: true });
+  } catch {
+    // Nothing to clear.
+  }
+};
+
 export const stopAutoUpdateChecks = () => {
   if (updateCheckInterval) {
     clearInterval(updateCheckInterval);
@@ -93,6 +152,10 @@ export const checkForUpdates = async () => {
       currentVersion: app.getVersion(),
       status: 'unsupported',
     };
+    return updateStatus;
+  }
+
+  if (updateStatus.status === 'downloaded') {
     return updateStatus;
   }
 
