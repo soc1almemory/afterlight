@@ -30,4 +30,4 @@ Update v0.2.3 improves the initial profile setup, the settings window behavior, 
 - The form reduces spacing and avatar size on smaller windows.
 - When there is not enough space, the content now scrolls inside the panel instead of overflowing outside the window.
 - The form scrollbar is now rendered inside `setup-panel` and no longer overlaps the container border or rounded corners.
-- `setup-shell` now opens in fullscreen by default until the profile is configured.
+- `setup-shell` now opens in full screen by default until the profile is configured.
