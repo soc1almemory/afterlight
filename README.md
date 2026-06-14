@@ -2,7 +2,7 @@
 
 ### Local Windows task manager for tasks, notes, categories, notifications, backups, and Telegram integration.
 
-![Version](https://img.shields.io/badge/version-0.2.3-FF5B5B)
+![Version](https://img.shields.io/badge/version-0.2.3a-FF5B5B)
 ![Platform](https://img.shields.io/badge/platform-Windows-5B6EFF)
 ![Runtime](https://img.shields.io/badge/runtime-Electron-5BFFD0)
 ![UI](https://img.shields.io/badge/UI-React%20%2B%20TypeScript-FCFFA4)
