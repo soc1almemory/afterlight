@@ -88,6 +88,11 @@ const getIconPath = () => {
   return fs.existsSync(pngPath) ? pngPath : assetPath('afterlight-icon.svg');
 };
 
+const getTrayIconPath = () => {
+  const icoPath = assetPath('icon-tray.ico');
+  return fs.existsSync(icoPath) ? icoPath : getIconPath();
+};
+
 const getCurrentSettings = (): AppSettings => listAppData().settings;
 
 registerTaskIpcHandlers({
@@ -299,8 +304,9 @@ const ensureTray = () => {
     return;
   }
 
-  const image = nativeImage.createFromPath(getIconPath());
-  tray = new Tray(image.isEmpty() ? getIconPath() : image);
+  const trayIconPath = getTrayIconPath();
+  const image = nativeImage.createFromPath(trayIconPath);
+  tray = new Tray(image.isEmpty() ? trayIconPath : image);
   tray.setToolTip('Afterlight');
   tray.on('double-click', showMainWindow);
   updateTrayMenu();

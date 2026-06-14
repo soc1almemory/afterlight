@@ -32,7 +32,11 @@ const config: ForgeConfig = {
   },
   rebuildConfig: {},
   makers: [
-    new MakerSquirrel({ name: 'afterlight', setupIcon: 'assets/logo-main.ico' }),
+    new MakerSquirrel({
+      name: 'afterlight',
+      setupIcon: 'assets/logo-main.ico',
+      iconUrl: 'https://raw.githubusercontent.com/soc1almemory/afterlight/main/assets/logo-main.ico',
+    }),
     new MakerZIP({}, ['darwin']),
     new MakerRpm({}),
     new MakerDeb({}),
