@@ -93,6 +93,8 @@ const getCurrentSettings = (): AppSettings => listAppData().settings;
 registerTaskIpcHandlers({
   onProfileReset: () => {
     resetTelegramSessions();
+    mainWindow?.setFullScreen(false);
+    mainWindow?.maximize();
   },
   onSettingsUpdated: () => applySystemSettings(),
 });
@@ -104,7 +106,9 @@ configureTelegramBotRuntime({
 const createWindow = async () => {
   await initializeDatabase();
   startExternalDataWatcher();
-  const settings = getCurrentSettings();
+  const appData = listAppData();
+  const settings = appData.settings;
+  const shouldOpenSetupMaximized = !appData.profile.isSetupComplete;
 
   mainWindow = new BrowserWindow({
     width: 1280,
@@ -126,7 +130,11 @@ const createWindow = async () => {
   });
 
   attachWindowEvents();
-  applyWindowState(settings);
+  if (shouldOpenSetupMaximized) {
+    mainWindow.maximize();
+  } else {
+    applyWindowState(settings);
+  }
   openDevToolsInDevelopment();
 
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
