@@ -1,10 +1,11 @@
-# Afterlight v0.2.3
+# Afterlight v0.2.3a
 
-Update v0.2.3 improves the initial profile setup, the settings window behavior, Telegram integration, and icon display in Windows.
+Update v0.2.3a improves the initial profile setup, the settings window behavior, Telegram integration, and icon display in Windows.
 
 ## App Updates
 
 - The Afterlight icon is now displayed correctly in the list of installed Windows apps.
+- In the Week section, the no-date distributor has been replaced with Inbox.
 
 ## Settings
 
@@ -19,6 +20,7 @@ Update v0.2.3 improves the initial profile setup, the settings window behavior, 
 
 - When a profile is deleted, Telegram sessions and linked chats are now reset.
 - The Telegram bot’s initial messages before language selection now include paragraphs in both Russian and English.
+- In the Telegram bot, the Week list and no-date task creation now work through Inbox.
 
 ## Dark Theme and Icons
 
