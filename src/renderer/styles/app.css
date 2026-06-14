@@ -363,10 +363,22 @@ body {
 .setup-panel {
   width: min(620px, calc(100vw - 32px));
   max-height: 100%;
-  overflow: auto;
+  overflow: hidden;
   border: 1px solid #AEAEAE;
   border-radius: 15px;
   background: #ffffff;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.setup-panel-scroll {
+  width: auto;
+  min-height: 0;
+  max-height: calc(100% - 12px);
+  overflow: auto;
+  margin: 6px;
+  border-radius: 10px;
+  scrollbar-gutter: stable;
   display: flex;
   flex-direction: column;
   gap: clamp(16px, 3.6vh, 30px);

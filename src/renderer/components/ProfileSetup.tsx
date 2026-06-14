@@ -124,12 +124,13 @@ export const ProfileSetup = () => {
 
       <main className="setup-workspace">
         <form className="setup-panel" onSubmit={handleSubmit}>
-          <div className="setup-heading">
+          <div className="setup-panel-scroll">
+            <div className="setup-heading">
             <h1>{copy.heading}</h1>
             <p>{copy.subheading}</p>
           </div>
 
-          <div className="setup-avatar-block">
+            <div className="setup-avatar-block">
             <div className="setup-avatar-shell">
               <img
                 className="setup-avatar"
@@ -158,7 +159,7 @@ export const ProfileSetup = () => {
             </button>
           </div>
 
-          <div className="setup-fields">
+            <div className="setup-fields">
             <label className="form-field">
               <span>{copy.name}</span>
               <input value={name} onChange={(event) => setName(event.target.value)} placeholder="Username" />
@@ -177,9 +178,9 @@ export const ProfileSetup = () => {
             </label>
           </div>
 
-          {error ? <div className="app-error">{error}</div> : null}
+            {error ? <div className="app-error">{error}</div> : null}
 
-          <div className="setup-actions-row">
+            <div className="setup-actions-row">
             <button className="setup-submit" type="submit" disabled={!canSubmit || isSaving}>
               {isSaving ? copy.loading : copy.start}
             </button>
@@ -203,6 +204,7 @@ export const ProfileSetup = () => {
                 </button>
               </div>
             </fieldset>
+            </div>
           </div>
         </form>
       </main>
