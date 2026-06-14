@@ -351,7 +351,7 @@ body {
   display: grid;
   place-items: center;
   overflow: auto;
-  padding: 48px 24px;
+  padding: clamp(16px, 5vh, 48px) clamp(16px, 4vw, 24px);
   background: #ffffff;
 
   background-image: url('/assets/startup-background-noise.png');
@@ -361,14 +361,16 @@ body {
 }
 
 .setup-panel {
-  width: min(620px, 100%);
+  width: min(620px, calc(100vw - 32px));
+  max-height: 100%;
+  overflow: auto;
   border: 1px solid #AEAEAE;
   border-radius: 15px;
   background: #ffffff;
   display: flex;
   flex-direction: column;
-  gap: 30px;
-  padding: 44px 54px;
+  gap: clamp(16px, 3.6vh, 30px);
+  padding: clamp(24px, 5vh, 44px) clamp(24px, 5vw, 54px);
 }
 
 .setup-heading {
@@ -376,7 +378,7 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 20px;
+  gap: clamp(10px, 2.4vh, 20px);
   text-align: center;
 }
 
@@ -397,7 +399,7 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 18px;
+  gap: clamp(10px, 2.2vh, 18px);
 }
 
 .setup-avatar-shell {
@@ -405,8 +407,8 @@ body {
 }
 
 .setup-avatar {
-  width: 150px;
-  height: 150px;
+  width: clamp(96px, 18vh, 150px);
+  height: clamp(96px, 18vh, 150px);
   border-radius: 50%;
   object-fit: cover;
 }
@@ -432,7 +434,7 @@ body {
   width: 100%;
   display: grid;
   grid-template-columns: 1fr;
-  gap: 16px;
+  gap: clamp(10px, 2vh, 16px);
   justify-items: stretch;
 }
 
@@ -3901,5 +3903,49 @@ body.theme-dark .update-toast-close:hover {
 
   .setup-fields {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-height: 720px) {
+  .setup-workspace {
+    align-items: start;
+  }
+
+  .setup-heading h1 {
+    font-size: 26px;
+  }
+
+  .setup-heading p,
+  .setup-language legend {
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 640px) {
+  .setup-titlebar {
+    grid-template-columns: minmax(0, auto) minmax(16px, 1fr) auto;
+  }
+
+  .setup-brand {
+    padding: 0 12px;
+  }
+
+  .setup-panel {
+    border-radius: 12px;
+  }
+
+  .setup-actions-row {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .setup-submit {
+    width: 100%;
+  }
+
+  .setup-language {
+    align-items: stretch;
+    flex-direction: column;
   }
 }
