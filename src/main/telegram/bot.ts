@@ -851,7 +851,7 @@ const handleCallbackQuery = async (query: TelegramCallbackQuery, token: string) 
   }
 
   if (data === 'week:add:none') {
-    await startAddFlow(token, chatId, { scope: 'week' }, freshLanguage);
+    await startAddFlow(token, chatId, { scope: 'inbox' }, freshLanguage);
     return;
   }
 
@@ -1167,7 +1167,7 @@ const getVisibleTasks = (filter: { categoryId?: string; scope: TaskScope }) => {
       }
 
       if (filter.scope === 'week') {
-        return task.dueDate ? weekDates.includes(task.dueDate) : task.scope === 'week';
+        return task.dueDate ? weekDates.includes(task.dueDate) : task.scope === 'inbox' || task.scope === 'week';
       }
 
       return task.scope === 'inbox';
@@ -1306,7 +1306,7 @@ const buildWeekDayKeyboard = (language: LanguageCode): InlineKeyboardMarkup => {
 
   return {
     inline_keyboard: [
-      [{ callback_data: 'week:add:none', text: copy.buttons.noDate }],
+      [{ callback_data: 'week:add:none', text: copy.buttons.inbox }],
       ...dayRows,
       ...buildCancelRows(language),
       ...buildNavigationRows(language),
