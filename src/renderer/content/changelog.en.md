@@ -1,6 +1,6 @@
 # Afterlight v0.2.3a
 
-Update v0.2.3a improves the initial profile setup, the settings window behavior, Telegram integration, and icon display in Windows.
+Update v0.2.3a improves the initial profile setup, the settings window behavior, Week page, Telegram integration, and icon display in Windows.
 
 ## App Updates
 
