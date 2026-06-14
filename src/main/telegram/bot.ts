@@ -177,7 +177,8 @@ const botCopy = {
     },
     text: {
       alreadyConnected: 'Afterlight уже подключён. Главное меню открыто.',
-      botConnected: 'Afterlight подключён. Теперь можно управлять задачами прямо из Telegram.',
+      botConnected:
+        'Afterlight подключён. Теперь можно управлять задачами прямо из Telegram.\n\nAfterlight is connected. You can now manage tasks directly from Telegram.',
       cancel: 'Действие отменено. Главное меню открыто.',
       categoryCreated: (title: string) => `Категория создана: #${title}`,
       categoryCreatedForTask: (title: string) => `Создал категорию: #${title}`,
@@ -187,7 +188,8 @@ const botCopy = {
         'Напишите название новой категории.\n\nПримеры:\nРабота\nУчёба\nДом\n\nПосле создания можно писать задачи с хэштегом, например: “Позвонить клиенту завтра 12:00 #Работа”.',
       chooseLanguage: 'Выберите язык бота.',
       connectedElsewhere: 'Этот бот уже подключён к другому рабочему пространству Afterlight.',
-      connectPrompt: 'Откройте настройки Afterlight, включите Telegram-интеграцию и отправьте команду с кодом привязки.',
+      connectPrompt:
+        'Откройте настройки Afterlight, включите Telegram-интеграцию и отправьте команду с кодом привязки.\n\nOpen Afterlight settings, enable Telegram integration, then send the pairing command.',
       createdPrefix: 'Добавлено:',
       deleted: (title?: string) => `Удалено: ${title ?? 'задача'}`,
       deadlineReminder: (title: string, due: string, minutes: number) =>
