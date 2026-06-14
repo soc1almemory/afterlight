@@ -1,40 +1,33 @@
-# Afterlight v0.2.2
+# Afterlight v0.2.3
 
-Version 0.2.2 improves Telegram integration, task settings, and introduces automatic updates for the application.
+Update v0.2.3 improves the initial profile setup, the settings window behavior, Telegram integration, and icon display in Windows.
 
-## Application Updates
+## App Updates
 
-- Added automatic update checks for the installed Windows version of Afterlight.
-- New versions are downloaded from the Afterlight GitHub Releases repository.
-- The application now shows a small notification only after an update has been downloaded and is ready to install.
-- You can restart Afterlight directly from the notification to complete the installation.
+- The Afterlight icon is now displayed correctly in the list of installed Windows apps.
 
 ## Settings
 
-- Improved localization for `telegram-status-message`.
-- Added a new option under **General → Task Sorting** to move completed tasks to the end of the list.
+- The settings window now remembers the last opened page.
+- When settings are opened again, the last page is shown.
 
 ## Help and Changelog
 
-- Updated the user guide and changelog.
+- The changelog has been updated.
 
 ## Telegram
 
-- The bot now automatically creates the specified category when adding a task if it does not already exist.
-- Telegram integration metadata is now preserved when updating settings, preventing connected chats from being reset.
-- Fixed saving Telegram bot authorization data when updating status and application settings.
-- Afterlight Bot mode status is now determined by actual authorized chats rather than only the legacy `chat_id`.
-- Added a connected chat counter to the Telegram integration status for Afterlight Bot mode.
-- Added a button to reset Telegram sessions without disabling the integration or removing the pairing code.
-- `chat_id` is now displayed only in **Custom Token** mode.
-- Technical Telegram errors shown in the status line are now localized to the application interface language.
+- When a profile is deleted, Telegram sessions and linked chats are now reset.
+- The Telegram bot’s initial messages before language selection now include paragraphs in both Russian and English.
 
 ## Dark Theme and Icons
 
-- `color-swatch.active` now uses white (`#ffffff`).
-- The connected Telegram icon in the light theme now uses a dedicated light variant.
+- The system tray icon now uses a separate `icon-tray.ico` file.
 
-## Fixes
+## Initial Profile Setup
 
-- Fixed the tab bar drag region interfering with normal button behavior.
-- `telegram-status` strings are no longer inherited when switching between bot modes.
+- The profile setup screen is now more responsive to the window’s height and width.
+- The form reduces spacing and avatar size on smaller windows.
+- When there is not enough space, the content now scrolls inside the panel instead of overflowing outside the window.
+- The form scrollbar is now rendered inside `setup-panel` and no longer overlaps the container border or rounded corners.
+- `setup-shell` now opens in fullscreen by default until the profile is configured.
