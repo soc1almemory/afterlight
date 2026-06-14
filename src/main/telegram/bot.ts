@@ -1453,13 +1453,14 @@ const parseTaskText = (value: string): { input: CreateTaskInput; unknownCategory
   const categoryInfo = extractCategory(text);
   text = categoryInfo.text;
 
-  const dueLabel = text.match(/\b(?:[01]\d|2[0-3]):[0-5]\d\b/)?.[0];
+  const dueLabelMatch = text.match(/(?<!\d)(?:[01]?\d|2[0-3]):[0-5]\d(?!\d)/);
+  const dueLabel = dueLabelMatch ? normalizeParsedDueTime(dueLabelMatch[0]) : undefined;
 
-  if (dueLabel) {
-    text = text.replace(dueLabel, '').trim();
+  if (dueLabelMatch) {
+    text = text.replace(dueLabelMatch[0], '').trim();
   }
 
-  const dateInfo = extractDate(text);
+  const dateInfo = extractTaskDate(text);
   text = dateInfo.text;
 
   return {
@@ -1512,9 +1513,9 @@ const extractCategory = (value: string): { category?: Category; text: string; un
   };
 };
 
-const extractDate = (value: string): { dueDate?: string; text: string } => {
-  const todayPattern = /\b(today|сегодня)\b/i;
-  const tomorrowPattern = /\b(tomorrow|завтра)\b/i;
+const extractTaskDate = (value: string): { dueDate?: string; text: string } => {
+  const todayPattern = /(?<![\p{L}\p{N}_])(?:today|сегодня)(?![\p{L}\p{N}_])/iu;
+  const tomorrowPattern = /(?<![\p{L}\p{N}_])(?:tomorrow|завтра)(?![\p{L}\p{N}_])/iu;
 
   if (todayPattern.test(value)) {
     return { dueDate: getTodayDate(), text: value.replace(todayPattern, '').trim() };
@@ -1524,19 +1525,23 @@ const extractDate = (value: string): { dueDate?: string; text: string } => {
     return { dueDate: getRelativeDate(1), text: value.replace(tomorrowPattern, '').trim() };
   }
 
-  const dateMatch = value.match(/\b(\d{2})\.(\d{2})(?:\.(\d{4}))?\b/);
+  const dateMatch = value.match(/(?<!\d)(\d{1,2})\.(\d{1,2})(?:\.(\d{4}))?(?!\d)/);
 
   if (!dateMatch) {
     return { text: value.trim() };
   }
 
   const year = dateMatch[3] ?? String(new Date().getFullYear());
-  const dueDate = `${year}-${dateMatch[2]}-${dateMatch[1]}`;
-  if (!isValidDateKey(dueDate)) {
-    return { text: value.trim() };
-  }
+  const day = dateMatch[1].padStart(2, '0');
+  const month = dateMatch[2].padStart(2, '0');
+  const dueDate = `${year}-${month}-${day}`;
 
-  return { dueDate, text: value.replace(dateMatch[0], '').trim() };
+  return isValidDateKey(dueDate) ? { dueDate, text: value.replace(dateMatch[0], '').trim() } : { text: value.trim() };
+};
+
+const normalizeParsedDueTime = (value: string) => {
+  const [hours, minutes] = value.split(':');
+  return `${hours.padStart(2, '0')}:${minutes}`;
 };
 
 const getAddCommandText = (value: string) => {
