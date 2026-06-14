@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { AppUpdateStatus, Category, Task } from '../shared/types';
+import type { AppUpdateStatus, Category, Task, TaskScope } from '../shared/types';
 import { CategoryDialog } from './components/CategoryDialog';
 import { ContentView } from './components/ContentView';
 import { InfoDialog } from './components/InfoDialog';
@@ -16,6 +16,10 @@ import { useTaskStore } from './store/useTaskStore';
 
 type AppViewMode = 'app' | 'loading' | 'setup';
 type AppTransitionDirection = 'app-to-setup' | 'direct' | 'setup-to-app';
+interface AddTaskInput {
+  dueDate?: string;
+  scope?: TaskScope;
+}
 const UPDATE_TOAST_EXIT_MS = 180;
 
 export const App = () => {
@@ -23,7 +27,7 @@ export const App = () => {
   const [isCategoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | undefined>();
   const [editingTask, setEditingTask] = useState<Task | undefined>();
-  const [initialTaskDate, setInitialTaskDate] = useState<string | undefined>();
+  const [initialTaskInput, setInitialTaskInput] = useState<AddTaskInput | undefined>();
   const [isSearchOpen, setSearchOpen] = useState(false);
   const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isSettingsOpen, setSettingsOpen] = useState(false);
@@ -46,22 +50,22 @@ export const App = () => {
   const [leavingViewMode, setLeavingViewMode] = useState<AppViewMode | undefined>();
   const [transitionDirection, setTransitionDirection] = useState<AppTransitionDirection>('direct');
 
-  const openCreateDialog = useCallback((dueDate?: string) => {
+  const openCreateDialog = useCallback((input?: AddTaskInput) => {
     setEditingTask(undefined);
-    setInitialTaskDate(dueDate);
+    setInitialTaskInput(input);
     setTaskDialogOpen(true);
   }, []);
 
   const openEditDialog = useCallback((task: Task) => {
     setEditingTask(task);
-    setInitialTaskDate(undefined);
+    setInitialTaskInput(undefined);
     setTaskDialogOpen(true);
   }, []);
 
   const closeDialog = () => {
     setTaskDialogOpen(false);
     setEditingTask(undefined);
-    setInitialTaskDate(undefined);
+    setInitialTaskInput(undefined);
   };
 
   const openCreateCategoryDialog = () => {
@@ -268,7 +272,13 @@ export const App = () => {
             }
           }}
         />
-        <TaskDialog isOpen={isTaskDialogOpen} task={editingTask} initialDueDate={initialTaskDate} onClose={closeDialog} />
+        <TaskDialog
+          isOpen={isTaskDialogOpen}
+          task={editingTask}
+          initialDueDate={initialTaskInput?.dueDate}
+          initialScope={initialTaskInput?.scope}
+          onClose={closeDialog}
+        />
         <CategoryDialog isOpen={isCategoryDialogOpen} category={editingCategory} onClose={closeCategoryDialog} />
         <SearchDialog isOpen={isSearchOpen} onClose={() => setSearchOpen(false)} onEditTask={openEditDialog} />
         <SettingsDialog

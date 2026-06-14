@@ -6,7 +6,7 @@ Afterlight helps you capture tasks quickly, organize them by day and category, k
 
 - **Inbox** - a place for tasks without a specific day. Use it to collect things you will sort later.
 - **Today** - tasks for the current app day. The start of the app day can be configured through the Today refresh time.
-- **Week** - current-week planning by day. Week tasks without a date live in the distributor and can be moved to a specific day.
+- **Week** - current-week planning by day. Inbox tasks without a date appear at the start of Week and can be moved to a specific day.
 - **Categories** - contexts like Study, Home, Work, or Project. Categories can be added to Favorites.
 
 ## Tasks

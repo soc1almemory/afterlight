@@ -1,10 +1,11 @@
 import { FormEvent, useEffect, useState } from 'react';
-import type { Task, TaskPriority } from '../../shared/types';
+import type { Task, TaskPriority, TaskScope } from '../../shared/types';
 import { assetUrl } from '../lib/assets';
 import { useTaskStore } from '../store/useTaskStore';
 
 interface TaskDialogProps {
   initialDueDate?: string;
+  initialScope?: TaskScope;
   isOpen: boolean;
   task?: Task;
   onClose: () => void;
@@ -70,7 +71,7 @@ const taskDialogCopy = {
   },
 } as const;
 
-export const TaskDialog = ({ initialDueDate, isOpen, task, onClose }: TaskDialogProps) => {
+export const TaskDialog = ({ initialDueDate, initialScope, isOpen, task, onClose }: TaskDialogProps) => {
   const activeScope = useTaskStore((state) => state.activeScope);
   const activeCategoryId = useTaskStore((state) => state.activeCategoryId);
   const categories = useTaskStore((state) => state.categories);
@@ -99,7 +100,7 @@ export const TaskDialog = ({ initialDueDate, isOpen, task, onClose }: TaskDialog
     setPriority(task?.priority ?? 4);
     setCategoryId(task?.categoryId ?? (activeScope === 'category' ? activeCategoryId : ''));
     setConfirmingDelete(false);
-  }, [activeCategoryId, activeScope, initialDueDate, isOpen, settings.todayRefreshTime, task]);
+  }, [activeCategoryId, activeScope, initialDueDate, initialScope, isOpen, settings.todayRefreshTime, task]);
 
   if (!isOpen) {
     return null;
@@ -119,6 +120,7 @@ export const TaskDialog = ({ initialDueDate, isOpen, task, onClose }: TaskDialog
       dueDate,
       dueLabel,
       priority,
+      scope: initialScope,
       categoryId,
     };
 

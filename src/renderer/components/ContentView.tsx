@@ -8,14 +8,20 @@ import { useTaskStore } from '../store/useTaskStore';
 import { TaskListItem } from './TaskListItem';
 
 interface ContentViewProps {
-  onAddTask: (dueDate?: string) => void;
+  onAddTask: (input?: AddTaskInput) => void;
   onEditTask: (task: Task) => void;
   onMouseEnter?: () => void;
+}
+
+interface AddTaskInput {
+  dueDate?: string;
+  scope?: TaskScope;
 }
 
 interface WeekGroup {
   date?: string;
   label: string;
+  scope: Extract<TaskScope, 'inbox' | 'week'>;
   tasks: Task[];
 }
 
@@ -305,7 +311,7 @@ export const ContentView = ({ onAddTask, onEditTask, onMouseEnter }: ContentView
           <button
             className="inline-add-task"
             type="button"
-            onClick={() => onAddTask(activeScope === 'today' ? getTodayDate(settings.todayRefreshTime) : undefined)}
+            onClick={() => onAddTask({ dueDate: activeScope === 'today' ? getTodayDate(settings.todayRefreshTime) : undefined })}
           >
             <img className="preserve-icon-color" src={assetUrl(addTaskIcon)} alt="" />
             <span>{t('addTask')}</span>
@@ -392,7 +398,7 @@ const WeekTaskList = ({
   settings,
 }: {
   groups: WeekGroup[];
-  onAddTask: (dueDate?: string) => void;
+  onAddTask: (input?: AddTaskInput) => void;
   onEditTask: (task: Task) => void;
   settings: AppSettings;
 }) => {
@@ -400,7 +406,7 @@ const WeekTaskList = ({
   const today = getTodayDate(settings.todayRefreshTime);
   const addTaskIcon = settings.theme === 'dark' ? 'add-task-icon-dt.svg' : 'add-task-icon.svg';
 
-  const moveTaskToDate = async (taskId: string, dueDate?: string) => {
+  const moveTaskToGroup = async (taskId: string, group: WeekGroup) => {
     const task = useTaskStore.getState().tasks.find((item) => item.id === taskId);
 
     if (!task) {
@@ -411,18 +417,18 @@ const WeekTaskList = ({
       id: task.id,
       title: task.title,
       description: task.description,
-      dueDate,
+      dueDate: group.date,
       dueLabel: task.dueLabel,
       priority: task.priority,
-      scope: 'week',
+      scope: group.scope,
       categoryId: task.categoryId,
     });
   };
 
-  const handleDrop = (event: DragEvent<HTMLElement>, dueDate?: string) => {
+  const handleDrop = (event: DragEvent<HTMLElement>, group: WeekGroup) => {
     event.preventDefault();
     const taskId = event.dataTransfer.getData('text/plain');
-    void moveTaskToDate(taskId, dueDate);
+    void moveTaskToGroup(taskId, group);
   };
 
   return (
@@ -433,14 +439,14 @@ const WeekTaskList = ({
         return (
           <section
             className={isToday ? 'week-day today' : 'week-day'}
-            key={group.date ?? 'without-date'}
+            key={group.date ?? group.scope}
             onDragOver={(event) => event.preventDefault()}
-            onDrop={(event) => handleDrop(event, group.date)}
+            onDrop={(event) => handleDrop(event, group)}
           >
             <div className="week-day-heading">
               {group.date ? <time>{formatShortDate(group.date)}</time> : <span className="date-pill neutral">{translate(settings.language, 'noDate')}</span>}
               <h2>{group.label}</h2>
-              <button className="week-day-add" type="button" onClick={() => onAddTask(group.date)} aria-label={translate(settings.language, 'addTask')}>
+              <button className="week-day-add" type="button" onClick={() => onAddTask({ dueDate: group.date, scope: group.scope })} aria-label={translate(settings.language, 'addTask')}>
                 <img className="preserve-icon-color" src={assetUrl(addTaskIcon)} alt="" />
               </button>
             </div>
@@ -534,11 +540,12 @@ const wouldExceedNoteLineLimit = (value: string, selectionStart: number, selecti
 
 const buildWeekGroups = (tasks: Task[], settings: AppSettings): WeekGroup[] => {
   const weekDates = orderWeekDates(getCurrentWeekDates(), settings.weekOrderMode, settings.todayRefreshTime);
-  const withoutDateTasks = tasks.filter((task) => task.scope === 'week' && !task.dueDate);
+  const inboxTasks = tasks.filter((task) => (task.scope === 'inbox' || task.scope === 'week') && !task.dueDate);
   const labels = dayLabels[settings.language];
   const dateGroups: WeekGroup[] = weekDates.map((date) => ({
     date,
     label: labels[getWeekdayIndex(date)],
+    scope: 'week',
     tasks: sortTasks(tasks.filter((task) => task.dueDate === date), settings, 'week'),
   }));
 
@@ -548,8 +555,9 @@ const buildWeekGroups = (tasks: Task[], settings: AppSettings): WeekGroup[] => {
 
   return [
     {
-      label: settings.language === 'en' ? 'Distributor' : 'Распределитель',
-      tasks: sortTasks(withoutDateTasks, settings, 'week'),
+      label: translate(settings.language, 'inbox'),
+      scope: 'inbox',
+      tasks: sortTasks(inboxTasks, settings, 'inbox'),
     },
     ...dateGroups,
   ];

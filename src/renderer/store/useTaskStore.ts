@@ -109,7 +109,7 @@ interface TaskState {
   workspace: Workspace;
   completeProfileSetup: (input: ProfileSetupInput) => Promise<void>;
   createCategory: (input: CreateCategoryInput) => Promise<void>;
-  createTask: (input: Omit<CreateTaskInput, 'scope' | 'categoryId'> & { categoryId?: string }) => Promise<void>;
+  createTask: (input: Omit<CreateTaskInput, 'scope' | 'categoryId'> & { categoryId?: string; scope?: TaskScope }) => Promise<void>;
   closeTab: (route: AppRoute) => void;
   deleteCategory: (categoryId: string) => Promise<void>;
   deleteTask: (taskId: string) => Promise<void>;
@@ -179,11 +179,12 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     }
 
     const state = get();
+    const scope = input.scope ?? state.activeScope;
     const task = await requireApi().createTask({
       ...input,
       title: cleanTitle,
-      scope: state.activeScope,
-      categoryId: input.categoryId || (state.activeScope === 'category' ? state.activeCategoryId : undefined),
+      scope,
+      categoryId: input.categoryId || (scope === 'category' ? state.activeCategoryId : undefined),
     });
 
     set((currentState) => ({ error: undefined, tasks: [{ ...task, updatedAt: task.updatedAt ?? new Date().toISOString() }, ...currentState.tasks] }));
