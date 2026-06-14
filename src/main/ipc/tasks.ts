@@ -31,6 +31,7 @@ import {
 } from '../storage/repositories';
 
 interface RegisterTaskIpcHandlersOptions {
+  onProfileReset?: () => void;
   onSettingsUpdated?: () => void;
 }
 
@@ -51,7 +52,11 @@ export const registerTaskIpcHandlers = (options: RegisterTaskIpcHandlersOptions 
 
     return completeProfileSetup(input);
   });
-  ipcMain.handle('profile:reset', () => resetProfile());
+  ipcMain.handle('profile:reset', () => {
+    const data = resetProfile();
+    options.onProfileReset?.();
+    return data;
+  });
   ipcMain.handle('settings:update', (_event, input: UpdateSettingsInput) => {
     const settings = updateSettings(input);
     options.onSettingsUpdated?.();

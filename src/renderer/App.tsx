@@ -27,6 +27,7 @@ export const App = () => {
   const [isSearchOpen, setSearchOpen] = useState(false);
   const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isSettingsOpen, setSettingsOpen] = useState(false);
+  const [lastSettingsPage, setLastSettingsPage] = useState<SettingsPage>('account');
   const [settingsInitialPage, setSettingsInitialPage] = useState<SettingsPage>('account');
   const [infoDialog, setInfoDialog] = useState<'changelog' | 'help' | undefined>();
   const [updateStatus, setUpdateStatus] = useState<AppUpdateStatus | undefined>();
@@ -78,8 +79,10 @@ export const App = () => {
     setEditingCategory(undefined);
   };
 
-  const openSettings = (page: SettingsPage = 'account') => {
-    setSettingsInitialPage(page);
+  const openSettings = (page?: SettingsPage) => {
+    const nextPage = page ?? lastSettingsPage;
+    setLastSettingsPage(nextPage);
+    setSettingsInitialPage(nextPage);
     setSettingsOpen(true);
   };
 
@@ -268,7 +271,12 @@ export const App = () => {
         <TaskDialog isOpen={isTaskDialogOpen} task={editingTask} initialDueDate={initialTaskDate} onClose={closeDialog} />
         <CategoryDialog isOpen={isCategoryDialogOpen} category={editingCategory} onClose={closeCategoryDialog} />
         <SearchDialog isOpen={isSearchOpen} onClose={() => setSearchOpen(false)} onEditTask={openEditDialog} />
-        <SettingsDialog initialPage={settingsInitialPage} isOpen={isSettingsOpen} onClose={() => setSettingsOpen(false)} />
+        <SettingsDialog
+          initialPage={settingsInitialPage}
+          isOpen={isSettingsOpen}
+          onClose={() => setSettingsOpen(false)}
+          onPageChange={setLastSettingsPage}
+        />
         {infoDialog ? <InfoDialog kind={infoDialog} onClose={() => setInfoDialog(undefined)} /> : null}
         {shouldShowUpdateToast ? (
           <div

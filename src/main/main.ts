@@ -91,6 +91,9 @@ const getIconPath = () => {
 const getCurrentSettings = (): AppSettings => listAppData().settings;
 
 registerTaskIpcHandlers({
+  onProfileReset: () => {
+    resetTelegramSessions();
+  },
   onSettingsUpdated: () => applySystemSettings(),
 });
 

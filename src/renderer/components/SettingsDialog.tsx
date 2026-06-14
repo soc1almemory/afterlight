@@ -9,6 +9,7 @@ interface SettingsDialogProps {
   initialPage?: SettingsPage;
   isOpen: boolean;
   onClose: () => void;
+  onPageChange?: (page: SettingsPage) => void;
 }
 
 export type SettingsPage = 'account' | 'main' | 'language' | 'theme' | 'sidebar' | 'notifications' | 'telegram' | 'backups';
@@ -436,11 +437,15 @@ const localizeTelegramStatusMessage = (message: string | undefined, copy: Telegr
   return message;
 };
 
-export const SettingsDialog = ({ initialPage = 'account', isOpen, onClose }: SettingsDialogProps) => {
+export const SettingsDialog = ({ initialPage = 'account', isOpen, onClose, onPageChange }: SettingsDialogProps) => {
   const [activePage, setActivePage] = useState<SettingsPage>(initialPage);
   const copy = useSettingsCopy();
   const openProjectRepository = () => {
     void window.afterlightApi?.openProjectRepository();
+  };
+  const changePage = (page: SettingsPage) => {
+    setActivePage(page);
+    onPageChange?.(page);
   };
 
   useEffect(() => {
@@ -464,7 +469,7 @@ export const SettingsDialog = ({ initialPage = 'account', isOpen, onClose }: Set
                 className={activePage === item.id ? 'settings-nav-item active' : 'settings-nav-item'}
                 key={item.id}
                 type="button"
-                onClick={() => setActivePage(item.id)}
+                onClick={() => changePage(item.id)}
               >
                 <img src={assetUrl(item.icon)} alt="" />
                 <span>{copy.nav[item.id]}</span>
