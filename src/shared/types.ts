@@ -182,6 +182,7 @@ export type UpdateSettingsInput = Partial<AppSettings>;
 export interface TelegramConfigInput {
   botMode?: TelegramBotMode;
   enabled: boolean;
+  serverUrl?: string;
   token?: string;
 }
 
@@ -196,6 +197,7 @@ export interface TelegramBotStatus {
   linkCode?: string;
   lastError?: string;
   serverLastHeartbeatAt?: string;
+  serverUrl?: string;
   lastUpdateAt?: string;
 }
 

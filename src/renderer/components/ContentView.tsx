@@ -403,7 +403,6 @@ const WeekTaskList = ({
   settings: AppSettings;
 }) => {
   const updateTask = useTaskStore((state) => state.updateTask);
-  const today = getTodayDate(settings.todayRefreshTime);
   const addTaskIcon = settings.theme === 'dark' ? 'add-task-icon-dt.svg' : 'add-task-icon.svg';
 
   const moveTaskToGroup = async (taskId: string, group: WeekGroup) => {
@@ -434,7 +433,7 @@ const WeekTaskList = ({
   return (
     <div className="week-list">
       {groups.map((group) => {
-        const isToday = settings.highlightTodayInWeek && group.date === today;
+        const isToday = settings.highlightTodayInWeek && group.date === toDateInputValue(new Date());
 
         return (
           <section
@@ -539,7 +538,7 @@ const wouldExceedNoteLineLimit = (value: string, selectionStart: number, selecti
 };
 
 const buildWeekGroups = (tasks: Task[], settings: AppSettings): WeekGroup[] => {
-  const weekDates = orderWeekDates(getCurrentWeekDates(), settings.weekOrderMode, settings.todayRefreshTime);
+  const weekDates = orderWeekDates(getCurrentWeekDates(), settings.weekOrderMode);
   const inboxTasks = tasks.filter((task) => (task.scope === 'inbox' || task.scope === 'week') && !task.dueDate);
   const labels = dayLabels[settings.language];
   const dateGroups: WeekGroup[] = weekDates.map((date) => ({
@@ -589,12 +588,12 @@ const getCurrentWeekDates = () => {
   });
 };
 
-const orderWeekDates = (weekDates: string[], mode: AppSettings['weekOrderMode'], todayRefreshTime?: string) => {
+const orderWeekDates = (weekDates: string[], mode: AppSettings['weekOrderMode']) => {
   if (mode !== 'today') {
     return weekDates;
   }
 
-  const todayIndex = weekDates.indexOf(getTodayDate(todayRefreshTime));
+  const todayIndex = weekDates.indexOf(toDateInputValue(new Date()));
   return todayIndex < 0 ? weekDates : [...weekDates.slice(todayIndex), ...weekDates.slice(0, todayIndex)];
 };
 

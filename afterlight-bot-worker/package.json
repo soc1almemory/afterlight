@@ -1,0 +1,13 @@
+{
+  "name": "afterlight-bot-worker",
+  "version": "0.2.4",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "deploy": "npx wrangler deploy",
+    "dev": "npx wrangler dev",
+    "d1:init": "npx wrangler d1 execute afterlight_bot --file=./schema.sql",
+    "d1:init:remote": "npx wrangler d1 execute afterlight_bot --remote --file=./schema.sql"
+  },
+  "devDependencies": {}
+}

@@ -12,8 +12,20 @@ import type {
   TelegramBotStatus,
   TelegramConfigInput,
 } from '../../shared/types';
-import { createCategory, createTask, deleteTask, listCategories, listTasks, toggleTask } from '../storage/repositories';
+import {
+  applyTelegramServerSnapshot,
+  createCategory,
+  createTask,
+  deleteTask,
+  listAppData,
+  listCategories,
+  listTasks,
+  toggleTask,
+} from '../storage/repositories';
 import { getStoragePaths } from '../storage/database';
+
+const BUILTIN_AFTERLIGHT_BOT_SERVER_URL = 'https://afterlight-task-bot.afterlight.workers.dev';
+const DEFAULT_AFTERLIGHT_BOT_SERVER_URL = process.env.AFTERLIGHT_BOT_SERVER_URL?.trim() || BUILTIN_AFTERLIGHT_BOT_SERVER_URL;
 
 type TelegramConversation =
   | {
@@ -41,10 +53,15 @@ interface TelegramConfig {
   linkCode?: string;
   pendingAuthChats?: Record<string, unknown>;
   serverDeadlineNotifiedKeys?: string[];
+  serverAuthorizedChatCount?: number;
+  serverClientId?: string;
+  serverClientSecret?: string;
+  serverDeletedTaskIds?: string[];
   serverLastError?: string;
   serverLastHeartbeatAt?: string;
   serverLastUpdateId?: number;
   serverLastStatus?: string;
+  serverUrl?: string;
   token?: string;
   tokenEncrypted?: string;
 }
@@ -355,11 +372,74 @@ let pollAbortController: AbortController | undefined;
 let pollSessionId = 0;
 let pollTimer: NodeJS.Timeout | undefined;
 let onDataChanged: (() => void) | undefined;
+let serverSyncTimer: NodeJS.Timeout | undefined;
+let isServerSyncing = false;
 
 export const configureTelegramBotRuntime = (options: {
   onDataChanged: () => void;
 }) => {
   onDataChanged = options.onDataChanged;
+};
+
+export const scheduleAfterlightBotSync = (delayMs = 1500) => {
+  if (isServerSyncing) {
+    return;
+  }
+
+  const config = readConfig();
+  if (getBotMode(config) !== 'afterlight' || !config.enabled) {
+    return;
+  }
+
+  if (serverSyncTimer) {
+    clearTimeout(serverSyncTimer);
+  }
+
+  serverSyncTimer = setTimeout(() => {
+    serverSyncTimer = undefined;
+    void syncAfterlightBotWorkspace();
+  }, delayMs);
+};
+
+export const syncAfterlightBotWorkspace = async () => {
+  if (isServerSyncing) {
+    return getTelegramBotStatus();
+  }
+
+  const config = readConfig();
+  if (getBotMode(config) !== 'afterlight' || !config.enabled) {
+    return getTelegramBotStatus();
+  }
+
+  try {
+    isServerSyncing = true;
+    await registerAfterlightBotClient(config);
+    onDataChanged?.();
+  } catch (error) {
+    writeConfig({ ...readConfig(), serverLastError: error instanceof Error ? error.message : String(error) });
+  } finally {
+    isServerSyncing = false;
+  }
+
+  return getTelegramBotStatus();
+};
+
+export const rememberTelegramDeletedTasks = (taskIds: string[]) => {
+  const cleanTaskIds = [...new Set(taskIds.filter(Boolean))];
+  if (cleanTaskIds.length === 0) {
+    return;
+  }
+
+  const config = readConfig();
+  if (getBotMode(config) !== 'afterlight' || !config.enabled) {
+    return;
+  }
+
+  writeConfig({
+    ...config,
+    serverDeletedTaskIds: [...new Set([...(config.serverDeletedTaskIds ?? []), ...cleanTaskIds])],
+  });
+  scheduleAfterlightBotSync();
 };
 
 export const getTelegramBotStatus = (): TelegramBotStatus => {
@@ -368,10 +448,10 @@ export const getTelegramBotStatus = (): TelegramBotStatus => {
   const linkCode = isTelegramConfigReadyForLink(config) ? getOrCreateLinkCode(config) : undefined;
   const isServerMode = botMode === 'afterlight';
   const isServerRunning = isServerMode && isFreshServerHeartbeat(config.serverLastHeartbeatAt);
-  const authorizedChatCount = isServerMode ? getAuthorizedChatCount(config) : config.chatId ? 1 : 0;
+  const authorizedChatCount = isServerMode ? config.serverAuthorizedChatCount ?? getAuthorizedChatCount(config) : config.chatId ? 1 : 0;
   const serverLastError =
     isServerMode && config.enabled && !isServerRunning
-      ? config.serverLastError ?? 'Afterlight Bot server is not running.'
+      ? config.serverLastError ?? 'Afterlight Bot is unavailable.'
       : config.serverLastError;
 
   return {
@@ -386,6 +466,7 @@ export const getTelegramBotStatus = (): TelegramBotStatus => {
     lastError: isServerMode ? serverLastError : lastError,
     lastUpdateAt: isServerMode ? config.serverLastHeartbeatAt : lastUpdateAt,
     serverLastHeartbeatAt: config.serverLastHeartbeatAt,
+    serverUrl: config.serverUrl ?? DEFAULT_AFTERLIGHT_BOT_SERVER_URL,
   };
 };
 
@@ -396,6 +477,7 @@ export const updateTelegramBotConfig = async (input: TelegramConfigInput): Promi
     ...currentConfig,
     botMode,
     enabled: input.enabled,
+    serverUrl: botMode === 'afterlight' ? normalizeServerUrl(input.serverUrl ?? currentConfig.serverUrl) : currentConfig.serverUrl,
     token: botMode === 'custom' ? cleanToken(input.token) ?? currentConfig.token : currentConfig.token,
   };
 
@@ -417,6 +499,8 @@ export const updateTelegramBotConfig = async (input: TelegramConfigInput): Promi
 
   if (botMode === 'afterlight') {
     nextConfig.botUsername = 'afterlight_task_bot';
+    nextConfig.serverClientId = nextConfig.serverClientId ?? crypto.randomUUID();
+    nextConfig.serverClientSecret = nextConfig.serverClientSecret ?? crypto.randomUUID();
   }
 
   if (isTelegramConfigReadyForLink(nextConfig)) {
@@ -424,6 +508,10 @@ export const updateTelegramBotConfig = async (input: TelegramConfigInput): Promi
   }
 
   writeConfig(nextConfig);
+
+  if (botMode === 'afterlight' && nextConfig.enabled) {
+    await registerAfterlightBotClient(nextConfig);
+  }
 
   if (botMode === 'custom' && nextConfig.enabled && nextConfig.token) {
     await restartTelegramBot();
@@ -452,6 +540,11 @@ export const disconnectTelegramBot = (): TelegramBotStatus => {
 
 export const resetTelegramSessions = (): TelegramBotStatus => {
   const config = readConfig();
+  if (getBotMode(config) === 'afterlight') {
+    void resetAfterlightBotServerSessions(config).catch((error) => {
+      writeConfig({ ...readConfig(), serverLastError: error instanceof Error ? error.message : String(error) });
+    });
+  }
   writeConfig({
     ...config,
     botMessageIds: [],
@@ -459,6 +552,7 @@ export const resetTelegramSessions = (): TelegramBotStatus => {
     chatSessions: {},
     conversation: undefined,
     pendingAuthChats: {},
+    serverAuthorizedChatCount: 0,
   });
   return getTelegramBotStatus();
 };
@@ -466,7 +560,7 @@ export const resetTelegramSessions = (): TelegramBotStatus => {
 export const testTelegramBotConnection = async (token?: string): Promise<TelegramBotStatus> => {
   const config = readConfig();
   if (getBotMode(config) === 'afterlight') {
-    writeConfig({ ...config, botUsername: 'afterlight_task_bot' });
+    await registerAfterlightBotClient({ ...config, botUsername: 'afterlight_task_bot' });
     lastError = undefined;
     lastUpdateAt = new Date().toISOString();
     return getTelegramBotStatus();
@@ -1729,10 +1823,17 @@ const readConfig = (): TelegramConfig => {
       serverDeadlineNotifiedKeys: Array.isArray(parsed.serverDeadlineNotifiedKeys)
         ? parsed.serverDeadlineNotifiedKeys.filter((item): item is string => typeof item === 'string')
         : [],
+      serverAuthorizedChatCount: typeof parsed.serverAuthorizedChatCount === 'number' ? parsed.serverAuthorizedChatCount : undefined,
+      serverClientId: typeof parsed.serverClientId === 'string' ? parsed.serverClientId : undefined,
+      serverClientSecret: typeof parsed.serverClientSecret === 'string' ? parsed.serverClientSecret : undefined,
+      serverDeletedTaskIds: Array.isArray(parsed.serverDeletedTaskIds)
+        ? parsed.serverDeletedTaskIds.filter((item): item is string => typeof item === 'string')
+        : [],
       serverLastError: typeof parsed.serverLastError === 'string' ? parsed.serverLastError : undefined,
       serverLastHeartbeatAt: typeof parsed.serverLastHeartbeatAt === 'string' ? parsed.serverLastHeartbeatAt : undefined,
       serverLastUpdateId: typeof parsed.serverLastUpdateId === 'number' ? parsed.serverLastUpdateId : undefined,
       serverLastStatus: typeof parsed.serverLastStatus === 'string' ? parsed.serverLastStatus : undefined,
+      serverUrl: normalizeServerUrl(parsed.serverUrl),
       token,
     };
   } catch {
@@ -1780,10 +1881,89 @@ const serializeConfig = (config: TelegramConfig) => {
   };
 };
 
+const registerAfterlightBotClient = async (config: TelegramConfig) => {
+  const serverUrl = normalizeServerUrl(config.serverUrl);
+  const serverClientId = config.serverClientId ?? crypto.randomUUID();
+  const serverClientSecret = config.serverClientSecret ?? crypto.randomUUID();
+  const linkCode = getOrCreateLinkCode({ ...config, serverClientId, serverClientSecret, serverUrl });
+  const appData = listAppData();
+
+  const response = await fetch(`${serverUrl}/api/workspaces/register`, {
+    body: JSON.stringify({
+      categories: appData.categories,
+      clientId: serverClientId,
+      clientSecret: serverClientSecret,
+      deletedTaskIds: config.serverDeletedTaskIds ?? [],
+      language: appData.settings.language,
+      linkCode,
+      profileName: appData.profile.name,
+      settings: appData.settings,
+      tasks: appData.tasks,
+      timezoneName: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      timezoneOffsetMinutes: -new Date().getTimezoneOffset(),
+      workspaceTitle: appData.workspace.title,
+    }),
+    headers: { 'Content-Type': 'application/json' },
+    method: 'POST',
+  });
+
+  const data = (await response.json().catch(() => ({}))) as {
+    authorizedChatCount?: number;
+    categories?: Category[];
+    deletedTaskIds?: string[];
+    error?: string;
+    ok?: boolean;
+    tasks?: Task[];
+    workspaceId?: string;
+  };
+
+  if (!response.ok || !data.ok) {
+    throw new Error(data.error ? `Afterlight Bot server: ${data.error}` : `Afterlight Bot server request failed: ${response.status}`);
+  }
+
+  const nextConfig = {
+    ...readConfig(),
+    botMode: 'afterlight' as TelegramBotMode,
+    botUsername: 'afterlight_task_bot',
+    enabled: config.enabled,
+    linkCode,
+    serverClientId,
+    serverClientSecret,
+    serverAuthorizedChatCount: data.authorizedChatCount ?? 0,
+    serverDeletedTaskIds: [],
+    serverLastError: undefined,
+    serverLastHeartbeatAt: new Date().toISOString(),
+    serverLastStatus: data.workspaceId,
+    serverUrl,
+  };
+
+  writeConfig(nextConfig);
+  applyTelegramServerSnapshot({ categories: data.categories, deletedTaskIds: data.deletedTaskIds, tasks: data.tasks });
+  return nextConfig;
+};
+
+const resetAfterlightBotServerSessions = async (config: TelegramConfig) => {
+  if (!config.serverClientId || !config.serverClientSecret) {
+    return;
+  }
+
+  const serverUrl = normalizeServerUrl(config.serverUrl);
+  await fetch(`${serverUrl}/api/workspaces/reset-sessions`, {
+    body: JSON.stringify({
+      clientId: config.serverClientId,
+      clientSecret: config.serverClientSecret,
+    }),
+    headers: { 'Content-Type': 'application/json' },
+    method: 'POST',
+  });
+};
+
 const cleanToken = (value: string | undefined) => {
   const cleanValue = value?.trim();
   return cleanValue ? cleanValue : undefined;
 };
+
+const normalizeServerUrl = (_value?: unknown) => DEFAULT_AFTERLIGHT_BOT_SERVER_URL;
 
 const normalizeBotMode = (value: unknown): TelegramBotMode => (value === 'afterlight' ? 'afterlight' : 'custom');
 

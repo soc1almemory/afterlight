@@ -1,0 +1,9 @@
+name = "afterlight-task-bot"
+main = "src/index.js"
+compatibility_date = "2025-06-15"
+workers_dev = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "afterlight_bot"
+database_id = "7ec77d8a-1d88-477f-b418-6a02c82fa27c"

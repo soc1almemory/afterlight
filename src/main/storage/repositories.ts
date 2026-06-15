@@ -411,6 +411,110 @@ export const deleteTasks = (taskIds: string[]): string[] => {
   return deletedTaskIds;
 };
 
+export const applyTelegramServerSnapshot = (input: { categories?: Category[]; deletedTaskIds?: string[]; tasks?: Task[] }): AppData => {
+  const database = getDatabase();
+  const workspaceId = getActiveWorkspaceId();
+
+  const applySnapshot = database.transaction(() => {
+    const upsertCategory = database.prepare(
+      `INSERT INTO categories (id, workspace_id, title, color, icon_mode, emoji, is_favorite, updated_at)
+       VALUES (@id, @workspaceId, @title, @color, @iconMode, @emoji, @isFavorite, @updatedAt)
+       ON CONFLICT(id) DO UPDATE SET
+         title = excluded.title,
+         color = excluded.color,
+         icon_mode = excluded.icon_mode,
+         emoji = excluded.emoji,
+         is_favorite = excluded.is_favorite,
+         updated_at = CASE
+           WHEN categories.title IS NOT excluded.title
+             OR categories.color IS NOT excluded.color
+             OR categories.icon_mode IS NOT excluded.icon_mode
+             OR categories.emoji IS NOT excluded.emoji
+             OR categories.is_favorite IS NOT excluded.is_favorite
+           THEN excluded.updated_at
+           ELSE categories.updated_at
+         END`,
+    );
+
+    for (const category of input.categories ?? []) {
+      if (!category.id || !category.title.trim()) {
+        continue;
+      }
+
+      upsertCategory.run({
+        id: category.id,
+        workspaceId,
+        title: category.title.trim(),
+        color: normalizeColor(category.color),
+        emoji: cleanOptional(category.emoji) ?? null,
+        iconMode: normalizeIconMode(category.iconMode, category.emoji),
+        isFavorite: Number(category.isFavorite),
+        updatedAt: normalizeImportedTimestamp(category.updatedAt),
+      });
+    }
+
+    const upsertTask = database.prepare(
+      `INSERT INTO tasks (id, workspace_id, title, description, due_date, due_at, priority, status, scope, category_id, is_expired, updated_at)
+       VALUES (@id, @workspaceId, @title, @description, @dueDate, @dueLabel, @priority, @status, @scope, @categoryId, @isExpired, @updatedAt)
+       ON CONFLICT(id) DO UPDATE SET
+         title = excluded.title,
+         description = excluded.description,
+         due_date = excluded.due_date,
+         due_at = excluded.due_at,
+         priority = excluded.priority,
+         status = excluded.status,
+         scope = excluded.scope,
+         category_id = excluded.category_id,
+         is_expired = excluded.is_expired,
+         updated_at = CASE
+           WHEN tasks.title IS NOT excluded.title
+             OR tasks.description IS NOT excluded.description
+             OR tasks.due_date IS NOT excluded.due_date
+             OR tasks.due_at IS NOT excluded.due_at
+             OR tasks.priority IS NOT excluded.priority
+             OR tasks.status IS NOT excluded.status
+             OR tasks.scope IS NOT excluded.scope
+             OR tasks.category_id IS NOT excluded.category_id
+           THEN excluded.updated_at
+           ELSE tasks.updated_at
+         END`,
+    );
+
+    for (const task of input.tasks ?? []) {
+      if (!task.id || !task.title.trim()) {
+        continue;
+      }
+
+      const categoryId = cleanOptional(task.categoryId);
+      upsertTask.run({
+        id: task.id,
+        workspaceId,
+        title: task.title.trim(),
+        description: cleanOptional(task.description) ?? null,
+        dueDate: normalizeDate(task.dueDate) ?? null,
+        dueLabel: normalizeDueTime(task.dueLabel) ?? null,
+        priority: normalizePriority(task.priority),
+        status: task.status === 'completed' ? 'completed' : 'active',
+        scope: normalizeScope(task.scope),
+        categoryId: categoryId && getCategory(categoryId) ? categoryId : null,
+        isExpired: Number(Boolean(task.isExpired)),
+        updatedAt: normalizeImportedTimestamp(task.updatedAt),
+      });
+    }
+
+    const deletedTaskIds = [...new Set((input.deletedTaskIds ?? []).filter(Boolean))];
+    for (const taskId of deletedTaskIds) {
+      database
+        .prepare('DELETE FROM tasks WHERE id = @taskId AND workspace_id = @workspaceId')
+        .run({ taskId, workspaceId });
+    }
+  });
+
+  applySnapshot();
+  refreshTaskExpiration();
+  return listAppData();
+};
+
 export const updateNote = (scope: TaskScope, text: string, categoryId?: string): Note => {
   const cleanCategoryId = cleanOptional(categoryId);
   const workspaceId = getActiveWorkspaceId();
@@ -750,6 +854,12 @@ const clampNumber = (value: number | undefined, min: number, max: number, fallba
 const normalizeTime = (value: string | undefined) => {
   const cleanValue = value?.trim();
   return cleanValue && /^\d{2}:\d{2}$/.test(cleanValue) ? cleanValue : defaultSettings.todayRefreshTime;
+};
+
+const normalizeImportedTimestamp = (value: string | undefined) => {
+  const cleanValue = value?.trim();
+  const date = cleanValue ? new Date(cleanValue.includes('T') ? cleanValue : `${cleanValue.replace(' ', 'T')}Z`) : undefined;
+  return date && !Number.isNaN(date.getTime()) ? cleanValue : new Date().toISOString();
 };
 
 const normalizeOneOf = <T extends string>(value: string | undefined, allowed: T[], fallback: T) =>

@@ -29,6 +29,7 @@ import {
   updateTask,
   updateWorkspace,
 } from '../storage/repositories';
+import { rememberTelegramDeletedTasks } from '../telegram/bot';
 
 interface RegisterTaskIpcHandlersOptions {
   onProfileReset?: () => void;
@@ -145,10 +146,15 @@ export const registerTaskIpcHandlers = (options: RegisterTaskIpcHandlersOptions 
       throw new Error(`Task "${taskId}" was not found.`);
     }
 
+    rememberTelegramDeletedTasks([taskId]);
     return taskId;
   });
 
-  ipcMain.handle('tasks:delete-many', (_event, taskIds: string[]) => deleteTasks(taskIds));
+  ipcMain.handle('tasks:delete-many', (_event, taskIds: string[]) => {
+    const deletedTaskIds = deleteTasks(taskIds);
+    rememberTelegramDeletedTasks(deletedTaskIds);
+    return deletedTaskIds;
+  });
 
   ipcMain.handle('notes:update', (_event, input: { scope: TaskScope; text: string; categoryId?: string }) =>
     updateNote(input.scope, input.text, input.categoryId),

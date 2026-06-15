@@ -185,7 +185,7 @@ const settingsCopy = {
         connectionFailed: 'Не удалось подключиться к Telegram. Повторная попытка будет выполнена автоматически.',
         forbidden: 'Telegram запретил доступ к чату. Откройте чат с ботом и запустите его снова.',
         rateLimited: 'Telegram временно ограничил запросы. Подождите немного и попробуйте снова.',
-        serverNotRunning: 'Afterlight Bot server не запущен.',
+        serverNotRunning: 'Afterlight Bot недоступен.',
         tokenMissing: 'Токен Telegram-бота не настроен.',
         unauthorized: 'Telegram не принял токен бота. Проверьте токен в настройках.',
       },
@@ -365,7 +365,7 @@ const settingsCopy = {
         connectionFailed: 'Could not connect to Telegram. The app will retry automatically.',
         forbidden: 'Telegram denied access to the chat. Open the bot chat and start it again.',
         rateLimited: 'Telegram temporarily limited requests. Wait a bit and try again.',
-        serverNotRunning: 'Afterlight Bot server is not running.',
+        serverNotRunning: 'Afterlight Bot is unavailable.',
         tokenMissing: 'Telegram bot token is not configured.',
         unauthorized: 'Telegram rejected the bot token. Check the token in settings.',
       },
@@ -402,7 +402,7 @@ const localizeTelegramStatusMessage = (message: string | undefined, copy: Telegr
 
   const normalizedMessage = message.toLocaleLowerCase();
 
-  if (message === 'Afterlight Bot server is not running.') {
+  if (message === 'Afterlight Bot server is not running.' || message === 'Afterlight Bot is unavailable.') {
     return copy.errors.serverNotRunning;
   }
 
@@ -849,6 +849,7 @@ const TelegramSettings = () => {
         window.afterlightApi!.configureTelegram({
           botMode,
           enabled,
+          serverUrl: undefined,
           token: isAfterlightBotMode ? undefined : token.trim() || undefined,
         }),
       isAfterlightBotMode ? copy.telegram.saveServer : copy.telegram.saved,

@@ -13,6 +13,9 @@
     "make": "electron-forge make",
     "build": "tsc --noEmit && electron-forge package",
     "bot:server": "node afterlight-bot-server/server.mjs",
+    "bot:worker:deploy": "npm --prefix afterlight-bot-worker run deploy",
+    "bot:worker:dev": "npm --prefix afterlight-bot-worker run dev",
+    "bot:worker:init-db": "npm --prefix afterlight-bot-worker run d1:init:remote",
     "lint": "tsc --noEmit"
   },
   "dependencies": {

@@ -22,6 +22,7 @@ import {
   notifyTelegramDeadline,
   resetTelegramSessions,
   restartTelegramBot,
+  scheduleAfterlightBotSync,
   stopTelegramBot,
   testTelegramBotConnection,
   updateTelegramBotConfig,
@@ -46,6 +47,7 @@ let tray: Tray | null = null;
 let isQuitting = false;
 let notificationInterval: NodeJS.Timeout | undefined;
 let backupInterval: NodeJS.Timeout | undefined;
+let telegramSyncInterval: NodeJS.Timeout | undefined;
 let dataWatcher: fs.FSWatcher | undefined;
 let dataChangedTimer: NodeJS.Timeout | undefined;
 const notifiedKeys = new Set<string>();
@@ -111,6 +113,7 @@ configureTelegramBotRuntime({
 const createWindow = async () => {
   await initializeDatabase();
   startExternalDataWatcher();
+  startTelegramSyncLoop();
   const appData = listAppData();
   const settings = appData.settings;
   const shouldOpenSetupMaximized = !appData.profile.isSetupComplete;
@@ -166,6 +169,10 @@ app.on('second-instance', () => {
 
 app.on('before-quit', () => {
   isQuitting = true;
+  if (telegramSyncInterval) {
+    clearInterval(telegramSyncInterval);
+    telegramSyncInterval = undefined;
+  }
   stopAutoUpdateChecks();
   stopTelegramBot();
   stopExternalDataWatcher();
@@ -373,6 +380,8 @@ const sendQuickAction = (action: SystemQuickAction) => {
 };
 
 const notifyRendererDataChanged = () => {
+  scheduleAfterlightBotSync();
+
   if (dataChangedTimer) {
     clearTimeout(dataChangedTimer);
   }
@@ -417,6 +426,14 @@ const stopExternalDataWatcher = () => {
 
   dataWatcher?.close();
   dataWatcher = undefined;
+};
+
+const startTelegramSyncLoop = () => {
+  if (telegramSyncInterval) {
+    clearInterval(telegramSyncInterval);
+  }
+
+  telegramSyncInterval = setInterval(() => scheduleAfterlightBotSync(0), 15000);
 };
 
 const scheduleNotifications = (settings: AppSettings) => {
