@@ -25,6 +25,7 @@ import {
   restartTelegramBot,
   scheduleAfterlightBotSync,
   stopTelegramBot,
+  syncAfterlightBotWorkspace,
   testTelegramBotConnection,
   updateTelegramBotConfig,
 } from './telegram/bot';
@@ -159,6 +160,7 @@ const createWindow = async () => {
   applySystemSettings();
   configureAutoUpdates(() => mainWindow);
   void restartTelegramBot();
+  void syncAfterlightBotWorkspace();
 };
 
 app.whenReady().then(createWindow);
