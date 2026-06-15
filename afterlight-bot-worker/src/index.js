@@ -1,5 +1,5 @@
 const BOT_USERNAME = 'afterlight_task_bot';
-const TASK_LIST_LIMIT = 8;
+const TASK_LIST_LIMIT = 30;
 const BOT_MESSAGE_HISTORY_LIMIT = 20;
 const BOT_TIMEZONE_OFFSET_MINUTES = 180;
 const CATEGORY_COLORS = ['#7c65ff', '#ffb84d', '#45c27a', '#4aa3ff', '#f06795', '#9b7cff'];
@@ -508,9 +508,11 @@ async function startCategoryFlow(chatId, language, env) {
 async function sendTaskList(chatId, filter, language, env) {
   const session = await getSession(chatId, env);
   const categories = await listCategories(session.workspace_id, env);
-  const tasks = (await getVisibleTasks(filter, session.workspace_id, env)).slice(0, TASK_LIST_LIMIT);
+  const timezoneOffsetMinutes = getSessionTimezoneOffset(session);
+  const allTasks = sortTasksForDisplay(await getVisibleTasks(filter, session.workspace_id, env));
+  const tasks = allTasks.slice(0, TASK_LIST_LIMIT);
   const title = getTaskListTitle(filter, categories, language);
-  const text = tasks.length ? `${title}\n\n${tasks.map((task, index) => formatTaskLine(task, index, categories)).join('\n')}` : `${title}\n\n${getCopy(language).text.emptyList}`;
+  const text = formatTaskListText({ categories, filter, language, tasks, timezoneOffsetMinutes, title, totalCount: allTasks.length });
   await sendMessage(chatId, text, buildTaskListKeyboard(tasks, filter, language), env);
 }
 
@@ -528,7 +530,7 @@ async function sendCategories(chatId, language, env) {
 async function sendWeekDayPicker(chatId, language, env) {
   const session = await getSession(chatId, env);
   const timezoneOffsetMinutes = getSessionTimezoneOffset(session);
-  const rows = chunkRows(currentWeekDates(timezoneOffsetMinutes).map((date) => ({ callback_data: `week:add:${date}`, text: formatWeekPickerDate(date, language, timezoneOffsetMinutes) })), 2);
+  const rows = chunkRows(currentWeekDates(timezoneOffsetMinutes).map((date) => ({ callback_data: `week:add:${date}`, text: formatWeekPickerDateV2(date, language, timezoneOffsetMinutes) })), 2);
   await sendMessage(chatId, getCopy(language).text.weekDayPrompt, { inline_keyboard: [...rows, ...buildCancelRows(language)] }, env);
 }
 
@@ -567,7 +569,7 @@ async function listCategories(workspaceId, env) {
 
 async function listTasks(workspaceId, env) {
   await refreshTaskExpiration(workspaceId, env);
-  const result = await env.DB.prepare('SELECT id, title, description, due_date, due_at, priority, status, scope, category_id, is_expired, updated_at FROM tasks WHERE workspace_id = ? ORDER BY status ASC, due_date ASC, created_at DESC').bind(workspaceId).all();
+  const result = await env.DB.prepare('SELECT id, title, description, due_date, due_at, priority, status, scope, category_id, is_expired, updated_at FROM tasks WHERE workspace_id = ? ORDER BY status ASC, priority ASC, due_date ASC, due_at ASC, created_at DESC').bind(workspaceId).all();
   return (result.results ?? []).map(mapTask);
 }
 
@@ -620,7 +622,7 @@ async function getVisibleTasks(filter, workspaceId, env) {
   return tasks.filter((task) => {
     if (filter.scope === 'category') return task.categoryId === filter.categoryId;
     if (filter.scope === 'today') return task.scope === 'today' || task.dueDate === today || Boolean(task.dueDate && task.dueDate < today);
-    if (filter.scope === 'week') return task.scope === 'week' || Boolean(task.dueDate && weekDates.includes(task.dueDate));
+    if (filter.scope === 'week') return task.dueDate ? weekDates.includes(task.dueDate) : task.scope === 'week';
     return task.scope === 'inbox';
   });
 }
@@ -801,16 +803,97 @@ async function formatCreatedTask(task, language, workspaceId, env) {
   return `${getCopy(language).text.createdPrefix}\n${formatTaskLine(task, 0, await listCategories(workspaceId, env)).replace('1. ', '')}`;
 }
 
-function formatTaskLine(task, index, categories) {
-  const category = categories.find((item) => item.id === task.categoryId);
-  const meta = [category ? `#${category.title}` : undefined, formatTaskDue(task)].filter(Boolean).join(' · ');
-  return meta ? `${index + 1}. ${formatPriority(task)} ${task.title}\n   ${meta}` : `${index + 1}. ${formatPriority(task)} ${task.title}`;
+function formatTaskListText({ categories, filter, language, tasks, timezoneOffsetMinutes, title, totalCount }) {
+  if (!tasks.length) return `${title}\n\n${getCopy(language).text.emptyList}`;
+  const body = filter.scope === 'week'
+    ? formatWeekTaskList(tasks, categories, language, timezoneOffsetMinutes)
+    : tasks.map((task, index) => formatTaskLine(task, index, categories)).join('\n');
+  return [title, '', body, formatListLimitNotice(language, tasks.length, totalCount)].filter(Boolean).join('\n');
 }
 
-function formatTaskDue(task) {
-  if (!task.dueDate && !task.dueLabel) return undefined;
-  return [task.dueDate ? formatDate(task.dueDate) : undefined, task.dueLabel].filter(Boolean).join(' ');
+function formatWeekTaskList(tasks, categories, language, timezoneOffsetMinutes) {
+  const weekDates = currentWeekDates(timezoneOffsetMinutes);
+  const sections = [];
+  let visibleIndex = 0;
+  for (const date of weekDates) {
+    const dateTasks = tasks.filter((task) => task.dueDate === date);
+    if (!dateTasks.length) continue;
+    sections.push([
+      formatWeekSectionTitle(date, language, timezoneOffsetMinutes),
+      ...dateTasks.map((task) => formatTaskLine(task, visibleIndex++, categories, { hideDueDate: true })),
+    ].join('\n'));
+  }
+  const undatedTasks = tasks.filter((task) => !task.dueDate);
+  if (undatedTasks.length) {
+    sections.push([
+      language === 'en' ? 'No date' : 'Без даты',
+      ...undatedTasks.map((task) => formatTaskLine(task, visibleIndex++, categories)),
+    ].join('\n'));
+  }
+  return sections.join('\n\n');
 }
+
+function formatTaskLine(task, index, categories, options = {}) {
+  const category = categories.find((item) => item.id === task.categoryId);
+  const meta = [category ? `#${category.title}` : undefined, formatTaskDue(task, options)].filter(Boolean).join(' · ');
+  return meta ? `${index + 1}. ${formatPriority(task)} ${task.title} · ${meta}` : `${index + 1}. ${formatPriority(task)} ${task.title}`;
+}
+
+function formatTaskDue(task, options = {}) {
+  if (!task.dueDate && !task.dueLabel) return undefined;
+  return [task.dueDate && !options.hideDueDate ? formatDate(task.dueDate) : undefined, task.dueLabel].filter(Boolean).join(' ');
+}
+
+function formatListLimitNotice(language, shownCount, totalCount) {
+  if (totalCount <= shownCount) return undefined;
+  return language === 'en' ? `\nShown ${shownCount} of ${totalCount}.` : `\nПоказано ${shownCount} из ${totalCount}.`;
+}
+
+function sortTasksForDisplay(tasks) {
+  return [...tasks].sort((left, right) => {
+    const statusDiff = taskStatusRank(left) - taskStatusRank(right);
+    if (statusDiff) return statusDiff;
+    const priorityDiff = normalizePriority(left.priority) - normalizePriority(right.priority);
+    if (priorityDiff) return priorityDiff;
+    const dueDateDiff = compareOptionalText(left.dueDate, right.dueDate);
+    if (dueDateDiff) return dueDateDiff;
+    const dueTimeDiff = compareOptionalText(left.dueLabel, right.dueLabel);
+    if (dueTimeDiff) return dueTimeDiff;
+    return left.title.localeCompare(right.title);
+  });
+}
+
+function taskStatusRank(task) {
+  return task.status === 'completed' ? 1 : 0;
+}
+
+function compareOptionalText(left, right) {
+  if (left && right) return left.localeCompare(right);
+  if (left) return -1;
+  if (right) return 1;
+  return 0;
+}
+
+function formatWeekSectionTitle(value, language, timezoneOffsetMinutes = BOT_TIMEZONE_OFFSET_MINUTES) {
+  const isToday = value === todayKey(timezoneOffsetMinutes);
+  const marker = isToday ? '▶ ' : '';
+  const todayLabel = isToday ? (language === 'en' ? ' · today' : ' · сегодня') : '';
+  return `${marker}${formatShortDate(value)} ${getWeekdayLabel(value, language)}${todayLabel}`;
+}
+
+function getWeekdayLabel(value, language) {
+  const [year, month, day] = value.split('-').map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  const ru = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+  const en = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  return (language === 'en' ? en : ru)[date.getUTCDay()];
+}
+
+function formatWeekPickerDateV2(value, language, timezoneOffsetMinutes = BOT_TIMEZONE_OFFSET_MINUTES) {
+  const label = `${formatShortDate(value)} ${getWeekdayLabel(value, language)}`;
+  return value === todayKey(timezoneOffsetMinutes) ? `▶ ${label}${language === 'en' ? ' today' : ' сегодня'}` : label;
+}
+
 function formatTaskTarget(scope, language, dueDate, category, timezoneOffsetMinutes = BOT_TIMEZONE_OFFSET_MINUTES) {
   if (category) return `#${category.title}`;
   if (dueDate === todayKey(timezoneOffsetMinutes)) return getCopy(language).title.today.replace(/^.\s/, '');
