@@ -1,6 +1,6 @@
-# Afterlight v0.2.6
+# Afterlight v0.2.7
 
-The v0.2.6 update improves task handling via Telegram, search and navigation, and fixes several interface details.
+Update v0.2.7 fixes profile reset issues and includes fixes to the bot’s list sorting.
 
 ## Help and Changelog
 
@@ -8,25 +8,9 @@ The v0.2.6 update improves task handling via Telegram, search and navigation, an
 
 ## Telegram
 
-- Increased the task list limit from 8 to 30.
-- Added task sorting: active tasks appear above completed ones, then priority **1 → 2 → 3 → no priority**, followed by date and time.
-- The “Week” section is now grouped by day.
-- When selecting a day of the week to add a task, weekdays are now shown as well, not just dates.
+- Fixed list sorting issues.
 
-## Search and Navigation
+# Профиль
 
-- Fixed behavior: clicking a task now navigates to its source.
-- Added a short task highlight when navigating from search.
-- Added automatic scrolling of the workspace to the top when navigating from search.
-
-## Categories and Tabs
-
-- Added automatic scrolling of the workspace to the top on double-click.
-
-## Design
-
-- Changed the counter colors in the sidebar.
-
-## Dark Theme and Icons
-
-- Fixed the task icon in the search menu when using the dark theme.
+- When deleting a profile, a separate hard reset of the Telegram integration is now triggered instead of the regular “session reset”.
+- It disables Telegram, clears the old serverClientId/serverClientSecret/linkCode, sessions, pending auth, deleted markers, token/chat data, and prevents the app from reconnecting to the old Cloudflare workspace.
