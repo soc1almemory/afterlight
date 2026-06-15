@@ -9,7 +9,13 @@ LAN/IP addresses manually.
 
 For a small MVP/demo, Cloudflare Workers Free + D1 Free is enough for a couple of
 users. The worker gets a public `workers.dev` URL, and D1 stores registered
-Afterlight clients, Telegram chats, categories, tasks, and deleted-task markers.
+Afterlight clients, Telegram chats, categories, tasks, and task/category
+deletion markers.
+
+Deletion markers are part of the sync contract. Desktop clients send
+`deletedTaskIds` and `deletedCategoryIds`, and the Worker keeps matching
+`deleted_tasks` / `deleted_categories` rows so stale snapshots cannot recreate
+items that were removed in the app.
 
 ## One-Time Deploy
 

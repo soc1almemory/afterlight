@@ -29,6 +29,7 @@ The app stores its main data locally in SQLite, uses an Electron + React interfa
 - **Settings** - account, language, theme, notifications, sidebar, Telegram, and backup settings.
 - **Notifications** - Windows reminders for deadlines, overdue tasks, and Today page refresh.
 - **Telegram integration** - task creation, task lists, categories, completion, deletion, language choice, and deadline reminders.
+- **Conflict-safe bot sync** - task/category deletions use tombstone markers and timestamp-aware merging so old bot snapshots do not restore removed data.
 - **Telegram session control** - connected chat count, session reset, pairing code, and localized status messages.
 - **Import / Export / Backup** - JSON/CSV export, validated JSON import, and automatic SQLite backups.
 - **App updates** - installed Windows builds can check GitHub Releases, download updates, and prompt for restart.
@@ -171,7 +172,7 @@ The app shows the number of authorized Telegram chats in Afterlight Bot mode. If
 
 In `Afterlight Bot` mode, `chat_id` is intentionally hidden from the status area because the mode can handle multiple chats. In `Own token` mode, `chat_id` is still shown because that mode remains one-chat oriented.
 
-Tasks and categories created through Telegram are synchronized back into the local SQLite database. The Cloudflare Worker acts as a bridge for Telegram, not as a full cloud account system.
+Tasks and categories created through Telegram are synchronized back into the local SQLite database. Edits and deletions are reconciled with timestamps and deletion markers (`deleted_tasks` / `deleted_categories`) so stale Worker snapshots do not restore items the desktop app already removed. The Cloudflare Worker acts as a bridge for Telegram, not as a full cloud account system.
 
 Telegram status messages are localized in the UI for known technical errors, including connection failure, rate limit, invalid token, duplicate polling, chat access errors, and unavailable Afterlight Bot service states.
 
@@ -196,7 +197,7 @@ npm run bot:worker:dev
 npm run bot:worker:deploy
 ```
 
-The production Worker stores Telegram-side task data, pairing codes, chat sessions, deletion markers, and workspace metadata in Cloudflare D1. It also stores timezone metadata sent by the desktop app so Telegram date parsing matches the user's Windows time.
+The production Worker stores Telegram-side task data, pairing codes, chat sessions, task/category deletion markers, and workspace metadata in Cloudflare D1. It also stores timezone metadata sent by the desktop app so Telegram date parsing matches the user's Windows time.
 
 ## Telegram Task Format
 
@@ -258,7 +259,7 @@ storage/telegram.json  # Telegram integration config
 
 Telegram tokens for the in-app custom bot mode are stored through Electron `safeStorage` when OS encryption is available.
 
-The Telegram config stores pairing codes, server heartbeat data, session status, pending local-bot metadata, and Cloudflare Worker client credentials. In `Afterlight Bot` mode, task data remains in the local SQLite database and is synchronized through the Worker bridge.
+The Telegram config stores pairing codes, server heartbeat data, session status, pending local-bot metadata, and Cloudflare Worker client credentials. In `Afterlight Bot` mode, task data remains in the local SQLite database and is synchronized through the Worker bridge; local SQLite tombstone tables keep deletions authoritative across sync cycles.
 
 ## Documentation Content
 
