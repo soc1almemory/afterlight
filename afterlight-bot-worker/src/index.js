@@ -831,7 +831,7 @@ const copy = {
     buttons: { addTask: '➕ Добавить задачу', cancel: '❌️ Отмена', categories: '📂 Категории', createCategory: '✍ Создать категорию', deleteTask: '🗑 Удалить', doneTask: '✅ Выполнить', help: '❓ Помощь', inbox: '📥 Входящие', language: '🌐 Язык / Language', restoreTask: '↩️ Вернуть', today: '📅 Сегодня', week: '7️⃣ Неделя' },
     title: { categories: 'Категории:', category: 'Категория', inbox: '📥 Входящие', today: '📅 Сегодня', week: '7️⃣ Неделя' },
     text: {
-      alreadyConnected: 'Afterlight уже подключён. Главное меню открыто.', authCodeInvalid: 'Код не подошёл. Проверьте 6 цифр в настройках Afterlight и отправьте код ещё раз.',
+      alreadyConnected: 'Afterlight уже подключён. Главное меню открыто.\n\nAfterlight is already connected. Main menu is open.', authCodeInvalid: 'Код не подошёл. Проверьте 6 цифр в настройках Afterlight и отправьте код ещё раз.',
       authPrompt: 'Отправьте 6-значный код подключения из настроек Afterlight.\n\nSend the 6-digit pairing code from Afterlight settings.',
       authRequired: 'Сначала подключите этот чат к Afterlight: отправьте /start, затем 6-значный код из настроек приложения.\n\nFirst connect this chat to Afterlight: send /start, then the 6-digit code from app settings.',
       botConnected: 'Afterlight подключён. Теперь можно управлять задачами прямо из Telegram.', cancel: 'Действие отменено.', categoryCreated: (title) => `Категория создана: ${title}`, categoryEmpty: 'Напишите название категории.', categoryExists: (title) => `Категория уже есть: ${title}`,
