@@ -1,12 +1,12 @@
 # User Guide
 
-Afterlight helps you capture tasks quickly, organize them by day and category, keep short notes, search across your workspace, and manage part of your task flow from Telegram.
+Afterlight helps you capture tasks quickly, organize them by day and category, keep short notes, search across your workspace, and manage tasks from Telegram.
 
 ## Main Sections
 
 - **Inbox** - a place for tasks without a specific day. Use it to collect things you will sort later.
 - **Today** - tasks for the current app day. The start of the app day can be configured through the Today refresh time.
-- **Week** - current-week planning by day. Inbox tasks without a date appear at the start of Week and can be moved to a specific day.
+- **Week** - current calendar-week planning by day. The current day is highlighted when the setting is enabled. Tasks without a date can appear at the start of Week and can be moved to a specific day.
 - **Categories** - contexts like Study, Home, Work, or Project. Categories can be added to Favorites.
 
 ## Tasks
@@ -18,6 +18,13 @@ Afterlight helps you capture tasks quickly, organize them by day and category, k
 - The edit button appears when hovering over a task row.
 - In Week, tasks can be moved between days.
 - If overdue display is enabled, active overdue tasks can appear on the Today page.
+
+## Time And Dates
+
+- The Today date depends on the Today refresh time setting.
+- The Week page follows the Windows calendar week.
+- Last modified time reflects real task, category, or note changes, not background synchronization.
+- Search history and recently opened sections show the time when a section was opened.
 
 ## Priorities
 
@@ -77,12 +84,14 @@ Telegram integration is configured in **Settings -> Telegram integration**.
 
 There are two modes:
 
-- **Own token** - a local bot created by the user in BotFather. It works while Afterlight is running on the computer.
-- **Afterlight Bot** - connection mode for `@afterlight_task_bot`. This mode is used to work with Afterlight through the shared bot when the connection is configured and active.
+- **Afterlight Bot** - the main mode for working through the shared `@afterlight_task_bot`. The app uses the built-in Cloudflare server URL, so there is no server address to type manually.
+- **Own token** - a local bot created by the user in BotFather. It works only while Afterlight is running on the computer.
 
-After saving settings, send the bot `/start`, then send the 6-digit code shown by Afterlight as a separate message. If Telegram lets you pass a parameter directly, `/start <code>` is also supported.
+In **Afterlight Bot** mode, click "Save and start", then send the bot `/start` and send the 6-digit code shown by Afterlight as a separate message. If Telegram lets you pass a parameter directly, `/start <code>` is also supported.
 
-In **Afterlight Bot** mode, the status shows the number of connected Telegram chats. If the connection state gets messy, click **Reset sessions** in the Telegram section: the app removes connected chats and pending authorizations, but keeps the integration enabled and keeps the pairing code.
+The status shows the number of connected Telegram chats. If the connection state gets messy, click **Reset sessions**: the app removes connected chats and pending authorizations, but keeps the integration enabled and keeps the pairing code.
+
+Afterlight Bot synchronizes tasks and categories between the app and Telegram through a Cloudflare Worker. The main app database still remains a local SQLite database on your computer.
 
 The bot can:
 
@@ -92,7 +101,8 @@ The bot can:
 - add tasks to a specific category;
 - complete, restore, and delete tasks;
 - switch between Russian and English;
-- show formatting hints.
+- show formatting hints;
+- send Telegram deadline reminders when they are enabled in settings.
 
 ## Telegram Message Format
 
@@ -148,4 +158,4 @@ You can also use `/add task text`.
 
 ## MVP Limitation
 
-Afterlight is currently a local app. Main data is stored on your computer in SQLite. Cloud sync between devices and a full user-account server are not part of the MVP yet.
+Afterlight is currently a local app. Main data is stored on your computer in SQLite. Afterlight Bot uses Cloudflare only as a bridge for the Telegram bot. Full cloud sync between devices and a full user-account server are not part of the MVP yet.
