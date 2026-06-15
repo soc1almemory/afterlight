@@ -9,3 +9,4 @@ coverage
 *.sqlite-wal
 Afterlight_Project.txt
 afterlight-bot-server
+app-liquid-glass.css
