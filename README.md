@@ -2,7 +2,7 @@
 
 ### Local Windows task manager for tasks, notes, categories, notifications, backups, and Telegram integration.
 
-![Version](https://img.shields.io/badge/version-0.2.4-FF5B5B)
+![Version](https://img.shields.io/badge/version-0.2.5-FF5B5B)
 ![Platform](https://img.shields.io/badge/platform-Windows-5B6EFF)
 ![Runtime](https://img.shields.io/badge/runtime-Electron-5BFFD0)
 ![UI](https://img.shields.io/badge/UI-React%20%2B%20TypeScript-FCFFA4)
@@ -14,7 +14,7 @@
 
 **Afterlight** is a lightweight local desktop app for Windows, built as a personal task manager for everyday workflow. It helps organize tasks, notes, categories, deadlines, weekly planning, reminders, and Telegram-based task capture without requiring a cloud account.
 
-The app stores its main data locally in SQLite, uses an Electron + React interface, and exposes a Telegram integration that can work either through a user-created local bot or through the `Afterlight Bot` mode configured in app settings.
+The app stores its main data locally in SQLite, uses an Electron + React interface, and exposes a Telegram integration that can work either through a user-created local bot or through the Cloudflare-backed `Afterlight Bot` mode configured in app settings.
 
 ## Features
 
@@ -43,7 +43,7 @@ The app stores its main data locally in SQLite, uses an Electron + React interfa
 | UI | React 19, CSS |
 | State | Zustand |
 | Database | SQLite, better-sqlite3 |
-| Integration | Telegram Bot API |
+| Integration | Telegram Bot API, Cloudflare Workers, Cloudflare D1 |
 | Platform | Windows |
 
 ## Architecture
@@ -68,7 +68,7 @@ src/
     preload.ts           # secure API exposed to the renderer
     ipc/                 # IPC handlers
     storage/             # SQLite, migrations, repositories
-    telegram/            # in-app Telegram runtime
+    telegram/            # Telegram integration runtime and Cloudflare sync bridge
 
   renderer/
     App.tsx              # main UI shell
@@ -82,7 +82,8 @@ src/
     app-version.json     # app version used by the UI
 
 assets/                  # SVG/PNG/ICO assets
-afterlight-bot-server/   # optional standalone server for @afterlight_task_bot
+afterlight-bot-worker/   # Cloudflare Worker for @afterlight_task_bot
+afterlight-bot-server/   # legacy local standalone bot server
 ```
 
 ## Commands
@@ -102,6 +103,9 @@ npm run package
 
 # Create distributable Windows artifacts
 npm run make
+
+# Deploy the Cloudflare Worker used by Afterlight Bot
+npm run bot:worker:deploy
 ```
 
 After `npm run package`, the unpacked Windows app is created here:
@@ -145,43 +149,54 @@ If Telegram allows a start payload, `/start <code>` is also supported.
 
 ### Afterlight Bot
 
-This mode connects the app to `@afterlight_task_bot`. It is designed for the companion server workflow and uses the same local Afterlight data files when configured.
+This mode connects the app to the shared `@afterlight_task_bot`. It is the recommended mode for normal use.
 
-The companion server lives in:
-
-```text
-afterlight-bot-server/
-```
-
-It can be started from the project root:
-
-```bash
-npm run bot:server
-```
-
-The server reads:
+Afterlight Bot uses a Cloudflare Worker as the Telegram bridge:
 
 ```text
-storage/telegram.json
-storage/afterlight.sqlite
+https://afterlight-task-bot.afterlight.workers.dev
 ```
+
+The URL is built into the app. Users do not need to type a server address, run a local server, expose an IP address, or configure a tunnel.
 
 Connection flow:
 
 1. Open `Settings -> Telegram integration`.
 2. Select `Afterlight Bot`.
 3. Enable the mode and save.
-4. Start the companion server.
-5. Send `/start` to `@afterlight_task_bot`.
-6. Send the 6-digit pairing code shown in Afterlight.
+4. Send `/start` to `@afterlight_task_bot`.
+5. Send the 6-digit pairing code shown in Afterlight as a separate message.
 
-The app shows the number of authorized Telegram chats in server mode. If the connection state becomes messy, use `Reset sessions` in Telegram settings. This clears authorized chats and pending authorizations, but keeps the integration enabled and keeps the pairing code.
+The app shows the number of authorized Telegram chats in Afterlight Bot mode. If the connection state becomes messy, use `Reset sessions` in Telegram settings. This clears authorized chats and pending authorizations, but keeps the integration enabled and keeps the pairing code.
 
 In `Afterlight Bot` mode, `chat_id` is intentionally hidden from the status area because the mode can handle multiple chats. In `Own token` mode, `chat_id` is still shown because that mode remains one-chat oriented.
 
-The app watches local SQLite and Telegram config changes, so tasks and categories created through Telegram can appear in an open Afterlight window without restarting the app.
+Tasks and categories created through Telegram are synchronized back into the local SQLite database. The Cloudflare Worker acts as a bridge for Telegram, not as a full cloud account system.
 
-Telegram status messages are localized in the UI for known technical errors, including server-not-running, connection failure, rate limit, invalid token, duplicate polling, and chat access errors.
+Telegram status messages are localized in the UI for known technical errors, including connection failure, rate limit, invalid token, duplicate polling, chat access errors, and unavailable Afterlight Bot service states.
+
+### Cloudflare Worker
+
+The Worker source lives in:
+
+```text
+afterlight-bot-worker/
+```
+
+Useful commands:
+
+```bash
+# Initialize the remote D1 schema
+npm run bot:worker:init-db
+
+# Run the Worker locally through Wrangler
+npm run bot:worker:dev
+
+# Deploy the Worker
+npm run bot:worker:deploy
+```
+
+The production Worker stores Telegram-side task data, pairing codes, chat sessions, deletion markers, and workspace metadata in Cloudflare D1. It also stores timezone metadata sent by the desktop app so Telegram date parsing matches the user's Windows time.
 
 ## Telegram Task Format
 
@@ -243,7 +258,7 @@ storage/telegram.json  # Telegram integration config
 
 Telegram tokens for the in-app custom bot mode are stored through Electron `safeStorage` when OS encryption is available.
 
-The Telegram config stores pairing codes, server heartbeat data, authorized chat sessions, pending authorizations, and bot status metadata.
+The Telegram config stores pairing codes, server heartbeat data, session status, pending local-bot metadata, and Cloudflare Worker client credentials. In `Afterlight Bot` mode, task data remains in the local SQLite database and is synchronized through the Worker bridge.
 
 ## Documentation Content
 
@@ -258,4 +273,3 @@ This keeps user-facing documentation editable without changing React components.
 ## Current Status
 
 Afterlight is a complete local desktop application with desktop UI, persistent SQLite storage, task sections, notes, settings, themes, search, backups, Markdown Help/Changelog content, Windows notifications, Telegram integration modes, session-aware Telegram status, Electron hardening, validated import, automatic update support, and polished interface animations.
-
