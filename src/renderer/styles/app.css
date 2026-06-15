@@ -3855,6 +3855,21 @@ body.theme-dark .task-meta time.completed {
 }
 
 body.theme-dark .primary-count {
+  color: #ffffff;
+}
+
+body.theme-dark .primary-count.medium {
+  background: #ffdd95;
+  color: #000000;
+}
+
+body.theme-dark .primary-count.high {
+  background: #eab955;
+  color: #000000;
+}
+
+body.theme-dark .primary-count.critical {
+  background: #ff5a5f;
   color: #000000;
 }
 
