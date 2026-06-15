@@ -19,6 +19,7 @@ import {
   deleteTask,
   listAppData,
   listCategories,
+  listDeletedSyncState,
   listTasks,
   toggleTask,
 } from '../storage/repositories';
@@ -56,6 +57,7 @@ interface TelegramConfig {
   serverAuthorizedChatCount?: number;
   serverClientId?: string;
   serverClientSecret?: string;
+  serverDeletedCategoryIds?: string[];
   serverDeletedTaskIds?: string[];
   serverLastError?: string;
   serverLastHeartbeatAt?: string;
@@ -1855,6 +1857,9 @@ const readConfig = (): TelegramConfig => {
       serverAuthorizedChatCount: typeof parsed.serverAuthorizedChatCount === 'number' ? parsed.serverAuthorizedChatCount : undefined,
       serverClientId: typeof parsed.serverClientId === 'string' ? parsed.serverClientId : undefined,
       serverClientSecret: typeof parsed.serverClientSecret === 'string' ? parsed.serverClientSecret : undefined,
+      serverDeletedCategoryIds: Array.isArray(parsed.serverDeletedCategoryIds)
+        ? parsed.serverDeletedCategoryIds.filter((item): item is string => typeof item === 'string')
+        : [],
       serverDeletedTaskIds: Array.isArray(parsed.serverDeletedTaskIds)
         ? parsed.serverDeletedTaskIds.filter((item): item is string => typeof item === 'string')
         : [],
@@ -1916,13 +1921,15 @@ const registerAfterlightBotClient = async (config: TelegramConfig) => {
   const serverClientSecret = config.serverClientSecret ?? crypto.randomUUID();
   const linkCode = getOrCreateLinkCode({ ...config, serverClientId, serverClientSecret, serverUrl });
   const appData = listAppData();
+  const deletedSyncState = listDeletedSyncState();
 
   const response = await fetch(`${serverUrl}/api/workspaces/register`, {
     body: JSON.stringify({
       categories: appData.categories,
       clientId: serverClientId,
       clientSecret: serverClientSecret,
-      deletedTaskIds: config.serverDeletedTaskIds ?? [],
+      deletedCategoryIds: [...new Set([...(config.serverDeletedCategoryIds ?? []), ...deletedSyncState.deletedCategoryIds])],
+      deletedTaskIds: [...new Set([...(config.serverDeletedTaskIds ?? []), ...deletedSyncState.deletedTaskIds])],
       language: appData.settings.language,
       linkCode,
       profileName: appData.profile.name,
@@ -1939,6 +1946,7 @@ const registerAfterlightBotClient = async (config: TelegramConfig) => {
   const data = (await response.json().catch(() => ({}))) as {
     authorizedChatCount?: number;
     categories?: Category[];
+    deletedCategoryIds?: string[];
     deletedTaskIds?: string[];
     error?: string;
     ok?: boolean;
@@ -1959,6 +1967,7 @@ const registerAfterlightBotClient = async (config: TelegramConfig) => {
     serverClientId,
     serverClientSecret,
     serverAuthorizedChatCount: data.authorizedChatCount ?? 0,
+    serverDeletedCategoryIds: [],
     serverDeletedTaskIds: [],
     serverLastError: undefined,
     serverLastHeartbeatAt: new Date().toISOString(),
@@ -1967,7 +1976,12 @@ const registerAfterlightBotClient = async (config: TelegramConfig) => {
   };
 
   writeConfig(nextConfig);
-  applyTelegramServerSnapshot({ categories: data.categories, deletedTaskIds: data.deletedTaskIds, tasks: data.tasks });
+  applyTelegramServerSnapshot({
+    categories: data.categories,
+    deletedCategoryIds: data.deletedCategoryIds,
+    deletedTaskIds: data.deletedTaskIds,
+    tasks: data.tasks,
+  });
   return nextConfig;
 };
 

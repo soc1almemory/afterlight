@@ -96,6 +96,16 @@ interface TaskRow {
   updated_at: string;
 }
 
+interface DeletedCategoryRow {
+  category_id: string;
+  deleted_at: string;
+}
+
+interface DeletedTaskRow {
+  task_id: string;
+  deleted_at: string;
+}
+
 interface NoteRow {
   id: string;
   scope: TaskScope;
@@ -251,9 +261,14 @@ export const deleteCategory = (categoryId: string): boolean => {
     database
       .prepare('DELETE FROM notes WHERE category_id = @categoryId AND workspace_id = @workspaceId')
       .run({ categoryId, workspaceId });
-    return database
+    const result = database
       .prepare('DELETE FROM categories WHERE id = @categoryId AND workspace_id = @workspaceId')
       .run({ categoryId, workspaceId });
+    if (result.changes > 0) {
+      rememberDeletedCategory(categoryId, workspaceId);
+    }
+
+    return result;
   });
 
   const result = remove();
@@ -374,10 +389,20 @@ export const updateTask = (input: UpdateTaskInput): Task | null => {
 };
 
 export const deleteTask = (taskId: string): boolean => {
-  const result = getDatabase()
-    .prepare('DELETE FROM tasks WHERE id = @taskId AND workspace_id = @workspaceId')
-    .run({ taskId, workspaceId: getActiveWorkspaceId() });
-  return result.changes > 0;
+  const database = getDatabase();
+  const workspaceId = getActiveWorkspaceId();
+  const remove = database.transaction(() => {
+    const result = database
+      .prepare('DELETE FROM tasks WHERE id = @taskId AND workspace_id = @workspaceId')
+      .run({ taskId, workspaceId });
+    if (result.changes > 0) {
+      rememberDeletedTask(taskId, workspaceId);
+    }
+
+    return result;
+  });
+
+  return remove().changes > 0;
 };
 
 export const deleteTasks = (taskIds: string[]): string[] => {
@@ -403,6 +428,7 @@ export const deleteTasks = (taskIds: string[]): string[] => {
       }
 
       database.prepare(`DELETE FROM tasks WHERE workspace_id = ? AND id IN (${placeholders})`).run(...params);
+      existingRows.forEach((row) => rememberDeletedTask(row.id, workspaceId));
       deletedTaskIds.push(...existingRows.map((row) => row.id));
     });
   });
@@ -411,7 +437,12 @@ export const deleteTasks = (taskIds: string[]): string[] => {
   return deletedTaskIds;
 };
 
-export const applyTelegramServerSnapshot = (input: { categories?: Category[]; deletedTaskIds?: string[]; tasks?: Task[] }): AppData => {
+export const applyTelegramServerSnapshot = (input: {
+  categories?: Category[];
+  deletedCategoryIds?: string[];
+  deletedTaskIds?: string[];
+  tasks?: Task[];
+}): AppData => {
   const database = getDatabase();
   const workspaceId = getActiveWorkspaceId();
 
@@ -433,11 +464,22 @@ export const applyTelegramServerSnapshot = (input: { categories?: Category[]; de
              OR categories.is_favorite IS NOT excluded.is_favorite
            THEN excluded.updated_at
            ELSE categories.updated_at
-         END`,
+         END
+       WHERE datetime(excluded.updated_at) >= datetime(categories.updated_at)`,
     );
 
     for (const category of input.categories ?? []) {
       if (!category.id || !category.title.trim()) {
+        continue;
+      }
+
+      const updatedAt = normalizeImportedTimestamp(category.updatedAt);
+      const deletedAt = getDeletedCategoryAt(category.id, workspaceId);
+      if (deletedAt && compareSyncTimestamps(deletedAt, updatedAt) >= 0) {
+        database.prepare('DELETE FROM categories WHERE id = @categoryId AND workspace_id = @workspaceId').run({
+          categoryId: category.id,
+          workspaceId,
+        });
         continue;
       }
 
@@ -449,7 +491,7 @@ export const applyTelegramServerSnapshot = (input: { categories?: Category[]; de
         emoji: cleanOptional(category.emoji) ?? null,
         iconMode: normalizeIconMode(category.iconMode, category.emoji),
         isFavorite: Number(category.isFavorite),
-        updatedAt: normalizeImportedTimestamp(category.updatedAt),
+        updatedAt,
       });
     }
 
@@ -477,11 +519,19 @@ export const applyTelegramServerSnapshot = (input: { categories?: Category[]; de
              OR tasks.category_id IS NOT excluded.category_id
            THEN excluded.updated_at
            ELSE tasks.updated_at
-         END`,
+         END
+       WHERE datetime(excluded.updated_at) >= datetime(tasks.updated_at)`,
     );
 
     for (const task of input.tasks ?? []) {
       if (!task.id || !task.title.trim()) {
+        continue;
+      }
+
+      const updatedAt = normalizeImportedTimestamp(task.updatedAt);
+      const deletedAt = getDeletedTaskAt(task.id, workspaceId);
+      if (deletedAt && compareSyncTimestamps(deletedAt, updatedAt) >= 0) {
+        database.prepare('DELETE FROM tasks WHERE id = @taskId AND workspace_id = @workspaceId').run({ taskId: task.id, workspaceId });
         continue;
       }
 
@@ -498,8 +548,28 @@ export const applyTelegramServerSnapshot = (input: { categories?: Category[]; de
         scope: normalizeScope(task.scope),
         categoryId: categoryId && getCategory(categoryId) ? categoryId : null,
         isExpired: Number(Boolean(task.isExpired)),
-        updatedAt: normalizeImportedTimestamp(task.updatedAt),
+        updatedAt,
       });
+    }
+
+    const deletedCategoryIds = [...new Set((input.deletedCategoryIds ?? []).filter(Boolean))];
+    for (const categoryId of deletedCategoryIds) {
+      database
+        .prepare(
+          `UPDATE tasks
+           SET category_id = NULL, updated_at = CURRENT_TIMESTAMP
+           WHERE category_id = @categoryId AND workspace_id = @workspaceId`,
+        )
+        .run({ categoryId, workspaceId });
+      database.prepare('DELETE FROM notes WHERE category_id = @categoryId AND workspace_id = @workspaceId').run({
+        categoryId,
+        workspaceId,
+      });
+      database.prepare('DELETE FROM categories WHERE id = @categoryId AND workspace_id = @workspaceId').run({
+        categoryId,
+        workspaceId,
+      });
+      rememberDeletedCategory(categoryId, workspaceId);
     }
 
     const deletedTaskIds = [...new Set((input.deletedTaskIds ?? []).filter(Boolean))];
@@ -507,12 +577,28 @@ export const applyTelegramServerSnapshot = (input: { categories?: Category[]; de
       database
         .prepare('DELETE FROM tasks WHERE id = @taskId AND workspace_id = @workspaceId')
         .run({ taskId, workspaceId });
+      rememberDeletedTask(taskId, workspaceId);
     }
   });
 
   applySnapshot();
   refreshTaskExpiration();
   return listAppData();
+};
+
+export const listDeletedSyncState = () => {
+  const workspaceId = getActiveWorkspaceId();
+  const deletedCategories = getDatabase()
+    .prepare('SELECT category_id, deleted_at FROM deleted_categories WHERE workspace_id = @workspaceId')
+    .all({ workspaceId }) as DeletedCategoryRow[];
+  const deletedTasks = getDatabase()
+    .prepare('SELECT task_id, deleted_at FROM deleted_tasks WHERE workspace_id = @workspaceId')
+    .all({ workspaceId }) as DeletedTaskRow[];
+
+  return {
+    deletedCategoryIds: deletedCategories.map((row) => row.category_id),
+    deletedTaskIds: deletedTasks.map((row) => row.task_id),
+  };
 };
 
 export const updateNote = (scope: TaskScope, text: string, categoryId?: string): Note => {
@@ -592,6 +678,8 @@ export const resetProfile = (): AppData => {
   const profile = getProfile();
   const workspace = getActiveWorkspace();
   const reset = database.transaction(() => {
+    database.prepare('DELETE FROM deleted_tasks WHERE workspace_id = @workspaceId').run({ workspaceId: workspace.id });
+    database.prepare('DELETE FROM deleted_categories WHERE workspace_id = @workspaceId').run({ workspaceId: workspace.id });
     database.prepare('DELETE FROM notes WHERE workspace_id = @workspaceId').run({ workspaceId: workspace.id });
     database.prepare('DELETE FROM tasks WHERE workspace_id = @workspaceId').run({ workspaceId: workspace.id });
     database.prepare('DELETE FROM categories WHERE workspace_id = @workspaceId').run({ workspaceId: workspace.id });
@@ -859,7 +947,50 @@ const normalizeTime = (value: string | undefined) => {
 const normalizeImportedTimestamp = (value: string | undefined) => {
   const cleanValue = value?.trim();
   const date = cleanValue ? new Date(cleanValue.includes('T') ? cleanValue : `${cleanValue.replace(' ', 'T')}Z`) : undefined;
-  return date && !Number.isNaN(date.getTime()) ? cleanValue : new Date().toISOString();
+  return date && !Number.isNaN(date.getTime()) ? cleanValue ?? new Date().toISOString() : new Date().toISOString();
+};
+
+const compareSyncTimestamps = (first: string, second: string) => normalizeSyncTimestamp(first) - normalizeSyncTimestamp(second);
+
+const normalizeSyncTimestamp = (value: string) => {
+  const date = new Date(value.includes('T') ? value : `${value.replace(' ', 'T')}Z`);
+  return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+};
+
+const getDeletedCategoryAt = (categoryId: string, workspaceId: string) => {
+  const row = getDatabase()
+    .prepare('SELECT deleted_at FROM deleted_categories WHERE workspace_id = @workspaceId AND category_id = @categoryId')
+    .get({ categoryId, workspaceId }) as { deleted_at: string } | undefined;
+
+  return row?.deleted_at;
+};
+
+const getDeletedTaskAt = (taskId: string, workspaceId: string) => {
+  const row = getDatabase()
+    .prepare('SELECT deleted_at FROM deleted_tasks WHERE workspace_id = @workspaceId AND task_id = @taskId')
+    .get({ taskId, workspaceId }) as { deleted_at: string } | undefined;
+
+  return row?.deleted_at;
+};
+
+const rememberDeletedCategory = (categoryId: string, workspaceId: string) => {
+  getDatabase()
+    .prepare(
+      `INSERT INTO deleted_categories (workspace_id, category_id, deleted_at)
+       VALUES (@workspaceId, @categoryId, CURRENT_TIMESTAMP)
+       ON CONFLICT(workspace_id, category_id) DO UPDATE SET deleted_at = CURRENT_TIMESTAMP`,
+    )
+    .run({ categoryId, workspaceId });
+};
+
+const rememberDeletedTask = (taskId: string, workspaceId: string) => {
+  getDatabase()
+    .prepare(
+      `INSERT INTO deleted_tasks (workspace_id, task_id, deleted_at)
+       VALUES (@workspaceId, @taskId, CURRENT_TIMESTAMP)
+       ON CONFLICT(workspace_id, task_id) DO UPDATE SET deleted_at = CURRENT_TIMESTAMP`,
+    )
+    .run({ taskId, workspaceId });
 };
 
 const normalizeOneOf = <T extends string>(value: string | undefined, allowed: T[], fallback: T) =>

@@ -87,6 +87,20 @@ export const initializeDatabase = () => {
       FOREIGN KEY(category_id) REFERENCES categories(id)
     );
 
+    CREATE TABLE IF NOT EXISTS deleted_categories (
+      workspace_id TEXT NOT NULL DEFAULT '${DEFAULT_WORKSPACE_ID}',
+      category_id TEXT NOT NULL,
+      deleted_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (workspace_id, category_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS deleted_tasks (
+      workspace_id TEXT NOT NULL DEFAULT '${DEFAULT_WORKSPACE_ID}',
+      task_id TEXT NOT NULL,
+      deleted_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (workspace_id, task_id)
+    );
+
     CREATE TABLE IF NOT EXISTS app_settings (
       workspace_id TEXT PRIMARY KEY,
       settings_json TEXT NOT NULL,
@@ -105,6 +119,8 @@ export const initializeDatabase = () => {
     CREATE INDEX IF NOT EXISTS idx_tasks_workspace ON tasks(workspace_id);
     CREATE INDEX IF NOT EXISTS idx_categories_workspace ON categories(workspace_id);
     CREATE INDEX IF NOT EXISTS idx_notes_workspace ON notes(workspace_id);
+    CREATE INDEX IF NOT EXISTS idx_deleted_categories_workspace ON deleted_categories(workspace_id);
+    CREATE INDEX IF NOT EXISTS idx_deleted_tasks_workspace ON deleted_tasks(workspace_id);
   `);
   return connection;
 };
@@ -213,4 +229,20 @@ const migrateDatabase = (database: Database.Database) => {
   if (!hasNoteWorkspaceColumn) {
     database.exec(`ALTER TABLE notes ADD COLUMN workspace_id TEXT NOT NULL DEFAULT '${DEFAULT_WORKSPACE_ID}'`);
   }
+
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS deleted_categories (
+      workspace_id TEXT NOT NULL DEFAULT '${DEFAULT_WORKSPACE_ID}',
+      category_id TEXT NOT NULL,
+      deleted_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (workspace_id, category_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS deleted_tasks (
+      workspace_id TEXT NOT NULL DEFAULT '${DEFAULT_WORKSPACE_ID}',
+      task_id TEXT NOT NULL,
+      deleted_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (workspace_id, task_id)
+    );
+  `);
 };

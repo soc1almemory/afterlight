@@ -128,6 +128,14 @@ async function ensureSchema(env) {
       )`,
     ),
     env.DB.prepare(
+      `CREATE TABLE IF NOT EXISTS deleted_categories (
+        workspace_id TEXT NOT NULL,
+        category_id TEXT NOT NULL,
+        deleted_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (workspace_id, category_id)
+      )`,
+    ),
+    env.DB.prepare(
       `CREATE TABLE IF NOT EXISTS app_settings (
         workspace_id TEXT PRIMARY KEY,
         settings_json TEXT NOT NULL,
@@ -193,6 +201,7 @@ async function registerWorkspace(input, env) {
     ).bind(language, timezoneName, timezoneOffsetMinutes, workspaceId),
   ]);
 
+  await recordDeletedCategories(Array.isArray(input.deletedCategoryIds) ? input.deletedCategoryIds : [], workspaceId, env);
   await upsertCategories(Array.isArray(input.categories) ? input.categories : [], workspaceId, env);
   await recordDeletedTasks(Array.isArray(input.deletedTaskIds) ? input.deletedTaskIds : [], workspaceId, env);
   await upsertTasks(Array.isArray(input.tasks) ? input.tasks : [], workspaceId, env);
@@ -200,6 +209,7 @@ async function registerWorkspace(input, env) {
   return {
     authorizedChatCount: await countAuthorizedChats(workspaceId, env),
     categories: await listCategories(workspaceId, env),
+    deletedCategoryIds: await listDeletedCategoryIds(workspaceId, env),
     deletedTaskIds: await listDeletedTaskIds(workspaceId, env),
     tasks: await listTasks(workspaceId, env),
     workspaceId,
@@ -373,7 +383,7 @@ async function upsertCategories(categories, workspaceId, env) {
   for (const category of categories) {
     const id = optionalString(category?.id);
     const title = optionalString(category?.title);
-    if (!id || !title) continue;
+    if (!id || !title || (await isDeletedCategory(workspaceId, id, env))) continue;
     const updatedAt = normalizeTimestamp(category.updatedAt);
     await env.DB.prepare(
       `INSERT INTO categories (id, workspace_id, title, color, icon_mode, emoji, is_favorite, updated_at)
@@ -392,7 +402,8 @@ async function upsertCategories(categories, workspaceId, env) {
              OR categories.is_favorite IS NOT excluded.is_favorite
            THEN excluded.updated_at
            ELSE categories.updated_at
-         END`,
+         END
+       WHERE datetime(excluded.updated_at) >= datetime(categories.updated_at)`,
     ).bind(id, workspaceId, title.slice(0, 120), normalizeColor(category.color), normalizeIconMode(category.iconMode, category.emoji), optionalString(category.emoji) ?? null, category.isFavorite ? 1 : 0, updatedAt).run();
   }
 }
@@ -428,8 +439,24 @@ async function upsertTasks(tasks, workspaceId, env) {
              OR tasks.category_id IS NOT excluded.category_id
            THEN excluded.updated_at
            ELSE tasks.updated_at
-         END`,
+         END
+       WHERE datetime(excluded.updated_at) >= datetime(tasks.updated_at)`,
     ).bind(id, workspaceId, title.slice(0, 240), optionalString(task.description) ?? null, normalizeDate(task.dueDate) ?? null, normalizeDueTime(task.dueLabel) ?? null, normalizePriority(task.priority), task.status === 'completed' ? 'completed' : 'active', normalizeScope(task.scope), categoryId ?? null, task.isExpired ? 1 : 0, updatedAt).run();
+  }
+}
+
+async function recordDeletedCategories(categoryIds, workspaceId, env) {
+  const ids = [...new Set(categoryIds.map(optionalString).filter(Boolean))];
+  for (const categoryId of ids) {
+    await env.DB.batch([
+      env.DB.prepare('UPDATE tasks SET category_id = NULL, updated_at = CURRENT_TIMESTAMP WHERE workspace_id = ? AND category_id = ?').bind(workspaceId, categoryId),
+      env.DB.prepare('DELETE FROM categories WHERE workspace_id = ? AND id = ?').bind(workspaceId, categoryId),
+      env.DB.prepare(
+        `INSERT INTO deleted_categories (workspace_id, category_id, deleted_at)
+         VALUES (?, ?, CURRENT_TIMESTAMP)
+         ON CONFLICT(workspace_id, category_id) DO UPDATE SET deleted_at = CURRENT_TIMESTAMP`,
+      ).bind(workspaceId, categoryId),
+    ]);
   }
 }
 
@@ -686,6 +713,15 @@ async function countAuthorizedChats(workspaceId, env) {
 
 async function isDeletedTask(workspaceId, taskId, env) {
   return Boolean(await env.DB.prepare('SELECT task_id FROM deleted_tasks WHERE workspace_id = ? AND task_id = ?').bind(workspaceId, taskId).first());
+}
+
+async function isDeletedCategory(workspaceId, categoryId, env) {
+  return Boolean(await env.DB.prepare('SELECT category_id FROM deleted_categories WHERE workspace_id = ? AND category_id = ?').bind(workspaceId, categoryId).first());
+}
+
+async function listDeletedCategoryIds(workspaceId, env) {
+  const result = await env.DB.prepare('SELECT category_id FROM deleted_categories WHERE workspace_id = ?').bind(workspaceId).all();
+  return (result.results ?? []).map((row) => row.category_id).filter(Boolean);
 }
 
 async function listDeletedTaskIds(workspaceId, env) {

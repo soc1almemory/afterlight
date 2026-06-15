@@ -67,6 +67,13 @@ CREATE TABLE IF NOT EXISTS deleted_tasks (
   PRIMARY KEY (workspace_id, task_id)
 );
 
+CREATE TABLE IF NOT EXISTS deleted_categories (
+  workspace_id TEXT NOT NULL,
+  category_id TEXT NOT NULL,
+  deleted_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (workspace_id, category_id)
+);
+
 CREATE TABLE IF NOT EXISTS app_settings (
   workspace_id TEXT PRIMARY KEY,
   settings_json TEXT NOT NULL,
@@ -78,4 +85,5 @@ CREATE INDEX IF NOT EXISTS idx_chat_sessions_workspace ON chat_sessions(workspac
 CREATE INDEX IF NOT EXISTS idx_categories_workspace ON categories(workspace_id);
 CREATE INDEX IF NOT EXISTS idx_tasks_workspace ON tasks(workspace_id);
 CREATE INDEX IF NOT EXISTS idx_tasks_due_date ON tasks(due_date);
+CREATE INDEX IF NOT EXISTS idx_deleted_categories_workspace ON deleted_categories(workspace_id);
 CREATE INDEX IF NOT EXISTS idx_deleted_tasks_workspace ON deleted_tasks(workspace_id);
