@@ -851,10 +851,10 @@ function formatListLimitNotice(language, shownCount, totalCount) {
 
 function sortTasksForDisplay(tasks) {
   return [...tasks].sort((left, right) => {
-    const statusDiff = taskStatusRank(left) - taskStatusRank(right);
-    if (statusDiff) return statusDiff;
     const priorityDiff = normalizePriority(left.priority) - normalizePriority(right.priority);
     if (priorityDiff) return priorityDiff;
+    const statusDiff = taskStatusRank(left) - taskStatusRank(right);
+    if (statusDiff) return statusDiff;
     const dueDateDiff = compareOptionalText(left.dueDate, right.dueDate);
     if (dueDateDiff) return dueDateDiff;
     const dueTimeDiff = compareOptionalText(left.dueLabel, right.dueLabel);
@@ -936,9 +936,12 @@ const copy = {
 
 function formatGuide(language) { return getCopy(language).guide.join('\n'); }
 function mapCategory(row) { return { id: row.id, title: row.title, color: row.color, emoji: row.emoji ?? undefined, iconMode: normalizeIconMode(row.icon_mode, row.emoji), isFavorite: Boolean(row.is_favorite), updatedAt: row.updated_at ?? undefined }; }
-function mapTask(row) { return { id: row.id, title: row.title, description: row.description ?? undefined, dueDate: row.due_date ?? undefined, dueLabel: row.due_at ?? undefined, priority: row.priority, status: row.status, scope: row.scope, categoryId: row.category_id ?? undefined, isExpired: Boolean(row.is_expired), updatedAt: row.updated_at }; }
+function mapTask(row) { return { id: row.id, title: row.title, description: row.description ?? undefined, dueDate: row.due_date ?? undefined, dueLabel: row.due_at ?? undefined, priority: normalizePriority(row.priority), status: row.status, scope: row.scope, categoryId: row.category_id ?? undefined, isExpired: Boolean(row.is_expired), updatedAt: row.updated_at }; }
 function formatCategoryMarker(category) { return category.iconMode === 'emoji' && category.emoji ? category.emoji : category.iconMode === 'hash' ? '#' : '●'; }
-function formatPriority(task) { return task.priority === 1 ? '🔴' : task.priority === 2 ? '🟡' : task.priority === 3 ? '🟢' : '🔵'; }
+function formatPriority(task) {
+  const priority = normalizePriority(task.priority);
+  return priority === 1 ? '🔴' : priority === 2 ? '🟡' : priority === 3 ? '🟢' : '🔵';
+}
 function isAddIntent(value) { return isMenuButton(value, 'addTask') || /^\/add(?:@\w+)?(?:\s|$)/i.test(value); }
 function isCancelIntent(value) { return isMenuButton(value, 'cancel') || /^\/cancel(?:@\w+)?$/i.test(value); }
 function isCategoriesIntent(value) { return isMenuButton(value, 'categories') || /^\/categories(?:@\w+)?$/i.test(value); }
@@ -959,7 +962,10 @@ function normalizeIconMode(value, emoji) { return value === 'emoji' && optionalS
 function normalizeColor(value) { return typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value.trim()) ? value.trim() : '#7c65ff'; }
 function normalizeDate(value) { const clean = optionalString(value); return clean && /^\d{4}-\d{2}-\d{2}$/.test(clean) && isValidDateKey(clean) ? clean : undefined; }
 function normalizeDueTime(value) { const clean = optionalString(value); return clean && /^\d{2}:\d{2}$/.test(clean) ? clean : undefined; }
-function normalizePriority(value) { return value === 1 || value === 2 || value === 3 || value === 4 ? value : 4; }
+function normalizePriority(value) {
+  const priority = Number(value);
+  return priority === 1 || priority === 2 || priority === 3 || priority === 4 ? priority : 4;
+}
 function normalizeScope(value) { return value === 'today' || value === 'week' || value === 'category' ? value : 'inbox'; }
 function normalizeTimezoneOffset(value) { const offset = Number(value); return Number.isFinite(offset) && offset >= -840 && offset <= 840 ? Math.trunc(offset) : BOT_TIMEZONE_OFFSET_MINUTES; }
 function normalizeTimestamp(value) { const clean = optionalString(value); const date = clean ? new Date(clean.includes('T') ? clean : `${clean.replace(' ', 'T')}Z`) : undefined; return date && !Number.isNaN(date.getTime()) ? clean : new Date().toISOString(); }
