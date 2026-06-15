@@ -3600,7 +3600,11 @@ body.theme-dark .settings-action button {
   color: #ffffff;
 }
 
-body.theme-dark .bottom-menu-button:hover,
+body.theme-dark .bottom-menu-button:hover{
+  background: #242424;
+  color: #ffffff;
+}
+
 body.theme-dark .control-actions button:hover,
 body.theme-dark .task-panel-heading button:hover,
 body.theme-dark .control-menu button:hover,
