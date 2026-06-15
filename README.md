@@ -84,7 +84,6 @@ src/
 
 assets/                  # SVG/PNG/ICO assets
 afterlight-bot-worker/   # Cloudflare Worker for @afterlight_task_bot
-afterlight-bot-server/   # legacy local standalone bot server
 ```
 
 ## Commands
