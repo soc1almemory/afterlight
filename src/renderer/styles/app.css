@@ -1095,11 +1095,11 @@ body.theme-dark .menu-section-actions button:hover {
 }
 
 .primary-count.medium {
-  background: #ffc64a;
+  background: #ffdd95;
 }
 
 .primary-count.high {
-  background: #d69618;
+  background: #eab955;
 }
 
 .primary-count.critical {
@@ -3855,7 +3855,7 @@ body.theme-dark .task-meta time.completed {
 }
 
 body.theme-dark .primary-count {
-  color: #ffffff;
+  color: #000000;
 }
 
 body.theme-dark .primary-count.low {
