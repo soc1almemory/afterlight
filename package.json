@@ -1,6 +1,6 @@
 {
   "name": "afterlight",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "Afterlight — lightweight Windows task manager",
   "main": ".vite/build/main.js",
   "author": "Afterlight",
