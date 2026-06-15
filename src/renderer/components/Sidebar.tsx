@@ -11,6 +11,7 @@ interface SidebarProps {
   onMouseEnter?: () => void;
   onOpenInfo: (kind: 'changelog' | 'help') => void;
   onOpenSearch: () => void;
+  onOpenSection: () => void;
   onOpenSettings: () => void;
   onOpenTelegramSettings: () => void;
 }
@@ -27,6 +28,7 @@ export const Sidebar = ({
   onMouseEnter,
   onOpenInfo,
   onOpenSearch,
+  onOpenSection,
   onOpenSettings,
   onOpenTelegramSettings,
 }: SidebarProps) => {
@@ -108,6 +110,7 @@ export const Sidebar = ({
                 key={item.scope}
                 type="button"
                 onClick={() => setScope(item.scope)}
+                onDoubleClick={onOpenSection}
               >
                 <img src={assetUrl(item.icon)} alt="" />
                 <span>{t(item.labelKey)}</span>
@@ -125,6 +128,7 @@ export const Sidebar = ({
           isOpen={isFavoritesOpen}
           onAddCategory={onAddCategory}
           onEditCategory={onEditCategory}
+          onOpenSection={onOpenSection}
           onToggle={() => setFavoritesOpen((value) => !value)}
           title={t('favorite')}
           activeCategoryId={activeCategoryId}
@@ -139,6 +143,7 @@ export const Sidebar = ({
           isOpen={isCategoriesOpen}
           onAddCategory={onAddCategory}
           onEditCategory={onEditCategory}
+          onOpenSection={onOpenSection}
           onToggle={() => setCategoriesOpen((value) => !value)}
           title={t('categories')}
           activeCategoryId={activeCategoryId}
@@ -208,6 +213,7 @@ const CategorySection = ({
   isOpen,
   onAddCategory,
   onEditCategory,
+  onOpenSection,
   onToggle,
   setActiveCategory,
   settings,
@@ -221,6 +227,7 @@ const CategorySection = ({
   isOpen: boolean;
   onAddCategory: () => void;
   onEditCategory: (category: Category) => void;
+  onOpenSection: () => void;
   onToggle: () => void;
   setActiveCategory: (categoryId: string) => void;
   settings: ReturnType<typeof useTaskStore.getState>['settings'];
@@ -259,7 +266,12 @@ const CategorySection = ({
               }
               key={category.id}
             >
-              <button className="category-nav-button" type="button" onClick={() => setActiveCategory(category.id)}>
+              <button
+                className="category-nav-button"
+                type="button"
+                onClick={() => setActiveCategory(category.id)}
+                onDoubleClick={onOpenSection}
+              >
                 <CategoryMarker category={category} />
                 <span className="category-name">{category.title}</span>
                 {settings.showCategoryCounts ? <span className="category-count">{taskCount}</span> : null}

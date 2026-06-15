@@ -173,6 +173,19 @@ body {
   }
 }
 
+@keyframes task-search-highlight {
+  0%,
+  72% {
+    background: var(--task-highlight-bg);
+    box-shadow: 0 0 0 6px var(--task-highlight-bg), 0 0 0 8px var(--task-highlight-ring);
+  }
+
+  100% {
+    background: transparent;
+    box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
+  }
+}
+
 @keyframes setup-screen-leave {
   from {
     opacity: 1;
@@ -1662,6 +1675,14 @@ body.theme-dark .week-day-add:hover {
   transform: scale(0.995);
 }
 
+.task-row.highlighted {
+  --task-highlight-bg: rgba(255, 214, 102, 0.34);
+  --task-highlight-ring: rgba(198, 143, 0, 0.34);
+  border-radius: 8px;
+  animation: task-search-highlight 1000ms ease-out both;
+  animation-delay: 0ms;
+}
+
 .task-list .task-row:nth-child(2),
 .week-list .week-day:nth-child(2) {
   animation-delay: 24ms;
@@ -1818,6 +1839,10 @@ body.theme-dark .task-edit-button:hover {
   transform: translateX(0) scale(1.04);
 }
 
+body.theme-dark .task-row.highlighted {
+  --task-highlight-bg: rgba(247, 202, 90, 0.22);
+  --task-highlight-ring: rgba(255, 230, 140, 0.28);
+}
 
 .task-edit-button img {
   width: 18px;

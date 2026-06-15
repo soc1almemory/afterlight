@@ -20,6 +20,10 @@ interface AddTaskInput {
   dueDate?: string;
   scope?: TaskScope;
 }
+interface HighlightedTaskTarget {
+  id: string;
+  requestId: number;
+}
 const UPDATE_TOAST_EXIT_MS = 180;
 
 export const App = () => {
@@ -31,6 +35,8 @@ export const App = () => {
   const [isSearchOpen, setSearchOpen] = useState(false);
   const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isSettingsOpen, setSettingsOpen] = useState(false);
+  const [highlightedTaskTarget, setHighlightedTaskTarget] = useState<HighlightedTaskTarget | undefined>();
+  const [workspaceScrollTopRequestId, setWorkspaceScrollTopRequestId] = useState(0);
   const [lastSettingsPage, setLastSettingsPage] = useState<SettingsPage>('account');
   const [settingsInitialPage, setSettingsInitialPage] = useState<SettingsPage>('account');
   const [infoDialog, setInfoDialog] = useState<'changelog' | 'help' | undefined>();
@@ -261,10 +267,12 @@ export const App = () => {
           }}
           onOpenInfo={setInfoDialog}
           onOpenSearch={() => setSearchOpen(true)}
+          onOpenSection={() => setWorkspaceScrollTopRequestId((value) => value + 1)}
           onOpenSettings={() => openSettings()}
           onOpenTelegramSettings={() => openSettings('telegram')}
         />
         <ContentView
+          highlightedTaskTarget={highlightedTaskTarget}
           onAddTask={openCreateDialog}
           onEditTask={openEditDialog}
           onMouseEnter={() => {
@@ -272,6 +280,7 @@ export const App = () => {
               setSidebarCollapsed(true);
             }
           }}
+          scrollTopRequestId={workspaceScrollTopRequestId}
         />
         <TaskDialog
           isOpen={isTaskDialogOpen}
@@ -281,7 +290,12 @@ export const App = () => {
           onClose={closeDialog}
         />
         <CategoryDialog isOpen={isCategoryDialogOpen} category={editingCategory} onClose={closeCategoryDialog} />
-        <SearchDialog isOpen={isSearchOpen} onClose={() => setSearchOpen(false)} onEditTask={openEditDialog} />
+        <SearchDialog
+          isOpen={isSearchOpen}
+          onClose={() => setSearchOpen(false)}
+          onOpenSection={() => setWorkspaceScrollTopRequestId((value) => value + 1)}
+          onOpenTask={(taskId) => setHighlightedTaskTarget({ id: taskId, requestId: Date.now() })}
+        />
         <SettingsDialog
           initialPage={settingsInitialPage}
           isOpen={isSettingsOpen}

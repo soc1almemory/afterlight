@@ -5,13 +5,20 @@ import { assetUrl } from '../lib/assets';
 import { useTaskStore } from '../store/useTaskStore';
 
 interface TaskListItemProps {
+  isHighlighted?: boolean;
   task: Task;
   withSeparator: boolean;
   onEditTask: (task: Task) => void;
   showCategory?: boolean;
 }
 
-export const TaskListItem = ({ task, withSeparator, onEditTask, showCategory = false }: TaskListItemProps) => {
+export const TaskListItem = ({
+  isHighlighted = false,
+  task,
+  withSeparator,
+  onEditTask,
+  showCategory = false,
+}: TaskListItemProps) => {
   const categories = useTaskStore((state) => state.categories);
   const settings = useTaskStore((state) => state.settings);
   const toggleTask = useTaskStore((state) => state.toggleTask);
@@ -27,7 +34,14 @@ export const TaskListItem = ({ task, withSeparator, onEditTask, showCategory = f
   };
 
   return (
-    <article className={withSeparator ? 'task-row with-separator' : 'task-row'} draggable onDragStart={handleDragStart}>
+    <article
+      className={['task-row', withSeparator ? 'with-separator' : '', isHighlighted ? 'highlighted' : '']
+        .filter(Boolean)
+        .join(' ')}
+      data-task-id={task.id}
+      draggable
+      onDragStart={handleDragStart}
+    >
       {showCategory && category ? (
         <div className="task-category-label">
           <CategoryMarker category={category} />

@@ -8,14 +8,21 @@ import { useTaskStore } from '../store/useTaskStore';
 import { TaskListItem } from './TaskListItem';
 
 interface ContentViewProps {
+  highlightedTaskTarget?: HighlightedTaskTarget;
   onAddTask: (input?: AddTaskInput) => void;
   onEditTask: (task: Task) => void;
   onMouseEnter?: () => void;
+  scrollTopRequestId: number;
 }
 
 interface AddTaskInput {
   dueDate?: string;
   scope?: TaskScope;
+}
+
+interface HighlightedTaskTarget {
+  id: string;
+  requestId: number;
 }
 
 interface WeekGroup {
@@ -37,7 +44,13 @@ const dayLabels = {
   en: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
 };
 
-export const ContentView = ({ onAddTask, onEditTask, onMouseEnter }: ContentViewProps) => {
+export const ContentView = ({
+  highlightedTaskTarget,
+  onAddTask,
+  onEditTask,
+  onMouseEnter,
+  scrollTopRequestId,
+}: ContentViewProps) => {
   const activeScope = useTaskStore((state) => state.activeScope);
   const activeCategoryId = useTaskStore((state) => state.activeCategoryId);
   const categories = useTaskStore((state) => state.categories);
@@ -55,11 +68,45 @@ export const ContentView = ({ onAddTask, onEditTask, onMouseEnter }: ContentView
   const [isControlMenuOpen, setControlMenuOpen] = useState(false);
   const [refreshLabel, setRefreshLabel] = useState(getTodayRefreshLabel(settings.todayRefreshTime, settings.language));
   const [draftNoteText, setDraftNoteText] = useState('');
+  const [activeHighlightedTaskId, setActiveHighlightedTaskId] = useState<string | undefined>();
   const [timeTick, setTimeTick] = useState(Date.now());
   const t = useTranslator();
   const controlMenuRef = useRef<HTMLDivElement>(null);
   const notesTextareaRef = useRef<HTMLTextAreaElement>(null);
   const saveNoteTimeoutRef = useRef<number | undefined>(undefined);
+  const workspaceRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (!scrollTopRequestId) {
+      return;
+    }
+
+    requestAnimationFrame(() => {
+      workspaceRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  }, [scrollTopRequestId]);
+
+  useEffect(() => {
+    if (!highlightedTaskTarget) {
+      return;
+    }
+
+    setActiveHighlightedTaskId(highlightedTaskTarget.id);
+
+    requestAnimationFrame(() => {
+      const taskRow = workspaceRef.current?.querySelector<HTMLElement>(
+        `[data-task-id="${CSS.escape(highlightedTaskTarget.id)}"]`,
+      );
+
+      taskRow?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+
+    const timerId = window.setTimeout(() => {
+      setActiveHighlightedTaskId((taskId) => (taskId === highlightedTaskTarget.id ? undefined : taskId));
+    }, 1000);
+
+    return () => window.clearTimeout(timerId);
+  }, [activeCategoryId, activeScope, highlightedTaskTarget]);
 
   useEffect(() => {
     const updateRefreshLabel = () => setRefreshLabel(getTodayRefreshLabel(settings.todayRefreshTime, settings.language));
@@ -232,7 +279,7 @@ export const ContentView = ({ onAddTask, onEditTask, onMouseEnter }: ContentView
   };
 
   return (
-    <main className="workspace" onMouseEnter={onMouseEnter}>
+    <main className="workspace" ref={workspaceRef} onMouseEnter={onMouseEnter}>
       <div className="control-strip">
         <div className="control-status">
           {isLoading || (settings.showLastModified && lastModifiedLabel) ? (
@@ -298,11 +345,23 @@ export const ContentView = ({ onAddTask, onEditTask, onMouseEnter }: ContentView
         {error ? <div className="app-error">{error}</div> : null}
 
         {activeScope === 'week' ? (
-          <WeekTaskList groups={weekGroups} onAddTask={onAddTask} onEditTask={onEditTask} settings={settings} />
+          <WeekTaskList
+            groups={weekGroups}
+            highlightedTaskId={activeHighlightedTaskId}
+            onAddTask={onAddTask}
+            onEditTask={onEditTask}
+            settings={settings}
+          />
         ) : (
           <div className="task-list">
             {visibleTasks.map((task, index) => (
-              <TaskListItem key={task.id} task={task} withSeparator={index > 0} onEditTask={onEditTask} />
+              <TaskListItem
+                key={task.id}
+                isHighlighted={activeHighlightedTaskId === task.id}
+                task={task}
+                withSeparator={index > 0}
+                onEditTask={onEditTask}
+              />
             ))}
           </div>
         )}
@@ -393,11 +452,13 @@ const ConfirmDialog = ({
 
 const WeekTaskList = ({
   groups,
+  highlightedTaskId,
   onAddTask,
   onEditTask,
   settings,
 }: {
   groups: WeekGroup[];
+  highlightedTaskId?: string;
   onAddTask: (input?: AddTaskInput) => void;
   onEditTask: (task: Task) => void;
   settings: AppSettings;
@@ -454,6 +515,7 @@ const WeekTaskList = ({
                 group.tasks.map((task, index) => (
                   <TaskListItem
                     key={task.id}
+                    isHighlighted={highlightedTaskId === task.id}
                     task={task}
                     showCategory
                     withSeparator={index > 0}

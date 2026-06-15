@@ -8,7 +8,8 @@ import { useTaskStore } from '../store/useTaskStore';
 interface SearchDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onEditTask: (task: Task) => void;
+  onOpenSection: () => void;
+  onOpenTask: (taskId: string) => void;
 }
 
 interface SearchItem {
@@ -27,7 +28,7 @@ const scopeItems: Array<{ icon: string; labelKey: TranslationKey; scope: TaskSco
   { icon: 'search-week-icon.svg', labelKey: 'week', scope: 'week' },
 ];
 
-export const SearchDialog = ({ isOpen, onClose, onEditTask }: SearchDialogProps) => {
+export const SearchDialog = ({ isOpen, onClose, onOpenSection, onOpenTask }: SearchDialogProps) => {
   const [query, setQuery] = useState('');
   const categories = useTaskStore((state) => state.categories);
   const profile = useTaskStore((state) => state.profile);
@@ -55,6 +56,7 @@ export const SearchDialog = ({ isOpen, onClose, onEditTask }: SearchDialogProps)
         meta: getScopeMeta(item.scope, tasks, settings.todayRefreshTime),
         onSelect: () => {
           setScope(item.scope);
+          onOpenSection();
           onClose();
         },
       })),
@@ -66,6 +68,7 @@ export const SearchDialog = ({ isOpen, onClose, onEditTask }: SearchDialogProps)
         meta: formatUpdatedAt(category.updatedAt),
         onSelect: () => {
           setActiveCategory(category.id);
+          onOpenSection();
           onClose();
         },
       })),
@@ -76,7 +79,13 @@ export const SearchDialog = ({ isOpen, onClose, onEditTask }: SearchDialogProps)
         label: task.title,
         meta: formatUpdatedAt(task.updatedAt),
         onSelect: () => {
-          onEditTask(task);
+          if (task.categoryId) {
+            setActiveCategory(task.categoryId);
+          } else {
+            setScope(task.scope === 'category' ? 'inbox' : task.scope);
+          }
+
+          onOpenTask(task.id);
           onClose();
         },
       })),
@@ -90,7 +99,7 @@ export const SearchDialog = ({ isOpen, onClose, onEditTask }: SearchDialogProps)
       const haystack = `${item.label} ${item.meta ?? ''}`.toLocaleLowerCase('ru-RU');
       return haystack.includes(normalizedQuery);
     });
-  }, [categories, onClose, onEditTask, query, setActiveCategory, setScope, settings.theme, t, tasks]);
+  }, [categories, onClose, onOpenSection, onOpenTask, query, setActiveCategory, setScope, settings.theme, t, tasks]);
 
   const historyItems = useMemo(
     () =>
@@ -111,6 +120,7 @@ export const SearchDialog = ({ isOpen, onClose, onEditTask }: SearchDialogProps)
               meta: formatUpdatedAt(visit.openedAt),
               onSelect: () => {
                 setActiveCategory(category.id);
+                onOpenSection();
                 onClose();
               },
             };
@@ -130,12 +140,13 @@ export const SearchDialog = ({ isOpen, onClose, onEditTask }: SearchDialogProps)
             meta: formatUpdatedAt(visit.openedAt),
             onSelect: () => {
               setScope(visit.scope);
+              onOpenSection();
               onClose();
             },
           };
         })
         .filter(isSearchItem),
-    [categories, onClose, routeHistory, setActiveCategory, setScope, t],
+    [categories, onClose, onOpenSection, routeHistory, setActiveCategory, setScope, t],
   );
 
   if (!isOpen) {
