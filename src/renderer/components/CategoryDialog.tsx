@@ -5,6 +5,7 @@ import { useTaskStore } from '../store/useTaskStore';
 
 interface CategoryDialogProps {
   category?: Category;
+  defaultIsFavorite?: boolean;
   isOpen: boolean;
   onClose: () => void;
 }
@@ -156,7 +157,7 @@ const categoryDialogCopy = {
   },
 } as const;
 
-export const CategoryDialog = ({ category, isOpen, onClose }: CategoryDialogProps) => {
+export const CategoryDialog = ({ category, defaultIsFavorite = false, isOpen, onClose }: CategoryDialogProps) => {
   const createCategory = useTaskStore((state) => state.createCategory);
   const deleteCategory = useTaskStore((state) => state.deleteCategory);
   const settings = useTaskStore((state) => state.settings);
@@ -178,9 +179,9 @@ export const CategoryDialog = ({ category, isOpen, onClose }: CategoryDialogProp
     setColor(category?.color ?? colorOptions[0]);
     setEmoji(category?.emoji ?? '');
     setIconMode(category?.iconMode ?? 'color');
-    setFavorite(category?.isFavorite ?? false);
+    setFavorite(category?.isFavorite ?? defaultIsFavorite);
     setConfirmingDelete(false);
-  }, [category, isOpen]);
+  }, [category, defaultIsFavorite, isOpen]);
 
   if (!isOpen) {
     return null;
@@ -209,7 +210,7 @@ export const CategoryDialog = ({ category, isOpen, onClose }: CategoryDialogProp
         color,
         emoji,
         iconMode,
-        isFavorite: false,
+        isFavorite,
       });
     }
 

@@ -29,6 +29,7 @@ const UPDATE_TOAST_EXIT_MS = 180;
 export const App = () => {
   const [isTaskDialogOpen, setTaskDialogOpen] = useState(false);
   const [isCategoryDialogOpen, setCategoryDialogOpen] = useState(false);
+  const [defaultCategoryIsFavorite, setDefaultCategoryIsFavorite] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | undefined>();
   const [editingTask, setEditingTask] = useState<Task | undefined>();
   const [initialTaskInput, setInitialTaskInput] = useState<AddTaskInput | undefined>();
@@ -74,19 +75,22 @@ export const App = () => {
     setInitialTaskInput(undefined);
   };
 
-  const openCreateCategoryDialog = () => {
+  const openCreateCategoryDialog = (isFavorite = false) => {
     setEditingCategory(undefined);
+    setDefaultCategoryIsFavorite(isFavorite);
     setCategoryDialogOpen(true);
   };
 
   const openEditCategoryDialog = (category: Category) => {
     setEditingCategory(category);
+    setDefaultCategoryIsFavorite(false);
     setCategoryDialogOpen(true);
   };
 
   const closeCategoryDialog = () => {
     setCategoryDialogOpen(false);
     setEditingCategory(undefined);
+    setDefaultCategoryIsFavorite(false);
   };
 
   const openSettings = (page?: SettingsPage) => {
@@ -298,7 +302,12 @@ export const App = () => {
           initialScope={initialTaskInput?.scope}
           onClose={closeDialog}
         />
-        <CategoryDialog isOpen={isCategoryDialogOpen} category={editingCategory} onClose={closeCategoryDialog} />
+        <CategoryDialog
+          isOpen={isCategoryDialogOpen}
+          category={editingCategory}
+          defaultIsFavorite={defaultCategoryIsFavorite}
+          onClose={closeCategoryDialog}
+        />
         <SearchDialog
           isOpen={isSearchOpen}
           onClearTaskHighlight={clearTaskHighlight}

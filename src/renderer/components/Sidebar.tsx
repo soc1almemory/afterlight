@@ -6,7 +6,7 @@ import { assetUrl } from '../lib/assets';
 import { useTaskStore } from '../store/useTaskStore';
 
 interface SidebarProps {
-  onAddCategory: () => void;
+  onAddCategory: (isFavorite?: boolean) => void;
   onClearTaskHighlight: () => void;
   onEditCategory: (category: Category) => void;
   onMouseEnter?: () => void;
@@ -92,7 +92,7 @@ export const Sidebar = ({
               <span className="user-workspace">{workspace.title}</span>
             </span>
           </button>
-          <button className="create-category-button" type="button" aria-label={t('createCategory')} onClick={onAddCategory}>
+          <button className="create-category-button" type="button" aria-label={t('createCategory')} onClick={() => onAddCategory(false)}>
             <img className="preserve-icon-color" src={assetUrl('create-icon.svg')} alt="" />
           </button>
         </div>
@@ -131,7 +131,7 @@ export const Sidebar = ({
           categories={favoriteCategories}
           icon="favorite-container-star.svg"
           isOpen={isFavoritesOpen}
-          onAddCategory={onAddCategory}
+          onAddCategory={() => onAddCategory(true)}
           onClearTaskHighlight={onClearTaskHighlight}
           onEditCategory={onEditCategory}
           onOpenSection={onOpenSection}
@@ -147,7 +147,7 @@ export const Sidebar = ({
         <CategorySection
           categories={regularCategories}
           isOpen={isCategoriesOpen}
-          onAddCategory={onAddCategory}
+          onAddCategory={() => onAddCategory(false)}
           onClearTaskHighlight={onClearTaskHighlight}
           onEditCategory={onEditCategory}
           onOpenSection={onOpenSection}
