@@ -193,7 +193,7 @@ const botCopy = {
       week: 'Показать неделю',
     },
     text: {
-      alreadyConnected: 'Afterlight уже подключён. Главное меню открыто.',
+      alreadyConnected: 'Afterlight уже подключён. Главное меню открыто.\n\nAfterlight is already connected. Main menu is open.',
       botConnected:
         'Afterlight подключён. Теперь можно управлять задачами прямо из Telegram.\n\nAfterlight is connected. You can now manage tasks directly from Telegram.',
       cancel: 'Действие отменено. Главное меню открыто.',
