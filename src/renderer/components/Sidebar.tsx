@@ -7,6 +7,7 @@ import { useTaskStore } from '../store/useTaskStore';
 
 interface SidebarProps {
   onAddCategory: () => void;
+  onClearTaskHighlight: () => void;
   onEditCategory: (category: Category) => void;
   onMouseEnter?: () => void;
   onOpenInfo: (kind: 'changelog' | 'help') => void;
@@ -24,6 +25,7 @@ const primaryItems: Array<{ icon: string; labelKey: TranslationKey; scope: Exclu
 
 export const Sidebar = ({
   onAddCategory,
+  onClearTaskHighlight,
   onEditCategory,
   onMouseEnter,
   onOpenInfo,
@@ -109,7 +111,10 @@ export const Sidebar = ({
                 className={activeScope === item.scope ? 'primary-nav-item active' : 'primary-nav-item'}
                 key={item.scope}
                 type="button"
-                onClick={() => setScope(item.scope)}
+                onClick={() => {
+                  onClearTaskHighlight();
+                  setScope(item.scope);
+                }}
                 onDoubleClick={onOpenSection}
               >
                 <img src={assetUrl(item.icon)} alt="" />
@@ -127,6 +132,7 @@ export const Sidebar = ({
           icon="favorite-container-star.svg"
           isOpen={isFavoritesOpen}
           onAddCategory={onAddCategory}
+          onClearTaskHighlight={onClearTaskHighlight}
           onEditCategory={onEditCategory}
           onOpenSection={onOpenSection}
           onToggle={() => setFavoritesOpen((value) => !value)}
@@ -142,6 +148,7 @@ export const Sidebar = ({
           categories={regularCategories}
           isOpen={isCategoriesOpen}
           onAddCategory={onAddCategory}
+          onClearTaskHighlight={onClearTaskHighlight}
           onEditCategory={onEditCategory}
           onOpenSection={onOpenSection}
           onToggle={() => setCategoriesOpen((value) => !value)}
@@ -212,6 +219,7 @@ const CategorySection = ({
   icon,
   isOpen,
   onAddCategory,
+  onClearTaskHighlight,
   onEditCategory,
   onOpenSection,
   onToggle,
@@ -226,6 +234,7 @@ const CategorySection = ({
   icon?: string;
   isOpen: boolean;
   onAddCategory: () => void;
+  onClearTaskHighlight: () => void;
   onEditCategory: (category: Category) => void;
   onOpenSection: () => void;
   onToggle: () => void;
@@ -269,7 +278,10 @@ const CategorySection = ({
               <button
                 className="category-nav-button"
                 type="button"
-                onClick={() => setActiveCategory(category.id)}
+                onClick={() => {
+                  onClearTaskHighlight();
+                  setActiveCategory(category.id);
+                }}
                 onDoubleClick={onOpenSection}
               >
                 <CategoryMarker category={category} />

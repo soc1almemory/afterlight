@@ -96,6 +96,14 @@ export const App = () => {
     setSettingsOpen(true);
   };
 
+  const clearTaskHighlight = useCallback(() => {
+    setHighlightedTaskTarget(undefined);
+  }, []);
+
+  const scrollWorkspaceToTop = useCallback(() => {
+    setWorkspaceScrollTopRequestId((value) => value + 1);
+  }, []);
+
   const pageClass = useMemo(() => {
     if (!profile.isSetupComplete) return 'page-setup';
     if (activeScope === 'today') return 'page-today';
@@ -259,6 +267,7 @@ export const App = () => {
         />
         <Sidebar
           onAddCategory={openCreateCategoryDialog}
+          onClearTaskHighlight={clearTaskHighlight}
           onEditCategory={openEditCategoryDialog}
           onMouseEnter={() => {
             if (settings.autoCollapseSidebar) {
@@ -267,7 +276,7 @@ export const App = () => {
           }}
           onOpenInfo={setInfoDialog}
           onOpenSearch={() => setSearchOpen(true)}
-          onOpenSection={() => setWorkspaceScrollTopRequestId((value) => value + 1)}
+          onOpenSection={scrollWorkspaceToTop}
           onOpenSettings={() => openSettings()}
           onOpenTelegramSettings={() => openSettings('telegram')}
         />
@@ -292,8 +301,9 @@ export const App = () => {
         <CategoryDialog isOpen={isCategoryDialogOpen} category={editingCategory} onClose={closeCategoryDialog} />
         <SearchDialog
           isOpen={isSearchOpen}
+          onClearTaskHighlight={clearTaskHighlight}
           onClose={() => setSearchOpen(false)}
-          onOpenSection={() => setWorkspaceScrollTopRequestId((value) => value + 1)}
+          onOpenSection={scrollWorkspaceToTop}
           onOpenTask={(taskId) => setHighlightedTaskTarget({ id: taskId, requestId: Date.now() })}
         />
         <SettingsDialog

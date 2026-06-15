@@ -106,7 +106,7 @@ export const ContentView = ({
     }, 1000);
 
     return () => window.clearTimeout(timerId);
-  }, [activeCategoryId, activeScope, highlightedTaskTarget]);
+  }, [highlightedTaskTarget]);
 
   useEffect(() => {
     const updateRefreshLabel = () => setRefreshLabel(getTodayRefreshLabel(settings.todayRefreshTime, settings.language));

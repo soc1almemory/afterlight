@@ -7,6 +7,7 @@ import { useTaskStore } from '../store/useTaskStore';
 
 interface SearchDialogProps {
   isOpen: boolean;
+  onClearTaskHighlight: () => void;
   onClose: () => void;
   onOpenSection: () => void;
   onOpenTask: (taskId: string) => void;
@@ -28,7 +29,13 @@ const scopeItems: Array<{ icon: string; labelKey: TranslationKey; scope: TaskSco
   { icon: 'search-week-icon.svg', labelKey: 'week', scope: 'week' },
 ];
 
-export const SearchDialog = ({ isOpen, onClose, onOpenSection, onOpenTask }: SearchDialogProps) => {
+export const SearchDialog = ({
+  isOpen,
+  onClearTaskHighlight,
+  onClose,
+  onOpenSection,
+  onOpenTask,
+}: SearchDialogProps) => {
   const [query, setQuery] = useState('');
   const categories = useTaskStore((state) => state.categories);
   const profile = useTaskStore((state) => state.profile);
@@ -55,6 +62,7 @@ export const SearchDialog = ({ isOpen, onClose, onOpenSection, onOpenTask }: Sea
         label: t(item.labelKey),
         meta: getScopeMeta(item.scope, tasks, settings.todayRefreshTime),
         onSelect: () => {
+          onClearTaskHighlight();
           setScope(item.scope);
           onOpenSection();
           onClose();
@@ -67,6 +75,7 @@ export const SearchDialog = ({ isOpen, onClose, onOpenSection, onOpenTask }: Sea
         label: category.title,
         meta: formatUpdatedAt(category.updatedAt),
         onSelect: () => {
+          onClearTaskHighlight();
           setActiveCategory(category.id);
           onOpenSection();
           onClose();
@@ -99,7 +108,19 @@ export const SearchDialog = ({ isOpen, onClose, onOpenSection, onOpenTask }: Sea
       const haystack = `${item.label} ${item.meta ?? ''}`.toLocaleLowerCase('ru-RU');
       return haystack.includes(normalizedQuery);
     });
-  }, [categories, onClose, onOpenSection, onOpenTask, query, setActiveCategory, setScope, settings.theme, t, tasks]);
+  }, [
+    categories,
+    onClearTaskHighlight,
+    onClose,
+    onOpenSection,
+    onOpenTask,
+    query,
+    setActiveCategory,
+    setScope,
+    settings.theme,
+    t,
+    tasks,
+  ]);
 
   const historyItems = useMemo(
     () =>
@@ -119,6 +140,7 @@ export const SearchDialog = ({ isOpen, onClose, onOpenSection, onOpenTask }: Sea
               label: category.title,
               meta: formatUpdatedAt(visit.openedAt),
               onSelect: () => {
+                onClearTaskHighlight();
                 setActiveCategory(category.id);
                 onOpenSection();
                 onClose();
@@ -139,6 +161,7 @@ export const SearchDialog = ({ isOpen, onClose, onOpenSection, onOpenTask }: Sea
             label: t(scopeItem.labelKey),
             meta: formatUpdatedAt(visit.openedAt),
             onSelect: () => {
+              onClearTaskHighlight();
               setScope(visit.scope);
               onOpenSection();
               onClose();
@@ -146,7 +169,7 @@ export const SearchDialog = ({ isOpen, onClose, onOpenSection, onOpenTask }: Sea
           };
         })
         .filter(isSearchItem),
-    [categories, onClose, onOpenSection, routeHistory, setActiveCategory, setScope, t],
+    [categories, onClearTaskHighlight, onClose, onOpenSection, routeHistory, setActiveCategory, setScope, t],
   );
 
   if (!isOpen) {
