@@ -77,7 +77,7 @@ export const App = () => {
 
   const openCreateCategoryDialog = (isFavorite = false) => {
     setEditingCategory(undefined);
-    setDefaultCategoryIsFavorite(isFavorite);
+    setDefaultCategoryIsFavorite(isFavorite === true);
     setCategoryDialogOpen(true);
   };
 
@@ -266,7 +266,7 @@ export const App = () => {
       >
         <TitleBar
           isSidebarCollapsed={isSidebarCollapsed}
-          onAddCategory={openCreateCategoryDialog}
+          onAddCategory={() => openCreateCategoryDialog(false)}
           onToggleSidebar={() => setSidebarCollapsed((value) => !value)}
         />
         <Sidebar
