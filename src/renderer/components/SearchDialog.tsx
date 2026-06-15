@@ -203,7 +203,8 @@ const SearchResultButton = ({ item }: { item: SearchItem }) => (
 
 const SearchResultIcon = ({ item }: { item: SearchItem }) => {
   if (item.icon) {
-    return <img src={assetUrl(item.icon)} alt="" />;
+    const shouldPreserveIconColor = item.icon === 'checkbox-icon-dt.svg';
+    return <img className={shouldPreserveIconColor ? 'preserve-icon-color' : undefined} src={assetUrl(item.icon)} alt="" />;
   }
 
   if (item.category?.iconMode === 'emoji' && item.category.emoji) {

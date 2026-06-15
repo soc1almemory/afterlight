@@ -3404,6 +3404,7 @@ body.theme-dark img[src*='control-bar-star.svg'],
 body.theme-dark img[src*='afterlight-icon.svg'],
 body.theme-dark img[src*='create-icon.svg'],
 body.theme-dark img[src*='changelog-icon.svg'],
+body.theme-dark img[src*='checkbox-icon-dt.svg'],
 body.theme-dark img[src*='checkbox-checked.svg'],
 body.theme-dark img.preserve-icon-color {
   filter: none;
