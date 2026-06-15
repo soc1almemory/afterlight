@@ -291,6 +291,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   },
   resetProfile: async () => {
     const data = await requireApi().resetProfile();
+    clearNavigationState();
     set({ ...appDataToState(data), ...getInitialRouteState() });
   },
   setScope: (scope) => {
@@ -441,6 +442,14 @@ const getInitialRouteState = () => ({
 });
 
 const NAVIGATION_STORAGE_KEY = 'afterlight.navigation';
+
+const clearNavigationState = () => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.localStorage.removeItem(NAVIGATION_STORAGE_KEY);
+};
 
 const getStartupRouteState = (settings: AppSettings): TabStateUpdate => {
   const restoredState = readNavigationState();

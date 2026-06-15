@@ -557,6 +557,35 @@ export const resetTelegramSessions = (): TelegramBotStatus => {
   return getTelegramBotStatus();
 };
 
+export const resetTelegramIntegrationForProfileReset = (): TelegramBotStatus => {
+  const config = readConfig();
+  const botMode = getBotMode(config);
+
+  stopTelegramBot();
+
+  if (botMode === 'afterlight') {
+    void resetAfterlightBotServerSessions(config).catch((error) => {
+      writeConfig({ ...readConfig(), serverLastError: error instanceof Error ? error.message : String(error) });
+    });
+  }
+
+  writeConfig({
+    botMessageIds: [],
+    botMode,
+    botUsername: botMode === 'afterlight' ? 'afterlight_task_bot' : undefined,
+    chatSessions: {},
+    enabled: false,
+    language: normalizeLanguage(config.language),
+    pendingAuthChats: {},
+    serverAuthorizedChatCount: 0,
+    serverDeletedTaskIds: [],
+    serverUrl: DEFAULT_AFTERLIGHT_BOT_SERVER_URL,
+  });
+  lastError = undefined;
+  lastUpdateAt = undefined;
+  return getTelegramBotStatus();
+};
+
 export const testTelegramBotConnection = async (token?: string): Promise<TelegramBotStatus> => {
   const config = readConfig();
   if (getBotMode(config) === 'afterlight') {

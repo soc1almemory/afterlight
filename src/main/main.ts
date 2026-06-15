@@ -20,6 +20,7 @@ import {
   disconnectTelegramBot,
   getTelegramBotStatus,
   notifyTelegramDeadline,
+  resetTelegramIntegrationForProfileReset,
   resetTelegramSessions,
   restartTelegramBot,
   scheduleAfterlightBotSync,
@@ -99,7 +100,7 @@ const getCurrentSettings = (): AppSettings => listAppData().settings;
 
 registerTaskIpcHandlers({
   onProfileReset: () => {
-    resetTelegramSessions();
+    resetTelegramIntegrationForProfileReset();
     mainWindow?.setFullScreen(false);
     mainWindow?.maximize();
   },
