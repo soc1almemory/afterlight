@@ -1,20 +1,24 @@
-# Afterlight v0.2.7
+# Afterlight v0.2.8
 
-Update v0.2.7 fixes profile reset issues and includes fixes to the bot’s list sorting.
+Update v0.2.8 significantly improves the design of all app elements, fixes synchronization with the Telegram bot, and resolves other major bugs.
 
-## Help and Changelog
+## Design
 
-- Updated the changelog.
+* The app design has been significantly updated.
+* The setup-panel in the Setup Screen now adapts to height.
+
+## Sidebar
+
+* A category created from the "Favorites" section is now immediately created in Favorites.
+* The regular add button still creates a regular category.
 
 ## Telegram
 
-- Fixed list sorting issues.
+* Local SQLite now stores deleted tasks and categories so that a server snapshot cannot bring them back.
+* Sync with the bot now sends deletedTaskIds and deletedCategoryIds.
+* The Worker now stores deleted categories, deletes them on its side, and no longer upserts old versions over newer ones.
+* Merge is now timestamp-aware: an older snapshot no longer overwrites newer local changes.
 
-## Synchronization
+## Help and Changelog
 
-- Sync added on application startup.
-
-## Profile
-
-- When deleting a profile, a separate hard reset of the Telegram integration is now triggered instead of the regular “session reset”.
-- It disables Telegram, clears the old serverClientId/serverClientSecret/linkCode, sessions, pending auth, deleted markers, token/chat data, and prevents the app from reconnecting to the old Cloudflare workspace.
+* The changelog has been updated.
